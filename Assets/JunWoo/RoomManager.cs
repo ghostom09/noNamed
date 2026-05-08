@@ -1,10 +1,8 @@
+using Global;
 using UnityEngine;
 
-public class RoomManager : MonoBehaviour
+public class RoomManager : Singleton<RoomManager>
 {
-    
-    
-    
     private RoomNode _currentRoom;
     
 }
