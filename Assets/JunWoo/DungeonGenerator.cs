@@ -7,17 +7,17 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] private int corridorCount = 4;
     [SerializeField] private float branchChance = 0.5f;
     [SerializeField] private float childChance = 0.3f;
-    // [SerializeField] private int tempFloor;
+    [SerializeField] private int tempFloor;
 
     private List<RoomNode> _allRooms = new List<RoomNode>();
     private HashSet<Vector2Int> _occupiedPositions = new HashSet<Vector2Int>();
     private int _idCounter = 0;
 
-    // void Update()
-    // {
-    //     if (Keyboard.current.aKey.wasPressedThisFrame)
-    //         GenerateRooms(tempFloor);
-    // }
+    void Update()
+    {
+        if (Keyboard.current.aKey.wasPressedThisFrame)
+            GenerateRooms(tempFloor);
+    }
 
     public List<RoomNode> GenerateRooms(int currentFloor)
     {
