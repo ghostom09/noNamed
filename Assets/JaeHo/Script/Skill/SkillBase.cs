@@ -24,9 +24,10 @@ public abstract class SkillBase : MonoBehaviour
     protected virtual void Awake()
     {
         MainCamera = Camera.main;
-        if (firePoint == null) firePoint = transform;
+        if (firePoint == null)
+            Debug.LogError($"[{name}] firePoint가 할당되지 않음 - 인스펙터에서 공용 FirePoint를 연결해주세요");
+        
         AttackTimer = attackCooldown;
-
         _currentTags = defaultTags;
     }
 
