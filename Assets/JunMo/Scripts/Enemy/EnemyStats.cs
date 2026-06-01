@@ -21,7 +21,7 @@ public enum AttackType
     HighResearcher
 }
 
-[CreateAssetMenu(fileName = "EnemyStats", menuName = "Enemy/EnemyStats")]
+[CreateAssetMenu(fileName = "EnemyData", menuName = "Enemy/EnemyStats")]
 public class EnemyStats : ScriptableObject
 {
     [Header("기본 스탯")]
