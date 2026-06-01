@@ -19,7 +19,6 @@ public class PlayerInputReader : MonoBehaviour
     
     public void OnDash(InputAction.CallbackContext context)
     {
-        Debug.Log("Dash");
         _playerMove.Dash();
     }
 
