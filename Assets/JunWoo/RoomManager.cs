@@ -5,66 +5,99 @@ using UnityEngine;
 public class RoomManager : Singleton<RoomManager>
 {
     [SerializeField] private GameObject roomPrefab;
-    [SerializeField] private float roomSpacing = 10f;
+    [SerializeField] private Transform roomRoot;
+    [SerializeField] private bool scaleFallbackPrefabToRoomSize = true;
 
-    private List<RoomController> _roomControllers = new List<RoomController>();
+    private readonly List<RoomController> _roomControllers = new List<RoomController>();
+    private readonly List<GameObject> _spawnedRooms = new List<GameObject>();
     private RoomController _currentRoom;
-    
 
     public void SpawnAllRooms(List<RoomNode> rooms)
     {
-        foreach (var controller in _roomControllers)
+        ClearRooms();
+
+        if (rooms == null)
         {
-            if (controller != null)
-                Destroy(controller.gameObject);
+            Debug.LogError("Room list is null.");
+            return;
         }
 
+        for (var i = 0; i < rooms.Count; i++)
+        {
+            SpawnRoom(rooms[i]);
+        }
+    }
+
+    private void SpawnRoom(RoomNode data)
+    {
+        var prefab = data.Prefab != null ? data.Prefab : roomPrefab;
+        if (prefab == null)
+        {
+            Debug.LogError($"No prefab assigned for room {data.Id} ({data.Type}).");
+            return;
+        }
+
+        var worldPos = new Vector3(data.Position.x, data.Position.y, 0f);
+        var obj = Instantiate(prefab, worldPos, Quaternion.identity, roomRoot);
+
+        if (data.Prefab == null && scaleFallbackPrefabToRoomSize)
+            obj.transform.localScale = new Vector3(data.Size.x, data.Size.y, 1f);
+        // if (scaleFallbackPrefabToRoomSize)
+        //     obj.transform.localScale = new Vector3(data.Size.x, data.Size.y, 1f);
+
+        var controller = obj.GetComponent<RoomController>();
+        if (controller == null)
+            controller = obj.GetComponentInChildren<RoomController>();
+
+        if (controller == null)
+        {
+            Debug.LogError($"Room prefab does not have a RoomController: {data.Id} ({data.Type}).");
+            Destroy(obj);
+            return;
+        }
+
+        controller.Init(data);
+        _roomControllers.Add(controller);
+        _spawnedRooms.Add(obj);
+    }
+
+    private void ClearRooms()
+    {
+        for (var i = 0; i < _spawnedRooms.Count; i++)
+        {
+            if (_spawnedRooms[i] != null)
+                Destroy(_spawnedRooms[i]);
+        }
+
+        _spawnedRooms.Clear();
         _roomControllers.Clear();
         _currentRoom = null;
-
-        foreach (var data in rooms)
-        {
-            var worldPos = new Vector3(
-                data.GridPos.x * roomSpacing,
-                data.GridPos.y * roomSpacing,
-                0
-            );
-
-            var obj = Instantiate(roomPrefab, worldPos, Quaternion.identity);
-            var controller = obj.GetComponent<RoomController>();
-
-            if (controller == null)
-            {
-                Debug.LogError($"roomPrefab에 RoomController가 없음 : {data.Id}");
-                continue;
-            }
-
-            controller.Init(data);
-            _roomControllers.Add(controller);
-        }
     }
 
     public void EnterRoom(RoomController room)
     {
-        if (_currentRoom == room) return;
+        if (_currentRoom == room)
+            return;
 
         _currentRoom = room;
         room.OnEnter();
 
-        Debug.Log($"입장한 방 : {room.RoomData.Type} / ID : {room.RoomData.Id}");
+        Debug.Log($"Entered room: {room.RoomData.Type} / ID: {room.RoomData.Id}");
     }
 
     public void OnRoomCleared(RoomController room)
     {
         room.OnCleared();
-
-        Debug.Log($"클리어한 방 : {room.RoomData.Type} / ID : {room.RoomData.Id}");
+        Debug.Log($"Cleared room: {room.RoomData.Type} / ID: {room.RoomData.Id}");
     }
-    
+
     public RoomController GetRoom(int roomId)
     {
-        return _roomControllers.Find(r => r.RoomData.Id == roomId);
+        return _roomControllers.Find(r => r != null && r.RoomData != null && r.RoomData.Id == roomId);
     }
 
-    public RoomController GetCurrentRoom() => _currentRoom;
+    public RoomController GetCurrentRoom()
+    {
+        return _currentRoom;
+    }
 }

@@ -1,118 +1,172 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class DungeonGenerator : MonoBehaviour
 {
-    [SerializeField] private int corridorCount = 4;
-    [SerializeField] private float branchChance = 0.5f;
-    [SerializeField] private float childChance = 0.3f;
-    [SerializeField] private int tempFloor;
+    [Header("Fallback Rules")]
+    [SerializeField, Min(1)] private int fallbackMainPathRoomCount = 4;
+    [SerializeField, Range(0f, 1f)] private float fallbackBranchChance = 0.5f;
+    [SerializeField, Range(0f, 1f)] private float fallbackChildBranchChance = 0.3f;
+    [SerializeField, Range(0, 2)] private int fallbackMaxSideBranchesPerMainRoom = 2;
+    [SerializeField, Min(0)] private int fallbackMaxChildBranchRoomCount = 1;
+    [SerializeField, Min(0)] private int fallbackBossInterval = 3;
 
-    private List<RoomNode> _allRooms = new List<RoomNode>();
-    private HashSet<Vector2Int> _occupiedPositions = new HashSet<Vector2Int>();
-    private int _idCounter = 0;
+    [Header("Placement")]
+    [SerializeField, Min(0f)] private float roomPadding = 2f;
 
-    void Update()
-    {
-        if (Keyboard.current.aKey.wasPressedThisFrame)
-            GenerateRooms(tempFloor);
-    }
+    private readonly List<RoomNode> _allRooms = new List<RoomNode>();
+    private int _idCounter;
 
     public List<RoomNode> GenerateRooms(int currentFloor)
     {
+        return GenerateRooms(currentFloor, null);
+    }
+
+    public List<RoomNode> GenerateRooms(int currentFloor, FloorRule rule)
+    {
         _allRooms.Clear();
-        _occupiedPositions.Clear();
         _idCounter = 0;
 
-        var corridor = GenerateCorridor();
-        GenerateBranch(corridor);
+        var mainPath = GenerateMainPath(rule);
+        var exitParent = mainPath[^1];
 
-        bool hasBoss = (currentFloor % 3 == 0);
-        if (hasBoss)
-            AddBoss(corridor);
+        if (ShouldGenerateBoss(currentFloor, rule))
+            exitParent = AddBoss(exitParent, rule);
 
-        AddExit(corridor);
+        AddExit(exitParent, rule);
+        GenerateBranches(mainPath, rule);
+        GenerateGuaranteedRooms(mainPath, rule);
 
-        return _allRooms;
+        return new List<RoomNode>(_allRooms);
     }
-
-    private List<RoomNode> GenerateCorridor()
+    private void GenerateGuaranteedRooms(List<RoomNode> mainPath, FloorRule rule)
     {
-        var corridor = new List<RoomNode>();
+        TryForceSpawnRoomType(mainPath, RoomType.Archive, rule);
+        TryForceSpawnRoomType(mainPath, RoomType.Rest, rule);
+    }
+    private void TryForceSpawnRoomType(List<RoomNode> mainPath, RoomType type, FloorRule rule)
+    {
+        if (HasGeneratedRoomType(type))
+            return;
 
-        for (var i = 0; i < corridorCount; i++)
+        var definition = GetBranchDefinitionByType(rule, type);
+        if (definition == null && rule != null)
         {
-            int x = i * 2;
+            Debug.LogWarning($"Guaranteed room type is not in Branch Room Pool: {type}");
+            return;
+        }
 
-            var room = new RoomNode
+        var shuffled = new List<RoomNode>(mainPath);
+        Shuffle(shuffled);
+
+        foreach (var corridor in shuffled)
+        {
+            var directions = new List<Vector2Int> { Vector2Int.up, Vector2Int.down };
+            Shuffle(directions);
+
+            foreach (var dir in directions)
             {
-                Id = _idCounter++,
-                Type = RoomType.Corridor,
-                GridPos = new Vector2Int(x, 0),
-                Children = new List<RoomNode>()
-            };
-            corridor.Add(room);
-            _allRooms.Add(room);
-            _occupiedPositions.Add(room.GridPos);
-            
-            
+                if (TryCreateConnectedRoom(corridor, definition, type, dir, out _))
+                    return;
+            }
+        }
 
-            if (i >= corridorCount - 1) continue;
-            
-            var passage = new RoomNode
+        Debug.LogWarning($"보장 방 생성 실패: {type}");
+    }
+
+    private bool HasGeneratedRoomType(RoomType type)
+    {
+        for (var i = 0; i < _allRooms.Count; i++)
+        {
+            if (_allRooms[i].Type == type)
+                return true;
+        }
+
+        return false;
+    }
+
+    public bool IsFallbackBossFloor(int currentFloor)
+    {
+        return fallbackBossInterval > 0 && currentFloor % fallbackBossInterval == 0;
+    }
+
+    private List<RoomNode> GenerateMainPath(FloorRule rule)
+    {
+        var mainPath = new List<RoomNode>();
+        var current = CreateRoom(GetCorridorDefinition(rule), RoomType.Corridor, Vector2.zero, Vector2Int.zero);
+        mainPath.Add(current);
+
+        var roomCount = GetMainPathRoomCount(rule);
+        for (var i = 1; i < roomCount; i++)
+        {
+            var passage = CreateConnectedRoom(current, GetPassageDefinition(rule), RoomType.Passage, Vector2Int.right);
+            current = CreateConnectedRoom(passage, GetCorridorDefinition(rule), RoomType.Corridor, Vector2Int.right);
+            mainPath.Add(current);
+        }
+
+        return mainPath;
+    }
+
+    private void GenerateBranches(List<RoomNode> mainPath, FloorRule rule)
+    {
+        var maxBranches = GetMaxSideBranchesPerMainRoom(rule);
+        if (maxBranches <= 0)
+            return;
+
+        var maxChildBranches = GetMaxChildBranchRoomCount(rule);
+        var createdChildBranchCount = 0;
+
+        for (var i = 0; i < mainPath.Count; i++)
+        {
+            var branchDirections = new List<Vector2Int> { Vector2Int.up, Vector2Int.down };
+            Shuffle(branchDirections);
+
+            var createdCount = 0;
+            for (var j = 0; j < branchDirections.Count; j++)
             {
-                Id = _idCounter++,
-                Type = RoomType.Passage,
-                GridPos = new Vector2Int(x + 1, 0),
-                Children = new List<RoomNode>(),
-            };
-            _allRooms.Add(passage);
-            _occupiedPositions.Add(passage.GridPos);
-        }
-        for (int i = 0; i < corridor.Count - 1; i++)
-        {
-            corridor[i].Children.Add(corridor[i + 1]);
-            corridor[i + 1].Parent = corridor[i];
-        }
+                if (createdCount >= maxBranches)
+                    break;
+                
 
-        return corridor;
-    }
+                if (Random.value > GetBranchChance(rule))
+                    continue;
+                
+                
 
-    private void GenerateBranch(List<RoomNode> corridor)
-    {
-        foreach (var room in corridor)
-        {
-            if (Random.value < branchChance)
-                SpawnBranch(room, 1);   
-            if (Random.value < branchChance)
-                SpawnBranch(room, -1); 
+                if (!TryCreateBranchRoom(mainPath[i], branchDirections[j], rule, out var branch))
+                    continue;
+
+                createdCount++;
+
+                if (createdChildBranchCount >= maxChildBranches)
+                    continue;
+
+                if (TryCreateChildBranch(branch, rule))
+                    createdChildBranchCount++;
+            }
         }
     }
 
-    private void SpawnBranch(RoomNode parent, int dir)
+    private bool TryCreateBranchRoom(RoomNode parent, Vector2Int direction, FloorRule rule, out RoomNode branch)
     {
-        var branchPos = parent.GridPos + new Vector2Int(0, dir);
-
-        var branch = new RoomNode
+        var definition = GetRandomBranchDefinition(rule);
+        if (definition == null && rule != null)
         {
-            Id = _idCounter++,
-            Type = GetRandomBranchType(),
-            GridPos = branchPos,
-            Children = new List<RoomNode>(),
-            Parent = parent
-        };
-        parent.Children.Add(branch);
-        _allRooms.Add(branch);
-        _occupiedPositions.Add(branchPos);
-        
-        if (Random.value < childChance)
-            SpawnChildRoom(branch);
+            branch = null;
+            return false;
+        }
+
+        var fallbackType = definition != null ? definition.Type : GetRandomBranchType();
+        return TryCreateConnectedRoom(parent, definition, fallbackType, direction, out branch);
     }
 
-    private void SpawnChildRoom(RoomNode parent)
+    private bool TryCreateChildBranch(RoomNode parent, FloorRule rule)
     {
-        Vector2Int[] directions = {
+        if (Random.value > GetChildBranchChance(rule))
+            return false;
+
+        var directions = new List<Vector2Int>
+        {
             Vector2Int.up,
             Vector2Int.down,
             Vector2Int.left,
@@ -121,113 +175,204 @@ public class DungeonGenerator : MonoBehaviour
 
         Shuffle(directions);
 
-        foreach (var dir in directions)
+        for (var i = 0; i < directions.Count; i++)
         {
-            var candidatePos = parent.GridPos + dir; // (candidate = 후보자)
-
-            if (_occupiedPositions.Contains(candidatePos)) continue;
-
-            var child = new RoomNode
-            {
-                Id = _idCounter++,
-                Type = GetRandomBranchType(),
-                GridPos = candidatePos,
-                Children = new List<RoomNode>(),
-                Parent = parent
-            };
-            parent.Children.Add(child);
-            _allRooms.Add(child);
-            _occupiedPositions.Add(candidatePos);
-            break; // 하나만 생성하게 막아놓는거 없애도 댐
+            if (TryCreateBranchRoom(parent, directions[i], rule, out _))
+                return true;
         }
+
+        return false;
     }
 
-    private void AddBoss(List<RoomNode> corridor)
+    private RoomNode AddBoss(RoomNode parent, FloorRule rule)
     {
-        var lastCorridor = corridor[^1];
-        var boss = new RoomNode
-        {
-            Id = _idCounter++,
-            Type = RoomType.Boss,
-            GridPos = lastCorridor.GridPos + new Vector2Int(1, 0),
-            Children = new List<RoomNode>(),
-            Parent = lastCorridor
-        };
-        lastCorridor.Children.Add(boss);
-        _allRooms.Add(boss);
-        _occupiedPositions.Add(boss.GridPos);
+        return CreateConnectedRoom(parent, GetBossDefinition(rule), RoomType.Boss, Vector2Int.right);
     }
 
-    private void AddExit(List<RoomNode> corridor)
+    private RoomNode AddExit(RoomNode parent, FloorRule rule)
     {
-        var lastCorridor = corridor[^1];
+        return CreateConnectedRoom(parent, GetExitDefinition(rule), RoomType.Exit, Vector2Int.right);
+    }
 
-        var hasBoss = lastCorridor.Children.Count > 0 &&
-                      lastCorridor.Children[^1].Type == RoomType.Boss;
+    private RoomNode CreateConnectedRoom(
+        RoomNode parent,
+        RoomDefinition definition,
+        RoomType fallbackType,
+        Vector2Int direction)
+    {
+        var normalizedDirection = RoomDataUtility.NormalizeDirection(direction);
+        var position = CalculateConnectedPosition(parent, definition, fallbackType, normalizedDirection);
+        var gridPos = parent.GridPos + normalizedDirection;
+        var room = CreateRoom(definition, fallbackType, position, gridPos);
+        ConnectRooms(parent, room, normalizedDirection);
+        return room;
+    }
 
-        var exitParent = hasBoss ? lastCorridor.Children[^1] : lastCorridor;
+    private bool TryCreateConnectedRoom(
+        RoomNode parent,
+        RoomDefinition definition,
+        RoomType fallbackType,
+        Vector2Int direction,
+        out RoomNode room)
+    {
+        var normalizedDirection = RoomDataUtility.NormalizeDirection(direction);
+        var position = CalculateConnectedPosition(parent, definition, fallbackType, normalizedDirection);
+        var size = GetRoomSize(definition, fallbackType);
+        var bounds = new Rect(position - size * 0.5f, size);
 
-        var exit = new RoomNode
+        if (OverlapsExistingRoom(bounds))
+        {
+            room = null;
+            return false;
+        }
+
+        var gridPos = parent.GridPos + normalizedDirection;
+        room = CreateRoom(definition, fallbackType, position, gridPos);
+        ConnectRooms(parent, room, normalizedDirection);
+        return true;
+    }
+
+    private RoomNode CreateRoom(RoomDefinition definition, RoomType fallbackType, Vector2 position, Vector2Int gridPos)
+    {
+        var room = new RoomNode
         {
             Id = _idCounter++,
-            Type = RoomType.Exit,
-            GridPos = exitParent.GridPos + new Vector2Int(1, 0),
+            Definition = definition,
+            Type = definition != null ? definition.Type : fallbackType,
+            Position = position,
+            GridPos = gridPos,
             Children = new List<RoomNode>(),
-            Parent = exitParent
+            Connections = new List<RoomConnection>()
         };
-        exitParent.Children.Add(exit);
-        _allRooms.Add(exit);
-        _occupiedPositions.Add(exit.GridPos);
+
+        _allRooms.Add(room);
+        return room;
+    }
+
+    private void ConnectRooms(RoomNode from, RoomNode to, Vector2Int direction)
+    {
+        from.Children.Add(to);
+        to.Parent = from;
+
+        from.Connections.Add(new RoomConnection(from, to, direction));
+        to.Connections.Add(new RoomConnection(to, from, new Vector2Int(-direction.x, -direction.y)));
+    }
+
+    private Vector2 CalculateConnectedPosition(
+        RoomNode parent,
+        RoomDefinition childDefinition,
+        RoomType childFallbackType,
+        Vector2Int direction)
+    {
+        var parentDoor = GetDoorLocalPosition(parent.Definition, parent.Type, direction);
+        var oppositeDirection = new Vector2Int(-direction.x, -direction.y);
+        var childDoor = GetDoorLocalPosition(childDefinition, childFallbackType, oppositeDirection);
+        var paddingOffset = new Vector2(direction.x, direction.y) * roomPadding;
+
+        return parent.Position + parentDoor + paddingOffset - childDoor;
+    }
+
+    private Vector2 GetDoorLocalPosition(RoomDefinition definition, RoomType fallbackType, Vector2Int direction)
+    {
+        if (definition != null)
+            return definition.GetDoorLocalPosition(direction);
+
+        return RoomDataUtility.GetFallbackDoorLocalPosition(fallbackType, direction);
+    }
+
+    private Vector2 GetRoomSize(RoomDefinition definition, RoomType fallbackType)
+    {
+        return definition != null ? definition.Size : RoomDataUtility.GetFallbackSize(fallbackType);
+    }
+
+    private bool OverlapsExistingRoom(Rect bounds)
+    {
+        for (var i = 0; i < _allRooms.Count; i++)
+        {
+            if (bounds.Overlaps(_allRooms[i].Bounds))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool ShouldGenerateBoss(int currentFloor, FloorRule rule)
+    {
+        return rule != null ? rule.HasBoss : IsFallbackBossFloor(currentFloor);
+    }
+
+    private int GetMainPathRoomCount(FloorRule rule)
+    {
+        return rule != null ? rule.MainPathRoomCount : Mathf.Max(1, fallbackMainPathRoomCount);
+    }
+
+    private float GetBranchChance(FloorRule rule)
+    {
+        return rule != null ? rule.BranchChance : fallbackBranchChance;
+    }
+
+    private float GetChildBranchChance(FloorRule rule)
+    {
+        return rule != null ? rule.ChildBranchChance : fallbackChildBranchChance;
+    }
+
+    private int GetMaxSideBranchesPerMainRoom(FloorRule rule)
+    {
+        return rule != null ? rule.MaxSideBranchesPerMainRoom : Mathf.Clamp(fallbackMaxSideBranchesPerMainRoom, 0, 2);
+    }
+
+    private int GetMaxChildBranchRoomCount(FloorRule rule)
+    {
+        return rule != null ? rule.MaxChildBranchRoomCount : Mathf.Max(0, fallbackMaxChildBranchRoomCount);
+    }
+
+    private RoomDefinition GetCorridorDefinition(FloorRule rule)
+    {
+        return rule != null ? rule.CorridorRoom : null;
+    }
+
+    private RoomDefinition GetPassageDefinition(FloorRule rule)
+    {
+        return rule != null ? rule.PassageRoom : null;
+    }
+
+    private RoomDefinition GetBossDefinition(FloorRule rule)
+    {
+        return rule != null ? rule.BossRoom : null;
+    }
+
+    private RoomDefinition GetExitDefinition(FloorRule rule)
+    {
+        return rule != null ? rule.ExitRoom : null;
+    }
+
+    private RoomDefinition GetRandomBranchDefinition(FloorRule rule)
+    {
+        if (rule != null && rule.TryGetRandomBranchRoom(out var room))
+            return room;
+
+        return null;
+    }
+
+    private RoomDefinition GetBranchDefinitionByType(FloorRule rule, RoomType type)
+    {
+        if (rule != null && rule.TryGetBranchRoom(type, out var room))
+            return room;
+
+        return null;
     }
 
     private RoomType GetRandomBranchType()
     {
-        RoomType[] types = { RoomType.Lab, RoomType.Archive };
-        return types[Random.Range(0, types.Length)];
+        return Random.value < 0.5f ? RoomType.Lab : RoomType.Containment;
     }
 
-    private void Shuffle(Vector2Int[] array)
+    private void Shuffle<T>(List<T> list)
     {
-        for (var i = array.Length - 1; i > 0; i--)
+        for (var i = list.Count - 1; i > 0; i--)
         {
             var j = Random.Range(0, i + 1);
-            (array[i], array[j]) = (array[j], array[i]);
+            (list[i], list[j]) = (list[j], list[i]);
         }
     }
-
-    // private void OnDrawGizmos()
-    // {
-    //     if (_allRooms == null) return;
-    //
-    //     foreach (var room in _allRooms)
-    //     {
-    //         Gizmos.color = GetRoomColor(room.Type);
-    //         Vector3 pos = new Vector3(room.GridPos.x * 3f, room.GridPos.y * 3f, 0);
-    //
-    //         // 통로는 작게 표시
-    //         float size = room.Type == RoomType.Passage ? 1f : 2f;
-    //         Gizmos.DrawCube(pos, Vector3.one * size);
-    //
-    //         foreach (var child in room.Children)
-    //         {
-    //             Vector3 childPos = new Vector3(child.GridPos.x * 3f, child.GridPos.y * 3f, 0);
-    //             Gizmos.color = Color.white;
-    //             Gizmos.DrawLine(pos, childPos);
-    //         }
-    //     }
-    // }
-    //
-    // private Color GetRoomColor(RoomType type)
-    // {
-    //     return type switch
-    //     {
-    //         RoomType.Corridor => Color.gray,
-    //         RoomType.Passage  => Color.white,
-    //         RoomType.Lab      => Color.cyan,
-    //         RoomType.Archive  => Color.yellow,
-    //         RoomType.Boss     => Color.red,
-    //         RoomType.Exit     => Color.green,
-    //         _                 => Color.white
-    //     };
-    // }
 }

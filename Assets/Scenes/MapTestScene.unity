@@ -129,6 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 198990696}
   - component: {fileID: 198990695}
+  - component: {fileID: 198990697}
   - component: {fileID: 198990694}
   - component: {fileID: 198990693}
   m_Layer: 0
@@ -275,6 +276,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &198990697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 198990692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: abf05d8b48ceb8e4b9c4dd16eca855cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JunWoo.PlayerController
 --- !u!1 &682142385
 GameObject:
   m_ObjectHideFlags: 0
@@ -441,8 +454,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56dfc6b626ef6924286540fb5ed21469, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FloorManager
+  maxFloor: 8
+  startFloor: 1
   dungeonGenerator: {fileID: 1409541145}
   roomManager: {fileID: 1315179787}
+  floorRules:
+  - {fileID: 11400000, guid: 9bdbdadf3b9fc104794a7188cccab7c8, type: 2}
+  - {fileID: 11400000, guid: 4ae7e72e089394d4388014dc390877aa, type: 2}
+  - {fileID: 11400000, guid: 76b9dc93b1d3d8448b582aa3d3002973, type: 2}
+  - {fileID: 11400000, guid: e165d306c2930e640be8416cc7bf28ce, type: 2}
+  - {fileID: 11400000, guid: 2c029a73cd3debe48a99bcb83fb2a246, type: 2}
+  - {fileID: 11400000, guid: d1c0b1b391040e84c926a560c9677c56, type: 2}
+  - {fileID: 11400000, guid: 47a573913fda0af44b267bfa21b4fd66, type: 2}
+  - {fileID: 11400000, guid: 70fe78aa1375ce146b248d4dab3ce548, type: 2}
 --- !u!4 &818298633
 Transform:
   m_ObjectHideFlags: 0
@@ -488,7 +512,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomManager
   roomPrefab: {fileID: 193220045356802525, guid: 0a8c9715682341543bcfd9b7eb35d1a3, type: 3}
-  roomSpacing: 10
+  roomRoot: {fileID: 0}
+  scaleFallbackPrefabToRoomSize: 1
 --- !u!4 &1315179788
 Transform:
   m_ObjectHideFlags: 0
@@ -533,10 +558,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ffec9d5483b16742bab964bda171f5b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonGenerator
-  corridorCount: 4
-  branchChance: 0.5
-  childChance: 0.3
-  tempFloor: 3
+  fallbackMainPathRoomCount: 4
+  fallbackBranchChance: 0.5
+  fallbackChildBranchChance: 0.3
+  fallbackMaxSideBranchesPerMainRoom: 2
+  fallbackBossInterval: 3
+  roomPadding: 2
 --- !u!4 &1409541146
 Transform:
   m_ObjectHideFlags: 0
