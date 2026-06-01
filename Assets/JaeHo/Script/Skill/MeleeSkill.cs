@@ -10,6 +10,20 @@ public abstract class MeleeSkill : SkillBase
     [Header("--- Melee Settings ---")]
     [SerializeField] protected float attackRadius = 3f;
 
+    [Header("--- Slow Settings ---")]
+    [Tooltip("Slow 태그 시 속도 배율 (0~1)")]
+    [SerializeField] private float slowMultiplier = 0.5f;
+    [Tooltip("Slow 지속 시간 (초)")]
+    [SerializeField] private float slowDuration = 2f;
+
+    [Header("--- Poison Settings ---")]
+    [Tooltip("Poison 태그 시 틱당 데미지")]
+    [SerializeField] private float poisonDamagePerTick = 5f;
+    [Tooltip("Poison 지속 시간 (초)")]
+    [SerializeField] private float poisonDuration = 3f;
+    [Tooltip("Poison 틱 간격 (초)")]
+    [SerializeField] private float poisonTickInterval = 1f;
+
     protected override void Awake()
     {
         base.Awake();
@@ -29,7 +43,7 @@ public abstract class MeleeSkill : SkillBase
     /// SkillD(전방 직선) 등에서 사용.
     /// </summary>
     protected RaycastHit2D[] GetTargetsInBox(Vector2 origin, Vector2 direction,
-        Vector2 size, float distance)
+                                              Vector2 size, float distance)
     {
         return Physics2D.BoxCastAll(origin, size, 0f, direction, distance, targetLayer);
     }
@@ -38,7 +52,7 @@ public abstract class MeleeSkill : SkillBase
     /// 두 방향 사이의 각도를 계산해 부채꼴 범위 안에 있는지 판별.
     /// </summary>
     protected bool IsInFOV(Vector2 origin, Vector2 targetPos,
-        Vector2 forward, float halfAngle)
+                            Vector2 forward, float halfAngle)
     {
         Vector2 toTarget = (targetPos - origin).normalized;
         float angle = Vector2.Angle(forward, toTarget);
@@ -56,9 +70,9 @@ public abstract class MeleeSkill : SkillBase
 
         // 태그별 추가 효과 (ISlowable, IPoisonable 등 인터페이스 추가 시 확장)
         if (HasTag(SkillTag.Slow) && col.TryGetComponent<ISlowable>(out var slowable))
-            slowable.ApplySlow();
+            slowable.ApplySlow(slowMultiplier, slowDuration);
 
         if (HasTag(SkillTag.Poison) && col.TryGetComponent<IPoisonable>(out var poisonable))
-            poisonable.ApplyPoison();
+            poisonable.ApplyPoison(poisonDamagePerTick, poisonDuration, poisonTickInterval);
     }
 }

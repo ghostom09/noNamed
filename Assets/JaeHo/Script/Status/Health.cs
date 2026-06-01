@@ -10,8 +10,7 @@ public class Health : MonoBehaviour, IDamageable
     public event Action<float, float> OnHealed;
     public event Action OnDeath;
     
-    public float CurrentHp { get; private set; }
-    public bool IsDead { get; private set; }
+    public float CurrentHp { get; private set; } public bool IsDead { get; private set; }
 
     private void Awake()
     {

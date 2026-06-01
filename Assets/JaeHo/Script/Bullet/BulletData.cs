@@ -2,8 +2,6 @@ using UnityEngine;
 
 /// <summary>
 /// 총알의 물리 스탯 데이터.
-/// ScriptableObject로 만들어 각 스킬의 BulletData 슬롯에 드래그앤드롭.
-/// Create 메뉴: [Assets] 우클릭 → Create → SkillSystem → BulletData
 /// </summary>
 [CreateAssetMenu(fileName = "BulletData", menuName = "SkillSystem/BulletData")]
 public class BulletData : ScriptableObject
