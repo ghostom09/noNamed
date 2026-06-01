@@ -94,6 +94,7 @@ namespace BossSystem.Boss
 
             // 비헤이비어 트리 평가
             behaviorTree?.Evaluate();
+            ChasePlayer();
         }
 
         // ── 추상 메서드 ───────────────────────────────────────────
@@ -102,6 +103,10 @@ namespace BossSystem.Boss
         // ── 가상 메서드 ───────────────────────────────────────────
         protected virtual void OnEnterPhase2()
             => Debug.Log($"[{gameObject.name}] Phase 2 진입!");
+
+        protected virtual bool ShouldChasePlayer => true;
+        protected virtual float ChaseSpeed => moveSpeed;
+        protected virtual float ChaseStoppingDistance => 1.5f;
 
         // ── 공통 인터페이스 ───────────────────────────────────────
         public virtual void TakeDamage(float damage)
@@ -120,18 +125,12 @@ namespace BossSystem.Boss
         // ── 유틸리티 ─────────────────────────────────────────────
         public Transform GetPlayer() => player;
 
-        /// <summary>
-        /// ★ 탑다운 플레이어 바라보기
-        ///    Y축 고정, XZ 평면에서만 회전
-        /// </summary>
-        protected void LookAtPlayer()
+        protected void ChasePlayer()
         {
-            if (player == null) return;
-            Vector3 dir = player.position - transform.position;
-            dir.z = 0f;
-            if (dir.sqrMagnitude < 0.001f) return;
-            float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-            transform.rotation = Quaternion.Euler(0f, 0f, angle - 90f);
+            if (!ShouldChasePlayer || player == null || rb == null) return;
+            if (blackboard.DistanceToPlayer <= ChaseStoppingDistance) return;
+
+            MoveToward(player.position, ChaseSpeed);
         }
 
         /// <summary>탑다운 이동 (Rigidbody2D.MovePosition 사용)</summary>
@@ -141,7 +140,7 @@ namespace BossSystem.Boss
             dir.z = 0f;
             if (dir.sqrMagnitude < 0.01f) return;
 
-            Vector3 next = transform.position + dir.normalized * speed * Time.deltaTime;
+            Vector3 next = transform.position + speed * Time.deltaTime * dir.normalized;
             next.z = transform.position.z;
             rb.MovePosition(next);
         }

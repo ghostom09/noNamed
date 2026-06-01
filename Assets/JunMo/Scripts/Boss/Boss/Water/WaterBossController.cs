@@ -51,6 +51,8 @@ namespace BossSystem.Boss.WaterBoss
         private bool       floodActive   = false;
         private GameObject floodInstance = null;
 
+        protected override bool ShouldChasePlayer => false;
+
         // ── 비헤이비어 트리 구성 ─────────────────────────────────
         protected override BTNode BuildBehaviorTree()
         {
