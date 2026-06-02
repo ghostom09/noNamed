@@ -12,29 +12,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11373ea46bade3c4b93c7acee59500ae, type: 3}
   m_Name: TestStat
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStat
-  health: 0
-  meleeDamage: 0
-  rangedDamage: 0
-  criticalProbability: 0
-  moveSpeed: 0
-  attackSpeed: 0
-  skillArea: 0
+  health: 30
+  meleeDamage: 5
+  rangedDamage: 4
+  criticalProbability: 0.1
+  moveSpeed: 5
+  attackSpeed: 2
+  skillArea: 2
   levelTable:
-  - startLevel: 0
-    endLevel: 0
-    health: 0
-    meleeDamage: 0
-    rangedDamage: 0
-    criticalProbability: 0
-    moveSpeed: 0
-    attackSpeed: 0
-    skillArea: 0
-  - startLevel: 0
-    endLevel: 0
-    health: 0
-    meleeDamage: 0
-    rangedDamage: 0
-    criticalProbability: 0
-    moveSpeed: 0
-    attackSpeed: 0
-    skillArea: 0
+  - startLevel: 2
+    endLevel: 4
+    health: 1
+    meleeDamage: 1
+    rangedDamage: 1
+    criticalProbability: 1
+    moveSpeed: 1
+    attackSpeed: 1
+    skillArea: 1
+  - startLevel: 5
+    endLevel: 100
+    health: 2
+    meleeDamage: 2
+    rangedDamage: 2
+    criticalProbability: 2
+    moveSpeed: 2
+    attackSpeed: 2
+    skillArea: 2

@@ -41,12 +41,12 @@ public class PlayerStatManager : MonoBehaviour
 
         PlayerStatBonus bonus = playerStat.GetLevelBonus(Level);
 
-        Health = playerStat.health + bonus.health;
-        MeleeDamage = playerStat.meleeDamage + bonus.meleeDamage;
-        RangedDamage = playerStat.rangedDamage + bonus.rangedDamage;
+        Health              = playerStat.health              + bonus.health;
+        MeleeDamage         = playerStat.meleeDamage         + bonus.meleeDamage;
+        RangedDamage        = playerStat.rangedDamage        + bonus.rangedDamage;
         CriticalProbability = playerStat.criticalProbability + bonus.criticalProbability;
-        MoveSpeed = playerStat.moveSpeed + bonus.moveSpeed;
-        AttackSpeed = playerStat.attackSpeed + bonus.attackSpeed;
-        SkillArea = playerStat.skillArea + bonus.skillArea;
+        MoveSpeed           = playerStat.moveSpeed           + bonus.moveSpeed;
+        AttackSpeed         = playerStat.attackSpeed         + bonus.attackSpeed;
+        SkillArea           = playerStat.skillArea           + bonus.skillArea;
     }
 }
