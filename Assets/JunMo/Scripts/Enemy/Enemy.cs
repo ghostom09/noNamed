@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
@@ -20,10 +21,13 @@ public class Enemy : MonoBehaviour
     
     [HideInInspector]public Rigidbody2D rb;
     private float _attackTime = 0f;
+    
+    public event Action<Enemy> OnDead;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        // OnDead?.Invoke(this);
     }
 
     private void Start()
