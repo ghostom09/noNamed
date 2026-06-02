@@ -13,6 +13,8 @@ public class SkillA : ProjectileSkill
     protected override void Awake()
     {
         base.Awake();
+        if (firePoint == null) return;
+
         _muzzleFlash = firePoint.GetComponent<ParticleSystem>();
 
         if (_muzzleFlash == null)
@@ -23,6 +25,7 @@ public class SkillA : ProjectileSkill
     {
         AttackTimer += Time.deltaTime;
 
+        if (Mouse.current == null) return;
         if (!Mouse.current.leftButton.isPressed) return;
         if (AttackTimer < attackCooldown) return;
 
@@ -32,6 +35,8 @@ public class SkillA : ProjectileSkill
 
     private void ExecuteAttack()
     {
+        if (firePoint == null) return;
+
         // FirePointRotator가 이미 회전시켜뒀으므로 right 방향만 읽으면 됨
         Vector2 direction = firePoint.right;
 

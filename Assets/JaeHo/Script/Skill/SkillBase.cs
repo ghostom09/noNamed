@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public abstract class SkillBase : MonoBehaviour
@@ -9,8 +10,17 @@ public abstract class SkillBase : MonoBehaviour
     [SerializeField] protected LayerMask targetLayer;
     [SerializeField] protected Transform firePoint;
 
+    [Header("--- Critical Settings ---")]
+    [Tooltip("치명타 확률. 0 = 없음, 1 = 항상 치명타")]
+    [SerializeField, Range(0f, 1f)] private float criticalChance = 0.1f;
+    [Tooltip("치명타 시 데미지 배율")]
+    [SerializeField, Min(1f)] private float criticalMultiplier = 1.5f;
+
     [Header("--- Tag Settings ---")]
     [SerializeField] private SkillTag defaultTags = SkillTag.None;  // 인스펙터에서 기본 태그 설정
+
+    [Header("--- Mutation Settings ---")]
+    [SerializeField] private MutationLoadout mutationLoadout;
 
     protected float AttackTimer;
     protected Camera MainCamera;
@@ -20,12 +30,17 @@ public abstract class SkillBase : MonoBehaviour
 
     // 읽기 전용 프로퍼티 - 외부에서 태그 확인용
     public SkillTag CurrentTags => _currentTags;
+    public MutationLoadout Mutations => mutationLoadout;
+    public event Action<AttackHitResult> HitResolved;
 
     protected virtual void Awake()
     {
         MainCamera = Camera.main;
         if (firePoint == null)
             Debug.LogError($"[{name}] firePoint가 할당되지 않음 - 인스펙터에서 공용 FirePoint를 연결해주세요");
+
+        if (mutationLoadout == null)
+            mutationLoadout = GetComponentInParent<MutationLoadout>();
         
         AttackTimer = attackCooldown;
         _currentTags = defaultTags;
@@ -57,10 +72,43 @@ public abstract class SkillBase : MonoBehaviour
         _currentTags = defaultTags;
     }
 
+    protected AttackContext CreateAttackContext(
+        AttackRangeType rangeType,
+        AttackShapeType shapeType,
+        Vector2 origin,
+        Vector2 direction)
+    {
+        GameObject attacker = transform.root != null ? transform.root.gameObject : gameObject;
+
+        return new AttackContext(
+            this,
+            attacker,
+            mutationLoadout,
+            rangeType,
+            shapeType,
+            origin,
+            direction,
+            attackDamage,
+            CurrentTags,
+            criticalChance,
+            criticalMultiplier);
+    }
+
+    public void ReportHitResult(AttackHitResult result)
+    {
+        HitResolved?.Invoke(result);
+    }
+
     // ── 스킬 인터페이스 ─────────────────────────────────────────
 
     public abstract void OnAttack();
 
     public virtual void OnEquip() { }
     public virtual void OnUnequip() { }
+
+    protected virtual void OnValidate()
+    {
+        criticalChance = Mathf.Clamp01(criticalChance);
+        criticalMultiplier = Mathf.Max(1f, criticalMultiplier);
+    }
 }

@@ -27,6 +27,7 @@ public class SkillD : MeleeSkill
     {
         AttackTimer += Time.deltaTime;
 
+        if (Mouse.current == null) return;
         if (!Mouse.current.leftButton.wasPressedThisFrame) return;
         if (AttackTimer < attackCooldown) return;
 
@@ -36,28 +37,49 @@ public class SkillD : MeleeSkill
 
     private void ExecuteAttack()
     {
+        if (firePoint == null) return;
+
         Vector2 origin = firePoint.position;
 
         // FirePointRotator가 회전시켜둔 방향 사용
         Vector2 direction = firePoint.right;
+        AttackContext context = CreateAttackContext(
+            AttackRangeType.Melee,
+            AttackShapeType.ForwardBox,
+            origin,
+            direction);
 
         float width = HasTag(SkillTag.WidenRange) ? boxWidth * 1.5f : boxWidth;
-        Vector2 boxSize = new Vector2(width, width);
+        Vector2 boxSize = new Vector2(attackDistance, width);
 
         // 이펙트 재생
         PlayEffect();
 
-        RaycastHit2D[] hits = GetTargetsInBox(origin, direction, boxSize, attackDistance);
+        int hitCount = CollectTargetsInOrientedBox(origin, direction, boxSize);
+        SortCollectedTargetsByDistance(origin, hitCount);
 
         if (HasTag(SkillTag.MultiHit))
         {
-            foreach (var hit in hits)
-                ApplyDamage(hit.collider);
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider2D hit = GetCollectedTarget(i);
+                if (hit == null) continue;
+                if (!HasLineOfSight(origin, hit)) continue;
+
+                ApplyDamage(context, hit, hit.bounds.center);
+            }
         }
         else
         {
-            if (hits.Length > 0)
-                ApplyDamage(hits[0].collider);
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider2D hit = GetCollectedTarget(i);
+                if (hit == null) continue;
+                if (!HasLineOfSight(origin, hit)) continue;
+
+                ApplyDamage(context, hit, hit.bounds.center);
+                break;
+            }
         }
     }
 

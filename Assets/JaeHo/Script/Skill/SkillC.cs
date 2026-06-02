@@ -28,6 +28,7 @@ public class SkillC : MeleeSkill
     {
         AttackTimer += Time.deltaTime;
 
+        if (Mouse.current == null) return;
         if (!Mouse.current.leftButton.wasPressedThisFrame) return;
         if (AttackTimer < attackCooldown) return;
 
@@ -37,21 +38,32 @@ public class SkillC : MeleeSkill
 
     private void ExecuteAttack()
     {
+        if (firePoint == null) return;
+
         Vector2 origin = firePoint.position;
 
         // FirePointRotator가 회전시켜둔 방향 사용
         Vector2 forward = firePoint.right;
+        AttackContext context = CreateAttackContext(
+            AttackRangeType.Melee,
+            AttackShapeType.Fan,
+            origin,
+            forward);
 
         float radius = HasTag(SkillTag.WidenRange) ? attackRadius * 1.5f : attackRadius;
 
         // 이펙트 재생
         PlayEffect(forward);
 
-        Collider2D[] hits = GetTargetsInRadius(origin, radius);
-        foreach (var hit in hits)
+        int hitCount = CollectTargetsInRadius(origin, radius);
+        for (int i = 0; i < hitCount; i++)
         {
-            if (!IsInFOV(origin, hit.transform.position, forward, halfAngle)) continue;
-            ApplyDamage(hit);
+            Collider2D hit = GetCollectedTarget(i);
+            if (hit == null) continue;
+            if (!IsInFOV(origin, hit.bounds.center, forward, halfAngle)) continue;
+            if (!HasLineOfSight(origin, hit)) continue;
+
+            ApplyDamage(context, hit, hit.bounds.center);
         }
     }
 

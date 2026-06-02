@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class WeaponSwitcher : MonoBehaviour
+public class SkillSwitcher : MonoBehaviour
 {
     [SerializeField] private SkillBase[] skills;
 

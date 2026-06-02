@@ -14,6 +14,8 @@ public class SkillB : ProjectileSkill
     protected override void Awake()
     {
         base.Awake();
+        if (firePoint == null) return;
+
         _muzzleFlash = firePoint.GetComponent<ParticleSystem>();
 
         if (_muzzleFlash == null)
@@ -24,6 +26,7 @@ public class SkillB : ProjectileSkill
     {
         AttackTimer += Time.deltaTime;
 
+        if (Mouse.current == null) return;
         if (!Mouse.current.leftButton.isPressed)
         {
             _fired = false;
@@ -40,6 +43,8 @@ public class SkillB : ProjectileSkill
 
     private void ExecuteAttack()
     {
+        if (firePoint == null) return;
+
         Vector2 direction = firePoint.right;
 
         PlayMuzzleFlash(direction);
