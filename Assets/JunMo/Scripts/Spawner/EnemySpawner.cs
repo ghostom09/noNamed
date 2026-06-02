@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class EnemySpawner : MonoBehaviour
 {
     public static EnemySpawner Instance;
+    private List<Enemy> _enemies = new();
     public void Spawn(List<Transform> spawnPoints, MonsterSpawnData monsterSpawnData)
     {
         int index = Random.Range(0, spawnPoints.Count);
@@ -11,6 +12,7 @@ public class EnemySpawner : MonoBehaviour
         spawnPoints.RemoveAt(index);
 
         GameObject monsterPrefab = GetRandomMonster(monsterSpawnData);
+        _enemies.Add(monsterPrefab.GetComponent<Enemy>());
 
         Instantiate(
             monsterPrefab,
@@ -67,5 +69,15 @@ public class EnemySpawner : MonoBehaviour
         }
 
         return monsters[0].monsterPrefab;
+    }
+    
+    public void OnMonsterDead(Enemy enemy)
+    {
+        _enemies.Remove(enemy);
+
+        if (_enemies.Count == 0)
+        {
+            // 여는거
+        }
     }
 }

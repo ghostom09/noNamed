@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using BossSystem.BehaviorTree;
 using BossSystem.Boss;
+using BossSystem.Boss.FireBoss;
 
 namespace BossSystem.Boss.WaterBoss
 {
