@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using BossSystem.BehaviorTree;
 using BossSystem.Boss;
+using BossSystem.Boss.FireBoss;
 
 namespace BossSystem.Boss.WaterBoss
 {
@@ -50,6 +51,8 @@ namespace BossSystem.Boss.WaterBoss
         // 상태
         private bool       floodActive   = false;
         private GameObject floodInstance = null;
+
+        protected override bool ShouldChasePlayer => false;
 
         // ── 비헤이비어 트리 구성 ─────────────────────────────────
         protected override BTNode BuildBehaviorTree()

@@ -28,6 +28,10 @@ namespace BossSystem.Boss.FireBoss
         [SerializeField] private float closeRange = 5f;
         [SerializeField] private float farRange = 8f;
 
+        [Header("추격")]
+        [SerializeField] private float chaseSpeed = 4f;
+        [SerializeField] private float chaseStoppingDistance = 2f;
+
         [Header("화염 방사")]
         [SerializeField] private float breathDuration = 2.5f;
         [SerializeField] private float breathDPS = 30f;
@@ -51,6 +55,9 @@ namespace BossSystem.Boss.FireBoss
         // 활성화된 가스 구름 목록 (페이즈2 폭발 연동)
         private List<GasCloud> activeGasClouds = new List<GasCloud>();
         public IReadOnlyList<GasCloud> ActiveGasClouds => activeGasClouds;
+
+        protected override float ChaseSpeed => chaseSpeed;
+        protected override float ChaseStoppingDistance => chaseStoppingDistance;
 
         // ── 비헤이비어 트리 구성 ─────────────────────────────
         protected override BTNode BuildBehaviorTree()

@@ -12,9 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 0}
   m_Name: Temp
   m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnData
-  normalMonsters: []
-  eliteMonsters: []
-  bossMonsters: []
+  normalMonsters:
+  - monsterPrefab: {fileID: 0}
+    weight: 66
+  - monsterPrefab: {fileID: 0}
+    weight: 0
+  - monsterPrefab: {fileID: 0}
+    weight: 0
+  eliteMonsters:
+  - monsterPrefab: {fileID: 0}
+    weight: 0
+  - monsterPrefab: {fileID: 0}
+    weight: 0
+  bossMonsters:
+  - monsterPrefab: {fileID: 0}
+    weight: 0
   isNormal: 1
-  isElite: 0
-  isBoss: 0
+  isElite: 1
+  isBoss: 1

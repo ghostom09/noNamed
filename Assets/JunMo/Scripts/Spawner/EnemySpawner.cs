@@ -1,22 +1,49 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
-using Global;
+using Random = UnityEngine.Random;
 
 public class EnemySpawner : Singleton<EnemySpawner>
 {
-    public void Spawn(List<Transform> spawnPoints, MonsterSpawnData monsterSpawnData)
+    public static EnemySpawner Instance;
+    private List<Enemy> _enemies = new();
+    private List<Transform> _spawnPoints = new();
+    
+    public event Action on_Die;
+
+    public void InitList(List<Transform> spawnPoints)
     {
-        int index = Random.Range(0, spawnPoints.Count);
-        var spawnPoint = spawnPoints[index];
-        spawnPoints.RemoveAt(index);
+        _spawnPoints = new List<Transform>(spawnPoints);
+    }
+
+    private Transform RandomTransform()
+    {
+        if (_spawnPoints.Count == 0)
+        {
+            Debug.LogWarning("사용 가능한 스폰 포인트가 없음");
+            return null;
+        }
+        
+        int index = Random.Range(0, _spawnPoints.Count);
+        Transform spawnPoint = _spawnPoints[index];
+        _spawnPoints.RemoveAt(index);
+        return spawnPoint;
+    }
+    public void Spawn(MonsterSpawnData monsterSpawnData)
+    {
+        Transform spawnPoint = RandomTransform();
 
         GameObject monsterPrefab = GetRandomMonster(monsterSpawnData);
 
-        Instantiate(
+        GameObject enemyObj = Instantiate(
             monsterPrefab,
             spawnPoint.position,
             Quaternion.identity
         );
+        Enemy enemy = enemyObj.GetComponent<Enemy>();
+        _enemies.Add(enemy);
+        
+        enemy.OnDead += OnMonsterDead;
     }
     
     private GameObject GetRandomMonster(MonsterSpawnData data)
@@ -67,5 +94,16 @@ public class EnemySpawner : Singleton<EnemySpawner>
         }
 
         return monsters[0].monsterPrefab;
+    }
+    
+    public void OnMonsterDead(Enemy enemy)
+    {
+        enemy.OnDead -= OnMonsterDead;
+        _enemies.Remove(enemy);
+
+        if (_enemies.Count == 0)
+        {
+            // 여는거
+        }
     }
 }

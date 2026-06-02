@@ -28,6 +28,10 @@ namespace BossSystem.Boss.FleshBoss
         [Header("살점 보스 설정")]
         [SerializeField] private float meleeRange = 3.5f;
 
+        [Header("추격")]
+        [SerializeField] private float chaseSpeed = 1.5f;
+        [SerializeField] private float chaseStoppingDistance = 2f;
+
         [Header("쿨다운")]
         [SerializeField] private float chargeCooldown   = 6f;
         [SerializeField] private float scatterCooldown  = 5f;
@@ -50,6 +54,10 @@ namespace BossSystem.Boss.FleshBoss
         // 돌진 중 충돌 데미지용
         private bool isCharging = false;
         private float chargeDamage = 40f;
+
+        protected override bool ShouldChasePlayer => !isCharging;
+        protected override float ChaseSpeed => chaseSpeed;
+        protected override float ChaseStoppingDistance => chaseStoppingDistance;
 
         // ── 비헤이비어 트리 구성 ─────────────────────────────────
         protected override BTNode BuildBehaviorTree()
