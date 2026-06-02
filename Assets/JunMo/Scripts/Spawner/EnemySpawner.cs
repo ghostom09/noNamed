@@ -1,9 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Global;
 
-public class EnemySpawner : MonoBehaviour
+public class EnemySpawner : Singleton<EnemySpawner>
 {
-    public static EnemySpawner Instance;
     public void Spawn(List<Transform> spawnPoints, MonsterSpawnData monsterSpawnData)
     {
         int index = Random.Range(0, spawnPoints.Count);

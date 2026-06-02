@@ -57,8 +57,7 @@ public class RoomController : MonoBehaviour
     {
         if (RoomData.LocksDoors)
             BlockExits();
-
-        // TODO: connect this to EnemySpawner and set _remainingEnemies from the spawn result.
+        
         // _remainingEnemies = EnemySpawner.Instance.Spawn(RoomData);
 
         if (_remainingEnemies <= 0 && autoClearWhenNoEnemiesSpawned)
