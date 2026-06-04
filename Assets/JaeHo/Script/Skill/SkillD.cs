@@ -54,6 +54,7 @@ public class SkillD : MeleeSkill
 
         // 이펙트 재생
         PlayEffect();
+        AbsorbProjectilesInOrientedBox(context, origin, direction, boxSize);
 
         int hitCount = CollectTargetsInOrientedBox(origin, direction, boxSize);
         SortCollectedTargetsByDistance(origin, hitCount);

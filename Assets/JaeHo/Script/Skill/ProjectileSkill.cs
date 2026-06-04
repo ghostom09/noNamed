@@ -11,12 +11,27 @@ public abstract class ProjectileSkill : SkillBase
     [Tooltip("산탄 변이 시 탄 사이 각도")]
     [SerializeField, Min(0f)] private float spreadAngleStep = 8f;
 
+    [Header("--- Laser Settings ---")]
+    [SerializeField, Min(1)] private int maxLaserHits = 32;
+    [SerializeField] private LayerMask laserObstacleLayer;
+
+    private RaycastHit2D[] _laserHitBuffer;
+    private ContactFilter2D _laserFilter;
+
     protected override void Awake()
     {
         base.Awake();
 
         if (bulletData == null)
             Debug.LogError($"[{name}] BulletData가 할당되지 않음");
+
+        _laserHitBuffer = new RaycastHit2D[Mathf.Max(1, maxLaserHits)];
+        _laserFilter = new ContactFilter2D
+        {
+            useLayerMask = true,
+            layerMask = targetLayer.value | laserObstacleLayer.value,
+            useTriggers = true
+        };
     }
 
     /// <summary>
@@ -32,6 +47,12 @@ public abstract class ProjectileSkill : SkillBase
     private void FireBulletPattern(AttackContext context)
     {
         if (bulletData == null) return;
+
+        if (MutationEffectResolver.IsLaserPierce(context))
+        {
+            FireLaser(context.WithShape(AttackShapeType.Laser));
+            return;
+        }
 
         MutationGrade spreadGrade = MutationEffectResolver.GetGrade(
             context,
@@ -71,6 +92,77 @@ public abstract class ProjectileSkill : SkillBase
     {
         Bullet bullet = BulletPool.Instance.Get(bulletData, context.Origin, context.Direction);
         bullet.Initialize(context, bulletData);
+    }
+
+    private void FireLaser(AttackContext context)
+    {
+        _laserFilter.layerMask = targetLayer.value | laserObstacleLayer.value;
+
+        int hitCount = Physics2D.Raycast(
+            context.Origin, context.Direction, _laserFilter, _laserHitBuffer, attackDistance);
+
+        SortLaserHits(hitCount);
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit2D hit = _laserHitBuffer[i];
+            if (hit.collider == null) continue;
+
+            if ((laserObstacleLayer.value & (1 << hit.collider.gameObject.layer)) != 0)
+                break;
+
+            if (!AttackDamageResolver.TryApplyDamage(
+                    context.WithOriginAndDirection(hit.point, context.Direction),
+                    hit.collider,
+                    hit.point,
+                    hit.normal,
+                    out var hitResult))
+                continue;
+
+            ApplyLaserFollowUp(hitResult, hit.collider);
+            ApplyLaserStun(hitResult, hit.collider);
+            ApplyLaserBind(hitResult, hit.collider);
+        }
+    }
+
+    private void SortLaserHits(int hitCount)
+    {
+        for (int i = 1; i < hitCount; i++)
+        {
+            RaycastHit2D current = _laserHitBuffer[i];
+            int j = i - 1;
+
+            while (j >= 0 && _laserHitBuffer[j].distance > current.distance)
+            {
+                _laserHitBuffer[j + 1] = _laserHitBuffer[j];
+                j--;
+            }
+
+            _laserHitBuffer[j + 1] = current;
+        }
+    }
+
+    private static void ApplyLaserFollowUp(AttackHitResult hitResult, Collider2D collider)
+    {
+        if (!MutationEffectResolver.TryGetFollowUpMultiplier(hitResult, out float multiplier)) return;
+        if (collider.TryGetComponent<IDamageable>(out var damageable))
+            damageable.TakeDamage(hitResult.AppliedDamage * multiplier);
+    }
+
+    private static void ApplyLaserStun(AttackHitResult hitResult, Collider2D collider)
+    {
+        if (!MutationEffectResolver.TryGetStunDuration(hitResult, out float duration)) return;
+        if (collider.TryGetComponent<IStunnable>(out var stunnable))
+            stunnable.ApplyStun(duration);
+    }
+
+    private static void ApplyLaserBind(AttackHitResult hitResult, Collider2D collider)
+    {
+        if (!MutationEffectResolver.TryGetBindData(hitResult, out float duration,
+                out float damagePerTick, out float tickInterval)) return;
+
+        if (collider.TryGetComponent<IBindable>(out var bindable))
+            bindable.ApplyBind(duration, damagePerTick, tickInterval);
     }
 
     private static int ResolveSpreadCount(AttackContext context, MutationGrade grade)

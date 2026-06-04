@@ -90,6 +90,7 @@ public abstract class SkillBase : MonoBehaviour
             direction,
             attackDamage,
             CurrentTags,
+            targetLayer,
             criticalChance,
             criticalMultiplier);
     }

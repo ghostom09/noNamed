@@ -17,6 +17,10 @@ public abstract class MeleeSkill : SkillBase
     [Tooltip("시야 판정에 사용할 장애물 레이어")]
     [SerializeField] private LayerMask obstacleLayer;
 
+    [Header("--- Projectile Absorb Settings ---")]
+    [SerializeField] private LayerMask projectileAbsorbLayer;
+    [SerializeField, Min(1)] private int maxAbsorbBufferSize = 24;
+
     [Header("--- Slow Settings ---")]
     [Tooltip("Slow 태그 시 속도 배율 (0~1)")]
     [SerializeField] private float slowMultiplier = 0.5f;
@@ -32,16 +36,25 @@ public abstract class MeleeSkill : SkillBase
     [SerializeField] private float poisonTickInterval = 1f;
 
     private Collider2D[] _colliderBuffer;
+    private Collider2D[] _projectileBuffer;
     private ContactFilter2D _targetFilter;
+    private ContactFilter2D _projectileFilter;
 
     protected override void Awake()
     {
         base.Awake();
         _colliderBuffer = new Collider2D[Mathf.Max(1, maxHitBufferSize)];
+        _projectileBuffer = new Collider2D[Mathf.Max(1, maxAbsorbBufferSize)];
         _targetFilter = new ContactFilter2D
         {
             useLayerMask = true,
             layerMask = targetLayer,
+            useTriggers = true
+        };
+        _projectileFilter = new ContactFilter2D
+        {
+            useLayerMask = true,
+            layerMask = projectileAbsorbLayer,
             useTriggers = true
         };
     }
@@ -118,6 +131,51 @@ public abstract class MeleeSkill : SkillBase
         return hit.collider == null;
     }
 
+    protected void AbsorbProjectilesInRadius(AttackContext context, Vector2 origin, float radius)
+    {
+        if (!MutationEffectResolver.TryGetProjectileAbsorbData(
+                context, out bool reflect, out float reflectedDamageMultiplier))
+            return;
+
+        _projectileFilter.layerMask = projectileAbsorbLayer;
+        int hitCount = Physics2D.OverlapCircle(origin, radius, _projectileFilter, _projectileBuffer);
+        ApplyProjectileAbsorb(context, hitCount, reflect, reflectedDamageMultiplier);
+    }
+
+    protected void AbsorbProjectilesInOrientedBox(AttackContext context, Vector2 origin, Vector2 direction, Vector2 size)
+    {
+        if (!MutationEffectResolver.TryGetProjectileAbsorbData(
+                context, out bool reflect, out float reflectedDamageMultiplier))
+            return;
+
+        Vector2 normalizedDirection = direction.sqrMagnitude > 0f ? direction.normalized : Vector2.right;
+        Vector2 center = origin + normalizedDirection * (size.x * 0.5f);
+        float angle = Mathf.Atan2(normalizedDirection.y, normalizedDirection.x) * Mathf.Rad2Deg;
+
+        _projectileFilter.layerMask = projectileAbsorbLayer;
+        int hitCount = Physics2D.OverlapBox(center, size, angle, _projectileFilter, _projectileBuffer);
+        ApplyProjectileAbsorb(context, hitCount, reflect, reflectedDamageMultiplier);
+    }
+
+    private void ApplyProjectileAbsorb(
+        AttackContext context,
+        int hitCount,
+        bool reflect,
+        float reflectedDamageMultiplier)
+    {
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider2D projectile = _projectileBuffer[i];
+            if (projectile == null) continue;
+            if (!projectile.TryGetComponent<IAbsorbableProjectile>(out var absorbable)) continue;
+
+            if (reflect)
+                absorbable.Reflect(context.Attacker, context.Direction, reflectedDamageMultiplier);
+            else
+                absorbable.Absorb(context.Attacker);
+        }
+    }
+
     /// <summary>
     /// IDamageable에 데미지 적용. 태그 분기(Poison, Slow 등)도 여기서 처리.
     /// </summary>
@@ -133,6 +191,9 @@ public abstract class MeleeSkill : SkillBase
 
         TryApplyFollowUp(hitResult, col);
         TryExplode(context, hitResult, col);
+        TryApplyKnockback(hitResult, col);
+        TryApplyStun(hitResult, col);
+        TryApplyBind(hitResult, col);
         TryApplySlow(context, hitResult, col);
         TryApplyPoison(context, hitResult, col);
 
@@ -145,6 +206,37 @@ public abstract class MeleeSkill : SkillBase
         if (!col.TryGetComponent<IDamageable>(out var damageable)) return;
 
         damageable.TakeDamage(hitResult.AppliedDamage * multiplier);
+    }
+
+    private void TryApplyKnockback(AttackHitResult hitResult, Collider2D col)
+    {
+        if (!MutationEffectResolver.TryGetKnockbackData(hitResult, out float impulse,
+                out float collisionDamage, out float extraTargetDamage, out bool stunOnCollision))
+            return;
+
+        if (!col.TryGetComponent<IKnockbackable>(out var knockbackable)) return;
+
+        Vector2 direction = ((Vector2)col.bounds.center - hitResult.Context.Origin).normalized;
+        if (direction.sqrMagnitude <= 0f)
+            direction = hitResult.Context.Direction;
+
+        knockbackable.ApplyKnockback(direction, impulse, collisionDamage, extraTargetDamage, stunOnCollision);
+    }
+
+    private void TryApplyStun(AttackHitResult hitResult, Collider2D col)
+    {
+        if (!MutationEffectResolver.TryGetStunDuration(hitResult, out float duration)) return;
+        if (col.TryGetComponent<IStunnable>(out var stunnable))
+            stunnable.ApplyStun(duration);
+    }
+
+    private void TryApplyBind(AttackHitResult hitResult, Collider2D col)
+    {
+        if (!MutationEffectResolver.TryGetBindData(hitResult, out float duration,
+                out float damagePerTick, out float tickInterval)) return;
+
+        if (col.TryGetComponent<IBindable>(out var bindable))
+            bindable.ApplyBind(duration, damagePerTick, tickInterval);
     }
 
     private void TryExplode(AttackContext context, AttackHitResult hitResult, Collider2D originalTarget)

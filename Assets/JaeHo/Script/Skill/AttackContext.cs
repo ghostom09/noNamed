@@ -10,7 +10,8 @@ public enum AttackShapeType
 {
     Bullet,
     Fan,
-    ForwardBox
+    ForwardBox,
+    Laser
 }
 
 /// <summary>
@@ -30,6 +31,7 @@ public readonly struct AttackContext
     public readonly float CriticalChance;
     public readonly float CriticalMultiplier;
     public readonly SkillTag Tags;
+    public readonly LayerMask TargetLayer;
 
     public bool IsRanged => RangeType == AttackRangeType.Ranged;
     public bool IsMelee => RangeType == AttackRangeType.Melee;
@@ -44,6 +46,7 @@ public readonly struct AttackContext
         Vector2 direction,
         float baseDamage,
         SkillTag tags,
+        LayerMask targetLayer = default,
         float criticalChance = 0f,
         float criticalMultiplier = 2f)
     {
@@ -58,6 +61,7 @@ public readonly struct AttackContext
         CriticalChance = Mathf.Clamp01(criticalChance);
         CriticalMultiplier = Mathf.Max(1f, criticalMultiplier);
         Tags = tags;
+        TargetLayer = targetLayer;
     }
 
     public bool HasTag(SkillTag tag)
@@ -68,12 +72,19 @@ public readonly struct AttackContext
     public AttackContext WithOriginAndDirection(Vector2 origin, Vector2 direction)
     {
         return new AttackContext(SourceSkill, Attacker, Mutations, RangeType, ShapeType, origin,
-            direction, BaseDamage, Tags, CriticalChance, CriticalMultiplier);
+            direction, BaseDamage, Tags, TargetLayer, CriticalChance, CriticalMultiplier);
     }
 
     public AttackContext WithDamageMultiplier(float multiplier)
     {
         return new AttackContext(SourceSkill, Attacker, Mutations, RangeType, ShapeType, Origin,
-            Direction, BaseDamage * Mathf.Max(0f, multiplier), Tags, CriticalChance, CriticalMultiplier);
+            Direction, BaseDamage * Mathf.Max(0f, multiplier), Tags, TargetLayer,
+            CriticalChance, CriticalMultiplier);
+    }
+
+    public AttackContext WithShape(AttackShapeType shapeType)
+    {
+        return new AttackContext(SourceSkill, Attacker, Mutations, RangeType, shapeType, Origin,
+            Direction, BaseDamage, Tags, TargetLayer, CriticalChance, CriticalMultiplier);
     }
 }

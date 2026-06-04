@@ -54,6 +54,7 @@ public class SkillC : MeleeSkill
 
         // 이펙트 재생
         PlayEffect(forward);
+        AbsorbProjectilesInRadius(context, origin, radius);
 
         int hitCount = CollectTargetsInRadius(origin, radius);
         for (int i = 0; i < hitCount; i++)

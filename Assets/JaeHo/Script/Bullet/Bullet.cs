@@ -16,6 +16,7 @@ public class Bullet : MonoBehaviour
     [Tooltip("Explosive 태그 시 폭발 범위")]
     [SerializeField] private float explosionRadius = 3f;
     [SerializeField] private LayerMask explosionLayer;
+    [SerializeField] private int maxExplosionTargets = 10;
 
     [Header("--- Slow Settings ---")]
     [Tooltip("Slow 태그 시 속도 배율 (0~1)")]
@@ -31,6 +32,11 @@ public class Bullet : MonoBehaviour
     [Tooltip("Poison 틱 간격 (초)")]
     [SerializeField] private float poisonTickInterval = 1f;
 
+    [Header("--- Homing Settings ---")]
+    [SerializeField] private float homingSearchRadius = 8f;
+    [SerializeField] private float homingTurnSpeed = 360f;
+    [SerializeField] private int maxHomingTargets = 16;
+
     // 런타임 상태
     private BulletData _data;
     private AttackContext _context;
@@ -42,9 +48,16 @@ public class Bullet : MonoBehaviour
     private int        _bounceDamageSteps;
     private bool       _hasUnlimitedBounce;
     private bool       _hasUnlimitedPierce;
+    private float      _homingEndsAt;
+    private bool       _homingUntilHit;
 
     // 관통 시 같은 타겟 중복 피격 방지
     private readonly HashSet<Collider2D> _pierced = new();
+
+    private Collider2D[] _explosionOverlapBuffer;
+    private ContactFilter2D _explosionFilter;
+    private Collider2D[] _homingOverlapBuffer;
+    private ContactFilter2D _homingFilter;
 
     private Rigidbody2D _rb;
     private Collider2D  _col;
@@ -56,6 +69,15 @@ public class Bullet : MonoBehaviour
 
         _rb.gravityScale  = 0f;
         _rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+
+        _explosionOverlapBuffer = new Collider2D[maxExplosionTargets];
+        _homingOverlapBuffer = new Collider2D[maxHomingTargets];
+        _explosionFilter = new ContactFilter2D
+        {
+            useLayerMask = true,
+            layerMask = explosionLayer,
+            useTriggers = true
+        };
     }
 
     /// <summary>
@@ -71,6 +93,7 @@ public class Bullet : MonoBehaviour
         _bounceDamageSteps = 0;
         ConfigureRicochet();
         ConfigurePierce();
+        ConfigureHoming();
         _pierced.Clear();
 
         // 관통이면 트리거(통과), 아니면 일반 충돌
@@ -101,10 +124,55 @@ public class Bullet : MonoBehaviour
     // 이동 & 거리 제한
     private void FixedUpdate()
     {
+        UpdateHoming();
         _traveledDistance += _data.speed * Time.fixedDeltaTime;
 
         if (_traveledDistance >= _data.maxDistance)
             ReturnToPool();
+    }
+
+    private void UpdateHoming()
+    {
+        if (!_homingUntilHit && Time.time > _homingEndsAt) return;
+        if (_context.TargetLayer.value == 0) return;
+
+        _homingFilter.useLayerMask = true;
+        _homingFilter.layerMask = _context.TargetLayer;
+        _homingFilter.useTriggers = true;
+
+        int hitCount = Physics2D.OverlapCircle(
+            transform.position, homingSearchRadius, _homingFilter, _homingOverlapBuffer);
+
+        Collider2D target = FindClosestHomingTarget(hitCount);
+        if (target == null) return;
+
+        Vector2 toTarget = ((Vector2)target.bounds.center - (Vector2)transform.position).normalized;
+        float maxRadiansDelta = homingTurnSpeed * Mathf.Deg2Rad * Time.fixedDeltaTime;
+        _direction = Vector3.RotateTowards(_direction, toTarget, maxRadiansDelta, 0f).normalized;
+        _rb.linearVelocity = _direction * _data.speed;
+
+        float angle = Mathf.Atan2(_direction.y, _direction.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.Euler(0f, 0f, angle);
+    }
+
+    private Collider2D FindClosestHomingTarget(int hitCount)
+    {
+        Collider2D closest = null;
+        float closestDistance = float.PositiveInfinity;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider2D candidate = _homingOverlapBuffer[i];
+            if (candidate == null || _pierced.Contains(candidate)) continue;
+
+            float distance = ((Vector2)candidate.bounds.center - (Vector2)transform.position).sqrMagnitude;
+            if (distance >= closestDistance) continue;
+
+            closest = candidate;
+            closestDistance = distance;
+        }
+
+        return closest;
     }
 
     // 일반 충돌 (Bounce용)
@@ -176,6 +244,8 @@ public class Bullet : MonoBehaviour
         TryApplyFollowUp(hitResult, col);
         TryExplode(hitResult);
 
+        TryApplyStun(hitResult, col);
+        TryApplyBind(hitResult, col);
         TryApplySlow(hitResult, col);
         TryApplyPoison(hitResult, col);
     }
@@ -232,6 +302,18 @@ public class Bullet : MonoBehaviour
             MutationGrade.Quarantine => int.MaxValue,
             _ => 0
         };
+    }
+
+    private void ConfigureHoming()
+    {
+        _homingEndsAt = 0f;
+        _homingUntilHit = false;
+
+        if (!MutationEffectResolver.TryGetHomingData(_context, out float duration))
+            return;
+
+        _homingUntilHit = float.IsPositiveInfinity(duration);
+        _homingEndsAt = _homingUntilHit ? float.PositiveInfinity : Time.time + duration;
     }
 
     private void TryExplode(AttackHitResult hitResult)
@@ -312,6 +394,22 @@ public class Bullet : MonoBehaviour
             poisonable.ApplyPoison(damagePerTick, duration, tickInterval);
     }
 
+    private void TryApplyStun(AttackHitResult hitResult, Collider2D col)
+    {
+        if (!MutationEffectResolver.TryGetStunDuration(hitResult, out float duration)) return;
+        if (col.TryGetComponent<IStunnable>(out var stunnable))
+            stunnable.ApplyStun(duration);
+    }
+
+    private void TryApplyBind(AttackHitResult hitResult, Collider2D col)
+    {
+        if (!MutationEffectResolver.TryGetBindData(hitResult, out float duration,
+                out float damagePerTick, out float tickInterval)) return;
+
+        if (col.TryGetComponent<IBindable>(out var bindable))
+            bindable.ApplyBind(duration, damagePerTick, tickInterval);
+    }
+
     private void TryApplyFollowUp(AttackHitResult hitResult, Collider2D col)
     {
         if (!MutationEffectResolver.TryGetFollowUpMultiplier(hitResult, out float multiplier)) return;
@@ -323,12 +421,12 @@ public class Bullet : MonoBehaviour
     // 폭발
     private void Explode(float explosionDamage)
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(
-            transform.position, explosionRadius, explosionLayer);
+        int hitsCount = Physics2D.OverlapCircle(
+            transform.position, explosionRadius, _explosionFilter, _explosionOverlapBuffer);
 
-        foreach (var hit in hits)
+        for (int i = 0; i < hitsCount; i++)
         {
-            if (hit.TryGetComponent<IDamageable>(out var d))
+            if (_explosionOverlapBuffer[i].TryGetComponent<IDamageable>(out var d))
                 d.TakeDamage(explosionDamage);
         }
     }
