@@ -1,24 +1,20 @@
 using UnityEngine;
 using BossSystem.BehaviorTree;
+using BossSystem;
+using BossSystem.Scripable;
 
 namespace BossSystem.Boss
 {
-    /// <summary>
-    /// 탑다운 2D 보스 베이스
-    ///
-    /// 수정 사항 (탑다운 대응):
-    ///  - Collider2D/Rigidbody2D 기반
-    ///  - LookAtPlayer: XY 평면에서 Z축 회전
-    ///  - BuildBehaviorTree()를 Start()로 이동 → Player 참조 null 방지
-    ///  - Rigidbody2D는 중력 0, 회전 고정
-    /// </summary>
     [RequireComponent(typeof(Collider2D))]
     [RequireComponent(typeof(Rigidbody2D))]
     public abstract class BossBase : MonoBehaviour
     {
         [Header("기본 스탯")]
-        [SerializeField] protected float maxHP    = 1000f;
+        [SerializeField] protected float maxHP     = 1000f;
         [SerializeField] protected float moveSpeed = 3f;
+
+        [Header("ScriptableObject 오버라이드 (선택)")]
+        [SerializeField] protected BossAttackData bossData;
 
         [Header("참조")]
         [SerializeField] protected Transform player;
@@ -30,26 +26,42 @@ namespace BossSystem.Boss
         public float CurrentHP => currentHP;
         public bool  IsDead    => currentHP <= 0f;
 
+        // ── 패턴 실행 플래그 ──────────────────────────────────────
+        public bool IsExecutingPattern { get; private set; } = false;
+        public bool IsTelegraphing     { get; private set; } = false;
+
+        /// <summary>
+        /// 안전장치: 이 시간(초)이 지나도 패턴이 끝나지 않으면 강제 해제
+        /// 기본 20초. 가장 긴 패턴보다 넉넉하게 설정.
+        /// </summary>
+        [Header("패턴 안전장치")]
+        [SerializeField] private float patternTimeoutSec = 20f;
+        private float patternStartTime = 0f;
+
         public System.Action OnPhase2Enter;
         public System.Action OnDeath;
 
         protected float currentHP;
-        private bool    phase2Triggered = false;
+        private   bool  phase2Triggered = false;
 
         // ── 초기화 ────────────────────────────────────────────────
         protected virtual void Awake()
         {
+            if (bossData != null)
+            {
+                if (bossData.overrideMaxHP     > 0f) maxHP     = bossData.overrideMaxHP;
+                if (bossData.overrideMoveSpeed > 0f) moveSpeed = bossData.overrideMoveSpeed;
+            }
+
             currentHP = maxHP;
             rb        = GetComponent<Rigidbody2D>();
 
-            // ★ 탑다운: Y축 이동·회전 잠금
             if (rb != null)
             {
-                rb.gravityScale = 0f;
+                rb.gravityScale   = 0f;
                 rb.freezeRotation = true;
             }
 
-            // 블랙보드 생성 (Player는 Start에서 채움)
             blackboard = new BossBlackboard
             {
                 BossTransform = transform,
@@ -59,13 +71,8 @@ namespace BossSystem.Boss
             };
         }
 
-        /// <summary>
-        /// ★ BuildBehaviorTree를 Start()에서 호출
-        ///    Awake() 시점에는 Player가 아직 null일 수 있음
-        /// </summary>
         protected virtual void Start()
         {
-            // 플레이어 자동 탐색
             if (player == null)
             {
                 var go = GameObject.FindGameObjectWithTag("Player");
@@ -73,7 +80,7 @@ namespace BossSystem.Boss
             }
 
             blackboard.PlayerTransform = player;
-            behaviorTree = BuildBehaviorTree();    // ★ Awake → Start 이동
+            behaviorTree = BuildBehaviorTree();
         }
 
         // ── 매 프레임 ─────────────────────────────────────────────
@@ -81,10 +88,8 @@ namespace BossSystem.Boss
         {
             if (IsDead) return;
 
-            // 블랙보드 HP 동기화
             blackboard.CurrentHP = currentHP;
 
-            // 페이즈2 전환
             if (!phase2Triggered && blackboard.IsPhase2)
             {
                 phase2Triggered = true;
@@ -92,23 +97,59 @@ namespace BossSystem.Boss
                 OnPhase2Enter?.Invoke();
             }
 
-            // 비헤이비어 트리 평가
+            // ★ 안전장치: 패턴 타임아웃 체크
+            if (IsExecutingPattern &&
+                Time.time - patternStartTime > patternTimeoutSec)
+            {
+                Debug.LogWarning($"[{gameObject.name}] 패턴 타임아웃 — 강제 해제");
+                ForceReleasePattern();
+            }
+
             behaviorTree?.Evaluate();
-            ChasePlayer();
+
+            if (!IsTelegraphing && !IsExecutingPattern)
+                ChasePlayer();
         }
 
-        // ── 추상 메서드 ───────────────────────────────────────────
+        // ── 추상/가상 ─────────────────────────────────────────────
         protected abstract BTNode BuildBehaviorTree();
 
-        // ── 가상 메서드 ───────────────────────────────────────────
         protected virtual void OnEnterPhase2()
             => Debug.Log($"[{gameObject.name}] Phase 2 진입!");
 
-        protected virtual bool ShouldChasePlayer => true;
-        protected virtual float ChaseSpeed => moveSpeed;
+        protected virtual bool  ShouldChasePlayer     => true;
+        protected virtual float ChaseSpeed            => moveSpeed;
         protected virtual float ChaseStoppingDistance => 1.5f;
 
-        // ── 공통 인터페이스 ───────────────────────────────────────
+        // ── 패턴 플래그 API ───────────────────────────────────────
+        /// <summary>패턴 시작 시 true, 정상 종료 시 false 호출.</summary>
+        public void SetExecutingPattern(bool value)
+        {
+            IsExecutingPattern = value;
+            if (value)
+                patternStartTime = Time.time;
+        }
+
+        /// <summary>텔레그래프 진행 중 이동 정지.</summary>
+        public void SetTelegraphing(bool value)
+        {
+            IsTelegraphing = value;
+            if (value && rb != null)
+                rb.linearVelocity = Vector2.zero;
+        }
+
+        /// <summary>
+        /// 강제 패턴 해제 — 타임아웃 또는 예외 경로에서 호출.
+        /// 모든 플래그를 안전하게 초기화.
+        /// </summary>
+        public void ForceReleasePattern()
+        {
+            IsExecutingPattern = false;
+            IsTelegraphing     = false;
+            if (rb != null) rb.linearVelocity = Vector2.zero;
+        }
+
+        // ── 피해 / 사망 ───────────────────────────────────────────
         public virtual void TakeDamage(float damage)
         {
             if (IsDead) return;
@@ -118,28 +159,26 @@ namespace BossSystem.Boss
 
         protected virtual void OnDie()
         {
+            ForceReleasePattern();
             Debug.Log($"[{gameObject.name}] 사망");
             Destroy(gameObject, 1f);
         }
 
-        // ── 유틸리티 ─────────────────────────────────────────────
+        // ── 이동 ──────────────────────────────────────────────────
         public Transform GetPlayer() => player;
 
         protected void ChasePlayer()
         {
             if (!ShouldChasePlayer || player == null || rb == null) return;
             if (blackboard.DistanceToPlayer <= ChaseStoppingDistance) return;
-
             MoveToward(player.position, ChaseSpeed);
         }
 
-        /// <summary>탑다운 이동 (Rigidbody2D.MovePosition 사용)</summary>
         protected void MoveToward(Vector3 target, float speed)
         {
             Vector3 dir = target - transform.position;
             dir.z = 0f;
             if (dir.sqrMagnitude < 0.01f) return;
-
             Vector3 next = transform.position + speed * Time.deltaTime * dir.normalized;
             next.z = transform.position.z;
             rb.MovePosition(next);

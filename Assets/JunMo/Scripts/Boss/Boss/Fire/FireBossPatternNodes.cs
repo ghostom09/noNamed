@@ -1,268 +1,332 @@
 using UnityEngine;
-using System.Collections;
 using BossSystem.BehaviorTree;
 using BossSystem.Boss;
+using BossSystem;
+using BossSystem.Scripable;
 
 namespace BossSystem.Boss.FireBoss
 {
     // ═══════════════════════════════════════════════════════════════
-    //  패턴 1 : 근접 화염 방사 (FlameBreath)
-    //  플레이어가 closeRange 이내 → 전방 부채꼴에 지속 피해
+    //  공통 규칙 (모든 패턴 노드)
+    //
+    //  [시작] boss.IsExecutingPattern 체크 → 다른 패턴 실행 중이면 Failure
+    //  [시작] SetExecutingPattern(true) + SetTelegraphing(true)
+    //  [종료] SetExecutingPattern(false) — Success/Failure 모든 경로에서
+    //  [실패 경로] ForceReleasePattern() 으로 플래그 보장 해제
+    // ═══════════════════════════════════════════════════════════════
+
+    // ═══════════════════════════════════════════════════════════════
+    //  패턴 1 : 근접 화염 방사
+    //  텔레그래프: 부채꼴 — 반지름=closeRange, 각도=fanAngle
     // ═══════════════════════════════════════════════════════════════
     public class FlameBreathNode : BTNode
     {
         private FireBossController boss;
         private float closeRange;
-        private float fanAngle;       // 부채꼴 각도
+        private float fanAngle;
         private float damagePerSec;
         private float duration;
         private float tickInterval;
+        private BossAttackData attackData;
 
-        // 실행 상태
-        private bool isActive = false;
-        private float startTime;
-        private float lastTickTime;
-
-        // 블랙보드 키
-        private const string KEY_GAS = "GasActive";
+        private enum Phase { Idle, Telegraph, Attack }
+        private Phase phase       = Phase.Idle;
+        private float attackStart = 0f;
+        private float lastTick    = 0f;
 
         public FlameBreathNode(BossBlackboard bb, FireBossController boss,
             float closeRange = 5f, float fanAngle = 90f,
-            float damagePerSec = 30f, float duration = 2.5f)
-            : base(bb)
+            float damagePerSec = 30f, float duration = 2.5f,
+            BossAttackData data = null) : base(bb)
         {
-            this.boss = boss;
-            this.closeRange = closeRange;
-            this.fanAngle = fanAngle;
+            this.boss         = boss;
+            this.closeRange   = closeRange;
+            this.fanAngle     = fanAngle;
             this.damagePerSec = damagePerSec;
-            this.duration = duration;
+            this.duration     = duration;
             this.tickInterval = 0.2f;
+            this.attackData   = data;
         }
 
         protected override NodeState OnEvaluate()
         {
-            // 아직 시작 전 → 조건 검사
-            if (!isActive)
+            switch (phase)
             {
-                if (blackboard.DistanceToPlayer > closeRange)
-                    return NodeState.Failure;
+                case Phase.Idle:
+                    if (boss.IsExecutingPattern)        return NodeState.Failure;
+                    if (blackboard.DistanceToPlayer > closeRange) return NodeState.Failure;
 
-                isActive = true;
-                startTime = Time.time;
-                lastTickTime = Time.time;
-                boss.PlayFlameBreathVFX(true);
-                return NodeState.Running;
+                    phase = Phase.Telegraph;
+                    boss.SetExecutingPattern(true);
+                    boss.SetTelegraphing(true);
+
+                    // 부채꼴: direction = 정규화방향 * fanAngle(도) → magnitude=각도로 전달
+                    Vector2 dir2D = new Vector2(
+                        blackboard.DirectionToPlayer.x,
+                        blackboard.DirectionToPlayer.y).normalized * fanAngle;
+
+                    TelegraphHelper.Spawn(boss.transform, attackData,
+                        TelegraphShape.Sector,
+                        radius: closeRange,
+                        direction: dir2D,
+                        followParent: true,
+                        onComplete: OnTelegraphDone);
+
+                    return NodeState.Running;
+
+                case Phase.Telegraph:
+                    return NodeState.Running;
+
+                case Phase.Attack:
+                    if (Time.time - lastTick >= tickInterval)
+                    {
+                        lastTick = Time.time;
+                        ApplyFanDamage();
+                    }
+
+                    if (Time.time - attackStart >= duration)
+                    {
+                        boss.PlayFlameBreathVFX(false);
+                        boss.SetExecutingPattern(false);
+
+                        if (blackboard.IsPhase2)
+                            boss.SpawnGasCloud(boss.transform.position, fanAngle);
+
+                        phase = Phase.Idle;
+                        return NodeState.Success;
+                    }
+                    return NodeState.Running;
             }
+            // 도달 불가 경로 — 안전 해제
+            boss.ForceReleasePattern();
+            phase = Phase.Idle;
+            return NodeState.Failure;
+        }
 
-            // 실행 중
-            float elapsed = Time.time - startTime;
-
-            // 틱 데미지
-            if (Time.time - lastTickTime >= tickInterval)
-            {
-                lastTickTime = Time.time;
-                ApplyFanDamage();
-            }
-
-            if (elapsed >= duration)
-            {
-                isActive = false;
-                boss.PlayFlameBreathVFX(false);
-
-                // 페이즈2: 가스 생성
-                if (blackboard.IsPhase2)
-                    boss.SpawnGasCloud(boss.transform.position, fanAngle);
-
-                return NodeState.Success;
-            }
-            return NodeState.Running;
+        private void OnTelegraphDone()
+        {
+            phase       = Phase.Attack;
+            attackStart = Time.time;
+            lastTick    = Time.time;
+            boss.SetTelegraphing(false);
+            boss.PlayFlameBreathVFX(true);
         }
 
         private void ApplyFanDamage()
         {
             var player = blackboard.PlayerTransform;
             if (player == null) return;
-
             Vector3 toPlayer = player.position - boss.transform.position;
-            float angle =
-                Vector2.Angle(
-                    boss.transform.up,
-                    toPlayer
-                );
-
+            float angle = Vector2.Angle(boss.transform.up,
+                                        new Vector2(toPlayer.x, toPlayer.y));
             if (angle <= fanAngle * 0.5f && toPlayer.magnitude <= closeRange)
             {
-                float dmg = damagePerSec * tickInterval;
-                // player.GetComponent<PlayerHealth>()?.TakeDamage(dmg);
+                // player.GetComponent<PlayerHealth>()?.TakeDamage(damagePerSec * tickInterval);
             }
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  패턴 2 : 화염탄 난사 (FireballBarrage)
-    //  플레이어가 farRange 이상 → ±30° 무작위 방향으로 투사체 연속 발사
+    //  패턴 2 : 화염탄 난사
+    //  텔레그래프: 원형(보스 중심) 충전 암시
+    //  가스는 FireballProjectile 착탄 시 스폰 (패턴 노드 종료 후 X)
     // ═══════════════════════════════════════════════════════════════
     public class FireballBarrageNode : BTNode
     {
         private FireBossController boss;
         private float farRange;
-        private int shotCount;
-        private float spreadAngle;    // 기본 30°
+        private int   shotCount;
+        private float spreadAngle;
         private float fireInterval;
         private float projectileSpeed;
+        private BossAttackData attackData;
 
-        private bool isActive = false;
-        private int shotsFired = 0;
-        private float nextFireTime;
+        private enum Phase { Idle, Telegraph, Attack }
+        private Phase phase      = Phase.Idle;
+        private int   shotsFired = 0;
+        private float nextFire   = 0f;
 
         public FireballBarrageNode(BossBlackboard bb, FireBossController boss,
-            float farRange = 8f, int shotCount = 8,
-            float spreadAngle = 30f, float fireInterval = 0.15f,
-            float projectileSpeed = 12f)
-            : base(bb)
+            float farRange = 8f, int shotCount = 8, float spreadAngle = 30f,
+            float fireInterval = 0.15f, float projectileSpeed = 12f,
+            BossAttackData data = null) : base(bb)
         {
-            this.boss = boss;
-            this.farRange = farRange;
-            this.shotCount = shotCount;
-            this.spreadAngle = spreadAngle;
-            this.fireInterval = fireInterval;
+            this.boss            = boss;
+            this.farRange        = farRange;
+            this.shotCount       = shotCount;
+            this.spreadAngle     = spreadAngle;
+            this.fireInterval    = fireInterval;
             this.projectileSpeed = projectileSpeed;
+            this.attackData      = data;
         }
 
         protected override NodeState OnEvaluate()
         {
-            if (!isActive)
+            switch (phase)
             {
-                if (blackboard.DistanceToPlayer < farRange)
-                    return NodeState.Failure;
+                case Phase.Idle:
+                    if (boss.IsExecutingPattern) return NodeState.Failure;
+                    if (blackboard.DistanceToPlayer < farRange) return NodeState.Failure;
 
-                isActive = true;
-                shotsFired = 0;
-                nextFireTime = Time.time;
-                return NodeState.Running;
+                    phase = Phase.Telegraph;
+                    boss.SetExecutingPattern(true);
+                    boss.SetTelegraphing(true);
+
+                    TelegraphHelper.Spawn(boss.transform, attackData,
+                        TelegraphShape.Circle, radius: 2f,
+                        followParent: true, onComplete: OnTelegraphDone);
+
+                    return NodeState.Running;
+
+                case Phase.Telegraph:
+                    return NodeState.Running;
+
+                case Phase.Attack:
+                    if (Time.time >= nextFire && shotsFired < shotCount)
+                    {
+                        FireOne();
+                        shotsFired++;
+                        nextFire = Time.time + fireInterval;
+                    }
+
+                    if (shotsFired >= shotCount)
+                    {
+                        boss.SetExecutingPattern(false);
+                        phase = Phase.Idle;
+                        return NodeState.Success;
+                    }
+                    return NodeState.Running;
             }
-
-            // 연속 발사
-            if (Time.time >= nextFireTime && shotsFired < shotCount)
-            {
-                FireProjectile();
-                shotsFired++;
-                nextFireTime = Time.time + fireInterval;
-            }
-
-            if (shotsFired >= shotCount)
-            {
-                isActive = false;
-
-                if (blackboard.IsPhase2)
-                    boss.SpawnGasCloud(boss.transform.position, 360f);
-
-                return NodeState.Success;
-            }
-            return NodeState.Running;
+            boss.ForceReleasePattern();
+            phase = Phase.Idle;
+            return NodeState.Failure;
         }
 
-        private void FireProjectile()
+        private void OnTelegraphDone()
+        {
+            phase      = Phase.Attack;
+            shotsFired = 0;
+            nextFire   = Time.time;
+            boss.SetTelegraphing(false);
+        }
+
+        private void FireOne()
         {
             var player = blackboard.PlayerTransform;
             if (player == null) return;
-
             Vector3 baseDir = (player.position - boss.transform.position).normalized;
-            float randomAngle = Random.Range(-spreadAngle, spreadAngle);
-            Vector3 dir =
-                Quaternion.Euler(0, 0, randomAngle)
-                * baseDir;
-
+            float   rndAng  = Random.Range(-spreadAngle, spreadAngle);
+            Vector3 dir     = Quaternion.Euler(0, 0, rndAng) * baseDir;
+            dir.z = 0f;
             boss.SpawnFireball(boss.transform.position, dir, projectileSpeed,
                                blackboard.IsPhase2);
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  패턴 3 : 확산하는 불의 고리 (ExpandingFireRing)
-    //  보스 중심으로 3회 순차 확장 — 타이밍에 맞춰 회피 필요
+    //  패턴 3 : 확산하는 불의 고리
+    //  텔레그래프: 원형(보스 중심), 반지름=maxRadius
     // ═══════════════════════════════════════════════════════════════
     public class ExpandingFireRingNode : BTNode
     {
         private FireBossController boss;
-        private int ringCount;
-        private float ringInterval;    // 각 고리 간격(초)
+        private int   ringCount;
+        private float ringInterval;
         private float expandSpeed;
         private float maxRadius;
         private float damage;
+        private BossAttackData attackData;
 
-        private bool isActive = false;
-        private int ringsSpawned = 0;
-        private float nextRingTime;
+        private enum Phase { Idle, Telegraph, Attack }
+        private Phase phase        = Phase.Idle;
+        private int   ringsSpawned = 0;
+        private float nextRingTime = 0f;
 
         public ExpandingFireRingNode(BossBlackboard bb, FireBossController boss,
             int ringCount = 3, float ringInterval = 0.8f,
-            float expandSpeed = 6f, float maxRadius = 12f, float damage = 40f)
-            : base(bb)
+            float expandSpeed = 6f, float maxRadius = 12f, float damage = 40f,
+            BossAttackData data = null) : base(bb)
         {
-            this.boss = boss;
-            this.ringCount = ringCount;
+            this.boss         = boss;
+            this.ringCount    = ringCount;
             this.ringInterval = ringInterval;
-            this.expandSpeed = expandSpeed;
-            this.maxRadius = maxRadius;
-            this.damage = damage;
+            this.expandSpeed  = expandSpeed;
+            this.maxRadius    = maxRadius;
+            this.damage       = damage;
+            this.attackData   = data;
         }
 
         protected override NodeState OnEvaluate()
         {
-            if (!isActive)
+            switch (phase)
             {
-                isActive = true;
-                ringsSpawned = 0;
-                nextRingTime = Time.time;
-                return NodeState.Running;
+                case Phase.Idle:
+                    if (boss.IsExecutingPattern) return NodeState.Failure;
+
+                    phase = Phase.Telegraph;
+                    boss.SetExecutingPattern(true);
+                    boss.SetTelegraphing(true);
+
+                    TelegraphHelper.Spawn(boss.transform, attackData,
+                        TelegraphShape.Circle, radius: maxRadius,
+                        followParent: true, onComplete: OnTelegraphDone);
+
+                    return NodeState.Running;
+
+                case Phase.Telegraph:
+                    return NodeState.Running;
+
+                case Phase.Attack:
+                    if (Time.time >= nextRingTime && ringsSpawned < ringCount)
+                    {
+                        boss.SpawnFireRing(boss.transform.position, expandSpeed,
+                                           maxRadius, damage, ringsSpawned * 0.05f,
+                                           blackboard.IsPhase2);
+                        ringsSpawned++;
+                        nextRingTime = Time.time + ringInterval;
+                    }
+
+                    if (ringsSpawned >= ringCount &&
+                        Time.time >= nextRingTime + maxRadius / expandSpeed)
+                    {
+                        boss.SetExecutingPattern(false);
+
+                        if (blackboard.IsPhase2)
+                            boss.SpawnGasCloud(boss.transform.position, 360f);
+
+                        phase = Phase.Idle;
+                        return NodeState.Success;
+                    }
+                    return NodeState.Running;
             }
-
-            if (Time.time >= nextRingTime && ringsSpawned < ringCount)
-            {
-                SpawnRing(ringsSpawned);
-                ringsSpawned++;
-                nextRingTime = Time.time + ringInterval;
-            }
-
-            // 마지막 고리가 다 퍼질 때까지 대기
-            float totalDuration = ringCount * ringInterval + (maxRadius / expandSpeed);
-            if (Time.time >= nextRingTime + (maxRadius / expandSpeed) && ringsSpawned >= ringCount)
-            {
-                isActive = false;
-
-                if (blackboard.IsPhase2)
-                    boss.SpawnGasCloud(boss.transform.position, 360f);
-
-                return NodeState.Success;
-            }
-            return NodeState.Running;
+            boss.ForceReleasePattern();
+            phase = Phase.Idle;
+            return NodeState.Failure;
         }
 
-        private void SpawnRing(int index)
+        private void OnTelegraphDone()
         {
-            // 지연 시작으로 시각적 간격 부여
-            float delay = index * 0.05f;
-            boss.SpawnFireRing(boss.transform.position, expandSpeed, maxRadius, damage, delay,
-                               blackboard.IsPhase2);
+            phase        = Phase.Attack;
+            ringsSpawned = 0;
+            nextRingTime = Time.time;
+            boss.SetTelegraphing(false);
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  페이즈2 가스 안에서 도트 데미지 적용 노드
+    //  페이즈2 가스 도트 데미지 (Parallel 상시 실행)
     // ═══════════════════════════════════════════════════════════════
     public class GasDotDamageNode : BTNode
     {
         private FireBossController boss;
         private float damagePerSec;
         private float tickInterval;
-        private float lastTickTime;
+        private float lastTick;
 
         public GasDotDamageNode(BossBlackboard bb, FireBossController boss,
-            float damagePerSec = 15f)
-            : base(bb)
+            float damagePerSec = 15f) : base(bb)
         {
-            this.boss = boss;
+            this.boss         = boss;
             this.damagePerSec = damagePerSec;
             this.tickInterval = 0.5f;
         }
@@ -270,13 +334,11 @@ namespace BossSystem.Boss.FireBoss
         protected override NodeState OnEvaluate()
         {
             if (!blackboard.IsPhase2) return NodeState.Failure;
-
-            if (Time.time - lastTickTime >= tickInterval)
+            if (Time.time - lastTick >= tickInterval)
             {
-                lastTickTime = Time.time;
+                lastTick = Time.time;
                 boss.ApplyGasDotToPlayer(damagePerSec * tickInterval);
             }
-            // 항상 Running — 페이즈2 동안 계속 병행 실행
             return NodeState.Running;
         }
     }

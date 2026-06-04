@@ -38,7 +38,6 @@ namespace BossSystem.BehaviorTree
             }
         }
 
-        // 플레이어 방향 (XZ 평면, 정규화)
         public Vector3 DirectionToPlayer
         {
             get

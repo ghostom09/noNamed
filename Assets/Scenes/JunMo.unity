@@ -563,7 +563,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1562586147
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -578,6 +578,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossSystem.Boss.FireBoss.FireBossController
   maxHP: 1000
   moveSpeed: 3
+  bossData: {fileID: 0}
   player: {fileID: 1782676436}
   closeRange: 5
   farRange: 8
@@ -591,6 +592,9 @@ MonoBehaviour:
   barrageCooldown: 5
   ringCount: 3
   ringCooldown: 7
+  flameBreathData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  fireballBarrageData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  fireRingData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
   fireballPrefab: {fileID: 3605014151767436924, guid: a4972fbe958d4b64cbaf0be5d0964138, type: 3}
   fireRingPrefab: {fileID: 3605014151767436924, guid: 4d09dc0265875b34c80bff71f1f32c68, type: 3}
   gasCloudPrefab: {fileID: 3605014151767436924, guid: 3bc007424c60d9546a78ee64241f2a9c, type: 3}
@@ -761,7 +765,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1745440604
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -776,6 +780,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossSystem.Boss.FleshBoss.FleshBossController
   maxHP: 1000
   moveSpeed: 3
+  bossData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
   player: {fileID: 0}
   meleeRange: 3.5
   chaseSpeed: 1.5
@@ -785,10 +790,14 @@ MonoBehaviour:
   throwCooldown: 4
   meleeCooldown: 3
   absorbCooldown: 10
-  fleshChunkPrefab: {fileID: 0}
-  fleshChunkLargePrefab: {fileID: 0}
-  trailZonePrefab: {fileID: 0}
-  absorbVFXPrefab: {fileID: 0}
+  chargeData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  scatterData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  throwData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  meleeData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  fleshChunkPrefab: {fileID: 1745440603}
+  fleshChunkLargePrefab: {fileID: 1745440603}
+  trailZonePrefab: {fileID: 1782676434}
+  absorbVFXPrefab: {fileID: 1745440603}
 --- !u!50 &1745440605
 Rigidbody2D:
   serializedVersion: 5
@@ -1038,7 +1047,6 @@ GameObject:
   - component: {fileID: 1782676436}
   - component: {fileID: 1782676435}
   - component: {fileID: 1782676437}
-  - component: {fileID: 1782676439}
   - component: {fileID: 1782676438}
   m_Layer: 0
   m_Name: Player
@@ -1115,7 +1123,7 @@ Transform:
   m_GameObject: {fileID: 1782676434}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 4.52, y: -1.98, z: 0}
+  m_LocalPosition: {x: 4.66, y: 0.37, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1194,52 +1202,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
---- !u!61 &1782676439
-BoxCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1782676434}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1, y: 1}
-    newSize: {x: 1, y: 1}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  m_Size: {x: 1, y: 1}
-  m_EdgeRadius: 0
 --- !u!1 &1897149834
 GameObject:
   m_ObjectHideFlags: 0
@@ -1274,6 +1236,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossSystem.Boss.WaterBoss.WaterBossController
   maxHP: 1000
   moveSpeed: 3
+  bossData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
   player: {fileID: 1782676436}
   beamCooldown: 8
   slamCooldown: 4
@@ -1285,14 +1248,20 @@ MonoBehaviour:
   waveKnockback: 18
   pillarDamage: 45
   bindDuration: 2.5
-  beamSegments: []
+  crossBeamData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  groundSlamData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  waveBlastData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  pillarBindData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  beamSegments:
+  - {fileID: 5920686373066472350, guid: bcc8b06df81e3e343bcf6012260110b8, type: 3}
+  - {fileID: 5920686373066472350, guid: bcc8b06df81e3e343bcf6012260110b8, type: 3}
   beamPivot: {fileID: 1782676436}
-  waterWavePrefab: {fileID: 0}
-  waterPillarPrefab: {fileID: 0}
-  floodZonePrefab: {fileID: 0}
-  slamVFXPrefab: {fileID: 0}
-  slamWarningDecalPrefab: {fileID: 0}
-  pillarWarningDecalPrefab: {fileID: 0}
+  waterWavePrefab: {fileID: 9085461787720426981, guid: 63e7e7d1845e71e41b13c981c90ca87a, type: 3}
+  waterPillarPrefab: {fileID: 9085461787720426981, guid: 7f0fb89496f9d9c408569ef055687e38, type: 3}
+  floodZonePrefab: {fileID: 9085461787720426981, guid: c2535fb7b75bbc94ea5ed414bca874ad, type: 3}
+  slamVFXPrefab: {fileID: 9085461787720426981, guid: c2535fb7b75bbc94ea5ed414bca874ad, type: 3}
+  slamWarningDecalPrefab: {fileID: 9085461787720426981, guid: c2535fb7b75bbc94ea5ed414bca874ad, type: 3}
+  pillarWarningDecalPrefab: {fileID: 9085461787720426981, guid: c2535fb7b75bbc94ea5ed414bca874ad, type: 3}
 --- !u!50 &1897149836
 Rigidbody2D:
   serializedVersion: 5

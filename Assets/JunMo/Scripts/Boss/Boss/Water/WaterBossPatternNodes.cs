@@ -1,145 +1,189 @@
 using UnityEngine;
 using BossSystem.BehaviorTree;
+using BossSystem;
+using BossSystem.Scripable;
 
 namespace BossSystem.Boss.WaterBoss
 {
     // ═══════════════════════════════════════════════════════════════
-    //  패턴 1 : 십자 물줄기 (CrossWaterBeam)
-    //  4방향 레이저 발사 → holdDuration 유지하며 45° 회전
-    //
-    //  동작 흐름:
-    //   ① 빔 4개 활성화 (0° 기준 +자 배치)
-    //   ② rotateSpeed로 매 프레임 회전 → 목표 45° 도달까지
-    //   ③ holdDuration 경과 → 빔 비활성화 → Success
+    //  패턴 1 : 십자 물줄기
+    //  텔레그래프: 원형(보스 중심), 반지름=beamLength
+    //  수정: 실패 경로 ForceReleasePattern 보장
     // ═══════════════════════════════════════════════════════════════
     public class CrossWaterBeamNode : BTNode
     {
         private WaterBossController boss;
         private float holdDuration;
-        private float rotateSpeed;      // deg/sec
-        private float targetAngle;      // 기본 45°
+        private float rotateSpeed;
+        private float targetAngle;
         private float beamDPS;
+        private float beamLength;
+        private BossAttackData attackData;
 
-        private bool  isActive     = false;
+        private enum Phase { Idle, Telegraph, Attack }
+        private Phase phase        = Phase.Idle;
         private float startTime    = 0f;
         private float currentAngle = 0f;
 
         public CrossWaterBeamNode(BossBlackboard bb, WaterBossController boss,
             float holdDuration = 3f, float rotateSpeed = 15f,
-            float targetAngle = 45f, float beamDPS = 25f)
-            : base(bb)
+            float targetAngle = 45f, float beamDPS = 25f, float beamLength = 12f,
+            BossAttackData data = null) : base(bb)
         {
             this.boss         = boss;
             this.holdDuration = holdDuration;
             this.rotateSpeed  = rotateSpeed;
             this.targetAngle  = targetAngle;
             this.beamDPS      = beamDPS;
+            this.beamLength   = beamLength;
+            this.attackData   = data;
         }
 
-        public override void OnEnter()
-        {
-            isActive     = false;
-            currentAngle = 0f;
-        }
+        public override void OnEnter() { phase = Phase.Idle; currentAngle = 0f; }
 
         protected override NodeState OnEvaluate()
         {
-            if (!isActive)
+            switch (phase)
             {
-                isActive     = true;
-                startTime    = Time.time;
-                currentAngle = 0f;
-                boss.ActivateCrossBeam(true, beamDPS);
-                return NodeState.Running;
-            }
+                case Phase.Idle:
+                    if (boss.IsExecutingPattern) return NodeState.Failure;
 
-            // 45° 목표까지 회전
-            if (currentAngle < targetAngle)
-            {
-                currentAngle = Mathf.MoveTowards(currentAngle, targetAngle,
-                                                 rotateSpeed * Time.deltaTime);
-                boss.SetBeamRotation(currentAngle);
-            }
+                    phase = Phase.Telegraph;
+                    boss.SetExecutingPattern(true);
+                    boss.SetTelegraphing(true);
 
-            if (Time.time - startTime >= holdDuration)
-            {
-                isActive = false;
-                boss.ActivateCrossBeam(false, 0f);
-                return NodeState.Success;
+                    TelegraphHelper.Spawn(boss.transform, attackData,
+                        TelegraphShape.Circle, radius: beamLength,
+                        followParent: true, onComplete: OnTelegraphDone);
+
+                    return NodeState.Running;
+
+                case Phase.Telegraph:
+                    return NodeState.Running;
+
+                case Phase.Attack:
+                    if (currentAngle < targetAngle)
+                    {
+                        currentAngle = Mathf.MoveTowards(currentAngle, targetAngle,
+                                                         rotateSpeed * Time.deltaTime);
+                        boss.SetBeamRotation(currentAngle);
+                    }
+
+                    if (Time.time - startTime >= holdDuration)
+                    {
+                        boss.ActivateCrossBeam(false, 0f);
+                        boss.SetExecutingPattern(false);
+                        phase = Phase.Idle;
+                        return NodeState.Success;
+                    }
+                    return NodeState.Running;
             }
-            return NodeState.Running;
+            boss.ForceReleasePattern();
+            phase = Phase.Idle;
+            return NodeState.Failure;
+        }
+
+        private void OnTelegraphDone()
+        {
+            phase        = Phase.Attack;
+            startTime    = Time.time;
+            currentAngle = 0f;
+            boss.ActivateCrossBeam(true, beamDPS);
+            boss.SetTelegraphing(false);
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  패턴 2 : 내려치기 (GroundSlam)
-    //  보스 주변 원형 범위 강타 — 경고(windupTime) → 충격파 피해
+    //  패턴 2 : 내려치기
+    //  텔레그래프: 원형(보스 중심), 반지름=slamRange
+    //  수정: 내부 거리 조건 완전 제거 (BT에서 처리 또는 거리 무관)
     // ═══════════════════════════════════════════════════════════════
     public class GroundSlamNode : BTNode
     {
         private WaterBossController boss;
         private float slamRange;
         private float slamDamage;
-        private float windupTime;
+        private BossAttackData attackData;
 
-        private bool  isActive   = false;
-        private bool  hitApplied = false;
+        private enum Phase { Idle, Telegraph, Windup, Hit }
+        private Phase phase      = Phase.Idle;
         private float windupEnd  = 0f;
+        private bool  hitApplied = false;
+
+        private const float WINDUP_TIME = 0.3f;
+        private const float POST_HIT    = 0.3f;
 
         public GroundSlamNode(BossBlackboard bb, WaterBossController boss,
-            float slamRange = 6f, float slamDamage = 60f, float windupTime = 0.8f)
-            : base(bb)
+            float slamRange = 6f, float slamDamage = 60f,
+            BossAttackData data = null) : base(bb)
         {
             this.boss       = boss;
             this.slamRange  = slamRange;
             this.slamDamage = slamDamage;
-            this.windupTime = windupTime;
+            this.attackData = data;
         }
 
-        public override void OnEnter()
-        {
-            isActive   = false;
-            hitApplied = false;
-        }
+        public override void OnEnter() { phase = Phase.Idle; hitApplied = false; }
 
         protected override NodeState OnEvaluate()
         {
-            if (!isActive)
+            switch (phase)
             {
-                // 근거리 조건
-                if (blackboard.DistanceToPlayer > slamRange * 1.5f)
-                    return NodeState.Failure;
+                case Phase.Idle:
+                    if (boss.IsExecutingPattern) return NodeState.Failure;
 
-                isActive   = true;
-                hitApplied = false;
-                windupEnd  = Time.time + windupTime;
-                boss.ShowSlamWarning(slamRange);
-                return NodeState.Running;
+                    phase = Phase.Telegraph;
+                    boss.SetExecutingPattern(true);
+                    boss.SetTelegraphing(true);
+
+                    TelegraphHelper.Spawn(boss.transform, attackData,
+                        TelegraphShape.Circle, radius: slamRange,
+                        followParent: true, onComplete: OnTelegraphDone);
+
+                    return NodeState.Running;
+
+                case Phase.Telegraph:
+                    return NodeState.Running;
+
+                case Phase.Windup:
+                    if (Time.time >= windupEnd)
+                    {
+                        phase      = Phase.Hit;
+                        hitApplied = false;
+                    }
+                    return NodeState.Running;
+
+                case Phase.Hit:
+                    if (!hitApplied)
+                    {
+                        hitApplied = true;
+                        boss.ApplySlamDamage(slamRange, slamDamage);
+                        boss.PlaySlamVFX();
+                    }
+                    if (Time.time >= windupEnd + POST_HIT)
+                    {
+                        boss.SetExecutingPattern(false);
+                        phase = Phase.Idle;
+                        return NodeState.Success;
+                    }
+                    return NodeState.Running;
             }
+            boss.ForceReleasePattern();
+            phase = Phase.Idle;
+            return NodeState.Failure;
+        }
 
-            if (Time.time < windupEnd)
-                return NodeState.Running;
-
-            if (!hitApplied)
-            {
-                hitApplied = true;
-                boss.ApplySlamDamage(slamRange, slamDamage);
-                boss.PlaySlamVFX();
-            }
-
-            // 짧은 후딜
-            if (Time.time >= windupEnd + 0.3f)
-            {
-                isActive = false;
-                return NodeState.Success;
-            }
-            return NodeState.Running;
+        private void OnTelegraphDone()
+        {
+            phase     = Phase.Windup;
+            windupEnd = Time.time + WINDUP_TIME;
+            boss.SetTelegraphing(false);
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  패턴 3 : 파도 발사 (WaveBlast)
-    //  플레이어 방향으로 넓은 직사각형 파도 투사체 → 피해 + 넉백
+    //  패턴 3 : 파도 발사
+    //  텔레그래프: 직선(발사 방향), 길이=maxRange, 폭=waveWidth
     // ═══════════════════════════════════════════════════════════════
     public class WaveBlastNode : BTNode
     {
@@ -149,13 +193,16 @@ namespace BossSystem.Boss.WaterBoss
         private float waveDamage;
         private float knockbackForce;
         private float maxRange;
+        private BossAttackData attackData;
 
-        private bool isActive = false;
+        private enum Phase { Idle, Telegraph, Fire }
+        private Phase   phase   = Phase.Idle;
+        private Vector3 fireDir;
 
         public WaveBlastNode(BossBlackboard bb, WaterBossController boss,
             float waveWidth = 8f, float waveSpeed = 14f,
-            float waveDamage = 35f, float knockbackForce = 18f, float maxRange = 25f)
-            : base(bb)
+            float waveDamage = 35f, float knockbackForce = 18f, float maxRange = 25f,
+            BossAttackData data = null) : base(bb)
         {
             this.boss           = boss;
             this.waveWidth      = waveWidth;
@@ -163,40 +210,60 @@ namespace BossSystem.Boss.WaterBoss
             this.waveDamage     = waveDamage;
             this.knockbackForce = knockbackForce;
             this.maxRange       = maxRange;
+            this.attackData     = data;
         }
 
-        public override void OnEnter() => isActive = false;
+        public override void OnEnter() => phase = Phase.Idle;
 
         protected override NodeState OnEvaluate()
         {
-            if (!isActive)
+            switch (phase)
             {
-                var player = blackboard.PlayerTransform;
-                if (player == null) return NodeState.Failure;
+                case Phase.Idle:
+                    if (boss.IsExecutingPattern) return NodeState.Failure;
+                    var player = blackboard.PlayerTransform;
+                    if (player == null) return NodeState.Failure;
 
-                isActive = true;
-                Vector3 dir = (player.position - boss.transform.position).normalized;
-                dir.z = 0f;
+                    fireDir   = (player.position - boss.transform.position).normalized;
+                    fireDir.z = 0f;
 
-                boss.SpawnWave(boss.transform.position, dir,
-                               waveWidth, waveSpeed, waveDamage, knockbackForce, maxRange);
-                return NodeState.Running;
+                    phase = Phase.Telegraph;
+                    boss.SetExecutingPattern(true);
+                    boss.SetTelegraphing(true);
+
+                    TelegraphHelper.SpawnLine(
+                        boss.transform.position,
+                        new Vector2(fireDir.x, fireDir.y),
+                        length: maxRange, width: waveWidth,
+                        attackData, onComplete: OnTelegraphDone);
+
+                    return NodeState.Running;
+
+                case Phase.Telegraph:
+                    return NodeState.Running;
+
+                case Phase.Fire:
+                    boss.SpawnWave(boss.transform.position, fireDir,
+                                   waveWidth, waveSpeed, waveDamage, knockbackForce, maxRange);
+                    boss.SetExecutingPattern(false);
+                    phase = Phase.Idle;
+                    return NodeState.Success;
             }
+            boss.ForceReleasePattern();
+            phase = Phase.Idle;
+            return NodeState.Failure;
+        }
 
-            // 파도 오브젝트가 스스로 이동 처리 → 즉시 Success
-            isActive = false;
-            return NodeState.Success;
+        private void OnTelegraphDone()
+        {
+            phase = Phase.Fire;
+            boss.SetTelegraphing(false);
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  패턴 4 : 원기둥 속박 (WaterPillarBind)
-    //  플레이어 위치에 물기둥 낙하 → 피해 + 속박
-    //
-    //  동작 흐름:
-    //   ① 플레이어 현재 위치 기록 + 경고 마커 표시 (warningTime)
-    //   ② warningTime 경과 → 물기둥 소환 → 피해 + 속박 적용
-    //   ③ 물기둥이 bindDuration 후 소멸
+    //  패턴 4 : 물기둥 속박
+    //  텔레그래프: 원형(플레이어 위치 고정), 반지름=pillarRadius
     // ═══════════════════════════════════════════════════════════════
     public class WaterPillarBindNode : BTNode
     {
@@ -204,64 +271,74 @@ namespace BossSystem.Boss.WaterBoss
         private float pillarRadius;
         private float pillarDamage;
         private float bindDuration;
-        private float warningTime;
+        private BossAttackData attackData;
 
-        private bool    isActive    = false;
-        private bool    fired       = false;
-        private float   warnEnd     = 0f;
+        private enum Phase { Idle, Telegraph, Fire }
+        private Phase   phase     = Phase.Idle;
+        private bool    fired     = false;
         private Vector3 targetPos;
 
         public WaterPillarBindNode(BossBlackboard bb, WaterBossController boss,
             float pillarRadius = 2.5f, float pillarDamage = 45f,
-            float bindDuration = 2.5f, float warningTime = 1.2f)
-            : base(bb)
+            float bindDuration = 2.5f, BossAttackData data = null) : base(bb)
         {
             this.boss         = boss;
             this.pillarRadius = pillarRadius;
             this.pillarDamage = pillarDamage;
             this.bindDuration = bindDuration;
-            this.warningTime  = warningTime;
+            this.attackData   = data;
         }
 
-        public override void OnEnter()
-        {
-            isActive = false;
-            fired    = false;
-        }
+        public override void OnEnter() { phase = Phase.Idle; fired = false; }
 
         protected override NodeState OnEvaluate()
         {
-            if (!isActive)
+            switch (phase)
             {
-                var player = blackboard.PlayerTransform;
-                if (player == null) return NodeState.Failure;
+                case Phase.Idle:
+                    if (boss.IsExecutingPattern) return NodeState.Failure;
+                    var player = blackboard.PlayerTransform;
+                    if (player == null) return NodeState.Failure;
 
-                targetPos = player.position;   // 위치 고정 (텔레그래프)
-                isActive  = true;
-                fired     = false;
-                warnEnd   = Time.time + warningTime;
-                boss.ShowPillarWarning(targetPos, pillarRadius);
-                return NodeState.Running;
+                    targetPos = player.position;
+                    phase     = Phase.Telegraph;
+                    boss.SetExecutingPattern(true);
+                    boss.SetTelegraphing(true);
+
+                    TelegraphHelper.SpawnAt(targetPos, attackData,
+                        TelegraphShape.Circle, radius: pillarRadius,
+                        onComplete: OnTelegraphDone);
+
+                    return NodeState.Running;
+
+                case Phase.Telegraph:
+                    return NodeState.Running;
+
+                case Phase.Fire:
+                    if (!fired)
+                    {
+                        fired = true;
+                        boss.SpawnWaterPillar(targetPos, pillarRadius, pillarDamage, bindDuration);
+                        boss.SetTelegraphing(false);
+                        boss.SetExecutingPattern(false);
+                    }
+                    phase = Phase.Idle;
+                    return NodeState.Success;
             }
+            boss.ForceReleasePattern();
+            phase = Phase.Idle;
+            return NodeState.Failure;
+        }
 
-            if (Time.time < warnEnd)
-                return NodeState.Running;
-
-            if (!fired)
-            {
-                fired = true;
-                boss.SpawnWaterPillar(targetPos, pillarRadius, pillarDamage, bindDuration);
-            }
-
-            isActive = false;
-            return NodeState.Success;
+        private void OnTelegraphDone()
+        {
+            phase = Phase.Fire;
+            boss.SetTelegraphing(false);
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  페이즈 2 : 범람 (FloodField)
-    //  HP 50% 미만 → 맵 전체 물 장판 생성 → 이동속도 전체 둔화
-    //  ParallelNode에 물려 패턴과 동시에 상시 실행
+    //  페이즈 2 : 범람 (IsExecutingPattern 체크 없음 — Parallel 상시)
     // ═══════════════════════════════════════════════════════════════
     public class FloodFieldNode : BTNode
     {
@@ -274,14 +351,7 @@ namespace BossSystem.Boss.WaterBoss
         protected override NodeState OnEvaluate()
         {
             if (!blackboard.IsPhase2) return NodeState.Failure;
-
-            if (!activated)
-            {
-                activated = true;
-                boss.ActivateFloodField();
-            }
-
-            // FloodZone 트리거가 직접 처리하므로 Running만 반환
+            if (!activated) { activated = true; boss.ActivateFloodField(); }
             return NodeState.Running;
         }
     }
