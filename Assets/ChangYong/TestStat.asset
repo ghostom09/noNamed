@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11373ea46bade3c4b93c7acee59500ae, type: 3}
+  m_Name: TestStat
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStat
+  health: 30
+  meleeDamage: 5
+  rangedDamage: 4
+  criticalProbability: 0.1
+  moveSpeed: 5
+  attackSpeed: 2
+  skillArea: 2
+  levelTable:
+  - startLevel: 2
+    endLevel: 4
+    health: 1
+    meleeDamage: 1
+    rangedDamage: 1
+    criticalProbability: 1
+    moveSpeed: 1
+    attackSpeed: 1
+    skillArea: 1
+  - startLevel: 5
+    endLevel: 100
+    health: 2
+    meleeDamage: 2
+    rangedDamage: 2
+    criticalProbability: 2
+    moveSpeed: 2
+    attackSpeed: 2
+    skillArea: 2
