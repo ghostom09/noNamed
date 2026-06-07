@@ -22,6 +22,9 @@ public class FloorRule : ScriptableObject
     [SerializeField, Min(0)] private int maxChildBranchRoomCount = 1;
     [SerializeField] private bool hasBoss;
 
+    [Header("Placement")]
+    [SerializeField, Min(0f)] private float roomSpacing = 2f;
+
     [Header("Required Room Types")]
     [SerializeField] private RoomDefinition corridorRoom;
     [SerializeField] private RoomDefinition passageRoom;
@@ -37,6 +40,7 @@ public class FloorRule : ScriptableObject
     public float ChildBranchChance => childBranchChance;
     public int MaxSideBranchesPerMainRoom => Mathf.Clamp(maxSideBranchesPerMainRoom, 0, 2);
     public int MaxChildBranchRoomCount => Mathf.Max(0, maxChildBranchRoomCount);
+    public float RoomSpacing => Mathf.Max(0f, roomSpacing);
 
     public bool HasBoss => hasBoss;
     public RoomDefinition CorridorRoom => corridorRoom;

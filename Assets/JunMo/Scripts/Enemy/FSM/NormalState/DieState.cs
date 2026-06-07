@@ -13,9 +13,14 @@ public class DieState : IState
 
     public void Enter()
     {
-        _enemy.enabled = false;           // AI/이동 중단
-        _enemy.GetComponent<Collider>().enabled = false; // 피격 판정 제거
-        
+        _enemy.NotifyDead();
+
+        _enemy.enabled = false;
+
+        var collider = _enemy.GetComponent<Collider2D>();
+        if (collider != null)
+            collider.enabled = false;
+
         Object.Destroy(_enemy.gameObject, 2f);
         if (_isSuicideBomber)
         {

@@ -21,7 +21,7 @@ public class Enemy : MonoBehaviour
     
     [HideInInspector]public Rigidbody2D rb;
     private float _attackTime = 0f;
-    
+    private bool _isDead;
     public event Action<Enemy> OnDead;
 
     private void Awake()
@@ -110,6 +110,16 @@ public class Enemy : MonoBehaviour
     public void ResetAttackTimer()
     {
         _attackTime = 0f;
+    }
+
+    public void NotifyDead()
+    {
+        if (_isDead)
+            return;
+
+        _isDead = true;
+        OnDead?.Invoke(this);
+        OnDead = null;
     }
     
     public void ApplyStun(float duration) => CcState.ApplyStun(duration);

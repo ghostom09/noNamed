@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class DungeonGenerator : MonoBehaviour
 {
@@ -12,9 +13,13 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField, Min(0)] private int fallbackBossInterval = 3;
 
     [Header("Placement")]
-    [SerializeField, Min(0f)] private float roomPadding = 2f;
+    [FormerlySerializedAs("roomPadding")]
+    [SerializeField, Min(0f)] private float fallbackRoomSpacing = 2f;
+
+    private const float BoundsContactTolerance = 0.01f;
 
     private readonly List<RoomNode> _allRooms = new List<RoomNode>();
+    private float _roomSpacing;
     private int _idCounter;
 
     public List<RoomNode> GenerateRooms(int currentFloor)
@@ -26,6 +31,7 @@ public class DungeonGenerator : MonoBehaviour
     {
         _allRooms.Clear();
         _idCounter = 0;
+        _roomSpacing = GetRoomSpacing(rule);
 
         var mainPath = GenerateMainPath(rule);
         var exitParent = mainPath[^1];
@@ -34,8 +40,8 @@ public class DungeonGenerator : MonoBehaviour
             exitParent = AddBoss(exitParent, rule);
 
         AddExit(exitParent, rule);
-        GenerateBranches(mainPath, rule);
         GenerateGuaranteedRooms(mainPath, rule);
+        GenerateBranches(mainPath, rule);
 
         return new List<RoomNode>(_allRooms);
     }
@@ -71,7 +77,7 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
 
-        Debug.LogWarning($"보장 방 생성 실패: {type}");
+        Debug.LogWarning($"Failed to generate guaranteed room type: {type}");
     }
 
     private bool HasGeneratedRoomType(RoomType type)
@@ -264,12 +270,12 @@ public class DungeonGenerator : MonoBehaviour
         RoomType childFallbackType,
         Vector2Int direction)
     {
-        var parentDoor = GetDoorLocalPosition(parent.Definition, parent.Type, direction);
-        var oppositeDirection = new Vector2Int(-direction.x, -direction.y);
+        var parentDoor = parent.GetDoorLocalPosition(direction);
+        var oppositeDirection = RoomDataUtility.GetOppositeDirection(direction);
         var childDoor = GetDoorLocalPosition(childDefinition, childFallbackType, oppositeDirection);
-        var paddingOffset = new Vector2(direction.x, direction.y) * roomPadding;
+        var spacingOffset = new Vector2(direction.x, direction.y) * _roomSpacing;
 
-        return parent.Position + parentDoor + paddingOffset - childDoor;
+        return parent.Position + parentDoor + spacingOffset - childDoor;
     }
 
     private Vector2 GetDoorLocalPosition(RoomDefinition definition, RoomType fallbackType, Vector2Int direction)
@@ -287,18 +293,38 @@ public class DungeonGenerator : MonoBehaviour
 
     private bool OverlapsExistingRoom(Rect bounds)
     {
+        var checkedBounds = ShrinkRect(bounds, BoundsContactTolerance);
+
         for (var i = 0; i < _allRooms.Count; i++)
         {
-            if (bounds.Overlaps(_allRooms[i].Bounds))
+            var existingBounds = ShrinkRect(_allRooms[i].Bounds, BoundsContactTolerance);
+            if (checkedBounds.Overlaps(existingBounds))
                 return true;
         }
 
         return false;
     }
 
+    private Rect ShrinkRect(Rect rect, float amount)
+    {
+        var shrinkX = Mathf.Min(amount, rect.width * 0.5f);
+        var shrinkY = Mathf.Min(amount, rect.height * 0.5f);
+
+        return new Rect(
+            rect.xMin + shrinkX,
+            rect.yMin + shrinkY,
+            Mathf.Max(0f, rect.width - shrinkX * 2f),
+            Mathf.Max(0f, rect.height - shrinkY * 2f));
+    }
+
     private bool ShouldGenerateBoss(int currentFloor, FloorRule rule)
     {
         return rule != null ? rule.HasBoss : IsFallbackBossFloor(currentFloor);
+    }
+
+    private float GetRoomSpacing(FloorRule rule)
+    {
+        return rule != null ? rule.RoomSpacing : Mathf.Max(0f, fallbackRoomSpacing);
     }
 
     private int GetMainPathRoomCount(FloorRule rule)
@@ -376,3 +402,6 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 }
+
+
+

@@ -1,10 +1,10 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Global;
 using UnityEngine;
 
 public class FloorManager : Singleton<FloorManager>
 {
-    [SerializeField, Min(1)] private int maxFloor = 12;
+    [SerializeField, Min(1)] private int maxFloor = 8;
     [SerializeField, Min(1)] private int startFloor = 1;
     [SerializeField] private DungeonGenerator dungeonGenerator;
     [SerializeField] private RoomManager roomManager;
@@ -92,3 +92,4 @@ public class FloorManager : Singleton<FloorManager>
         return _currentFloor;
     }
 }
+

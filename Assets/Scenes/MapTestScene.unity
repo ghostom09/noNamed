@@ -138,7 +138,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!50 &198990693
 Rigidbody2D:
   serializedVersion: 5
@@ -249,10 +249,10 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 3
   m_MaskInteraction: 0
   m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.49622637, b: 0.49622637, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -288,6 +288,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abf05d8b48ceb8e4b9c4dd16eca855cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JunWoo.PlayerController
+  moveSpeed: 5
 --- !u!1 &682142385
 GameObject:
   m_ObjectHideFlags: 0
@@ -513,7 +514,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomManager
   roomPrefab: {fileID: 193220045356802525, guid: 0a8c9715682341543bcfd9b7eb35d1a3, type: 3}
   roomRoot: {fileID: 0}
+  doorRoot: {fileID: 0}
   scaleFallbackPrefabToRoomSize: 1
+  playerDoorSpawnOffset: 1.2
 --- !u!4 &1315179788
 Transform:
   m_ObjectHideFlags: 0
@@ -562,8 +565,9 @@ MonoBehaviour:
   fallbackBranchChance: 0.5
   fallbackChildBranchChance: 0.3
   fallbackMaxSideBranchesPerMainRoom: 2
+  fallbackMaxChildBranchRoomCount: 1
   fallbackBossInterval: 3
-  roomPadding: 2
+  connectionGap: 0
 --- !u!4 &1409541146
 Transform:
   m_ObjectHideFlags: 0

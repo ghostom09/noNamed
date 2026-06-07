@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Global;
 using UnityEngine;
 
@@ -6,11 +6,14 @@ public class RoomManager : Singleton<RoomManager>
 {
     [SerializeField] private GameObject roomPrefab;
     [SerializeField] private Transform roomRoot;
+    [SerializeField] private Transform doorRoot;
     [SerializeField] private bool scaleFallbackPrefabToRoomSize = true;
+    [SerializeField, Min(0f)] private float playerDoorSpawnOffset = 1.2f;
 
     private readonly List<RoomController> _roomControllers = new List<RoomController>();
     private readonly List<GameObject> _spawnedRooms = new List<GameObject>();
     private RoomController _currentRoom;
+    private Transform _trackedPlayer;
 
     public void SpawnAllRooms(List<RoomNode> rooms)
     {
@@ -26,6 +29,9 @@ public class RoomManager : Singleton<RoomManager>
         {
             SpawnRoom(rooms[i]);
         }
+
+        if (_trackedPlayer != null && rooms.Count > 0)
+            MovePlayerToRoomCenter(rooms[0]);
     }
 
     private void SpawnRoom(RoomNode data)
@@ -56,7 +62,7 @@ public class RoomManager : Singleton<RoomManager>
             return;
         }
 
-        controller.Init(data);
+        controller.Init(data, doorRoot);
         _roomControllers.Add(controller);
         _spawnedRooms.Add(obj);
     }
@@ -100,4 +106,51 @@ public class RoomManager : Singleton<RoomManager>
     {
         return _currentRoom;
     }
+
+    public void MoveThroughDoor(RoomConnection connection, Transform player)
+    {
+        if (connection == null || connection.To == null || player == null)
+            return;
+
+        var targetRoom = GetRoom(connection.To.Id);
+        if (targetRoom == null)
+        {
+            Debug.LogWarning($"Target room not found: {connection.To.Id}");
+            return;
+        }
+
+        _trackedPlayer = player;
+
+        var moveDirection = RoomDataUtility.NormalizeDirection(connection.Direction);
+        var targetDoorDirection = RoomDataUtility.GetOppositeDirection(moveDirection);
+        var targetDoorPosition = targetRoom.GetDoorWorldPosition(targetDoorDirection);
+        var spawnOffset = new Vector2(moveDirection.x, moveDirection.y) * playerDoorSpawnOffset;
+        var spawnPosition = targetDoorPosition + spawnOffset;
+
+        MovePlayer(player, spawnPosition);
+        EnterRoom(targetRoom);
+    }
+
+    private void MovePlayerToRoomCenter(RoomNode room)
+    {
+        if (_trackedPlayer == null || room == null)
+            return;
+
+        MovePlayer(_trackedPlayer, room.Position);
+
+        var startRoom = GetRoom(room.Id);
+        if (startRoom != null)
+            EnterRoom(startRoom);
+    }
+
+    private void MovePlayer(Transform player, Vector2 position)
+    {
+        player.position = new Vector3(position.x, position.y, player.position.z);
+
+        var rb = player.GetComponent<Rigidbody2D>();
+        if (rb != null)
+            rb.linearVelocity = Vector2.zero;
+    }
 }
+
+

@@ -55,6 +55,18 @@ public class RoomNode
     public RewardType RewardType => Definition != null ? Definition.RewardType : RoomDataUtility.GetRewardType(Type);
     public GameObject Prefab => Definition != null ? Definition.Prefab : null;
 
+    public Vector2 GetDoorLocalPosition(Vector2Int direction)
+    {
+        return Definition != null
+            ? Definition.GetDoorLocalPosition(direction)
+            : RoomDataUtility.GetFallbackDoorLocalPosition(Type, direction);
+    }
+
+    public Vector2 GetDoorWorldPosition(Vector2Int direction)
+    {
+        return Position + GetDoorLocalPosition(direction);
+    }
+
     public Rect Bounds
     {
         get
@@ -141,5 +153,11 @@ public static class RoomDataUtility
             return new Vector2Int(direction.x >= 0 ? 1 : -1, 0);
 
         return new Vector2Int(0, direction.y >= 0 ? 1 : -1);
+    }
+
+    public static Vector2Int GetOppositeDirection(Vector2Int direction)
+    {
+        var normalized = NormalizeDirection(direction);
+        return new Vector2Int(-normalized.x, -normalized.y);
     }
 }

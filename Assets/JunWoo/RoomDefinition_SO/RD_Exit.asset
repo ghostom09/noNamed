@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomDefinition
   type: 7
   prefab: {fileID: 193220045356802525, guid: 1480533c050aefa4f8fd7e5c7236aac5, type: 3}
-  size: {x: 6, y: 6}
+  size: {x: 15, y: 15}
   doorPoints:
   - id: Left
     direction: {x: -1, y: 0}
