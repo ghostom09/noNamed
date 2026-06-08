@@ -27,6 +27,10 @@ namespace BossSystem.Boss.FleshBoss
         // 컴포넌트
         private Rigidbody2D rb;
         private bool isDead = false;
+        private bool isTargetedFlight = false;
+        private Vector2 flightTargetPos;
+        private float flightSpeed = 0f;
+        private const float FlightReachThreshold = 0.03f;
 
         // 이벤트
         public Action<FleshChunk> OnDestroyed;   // 보스가 구독해 목록 관리
@@ -49,6 +53,40 @@ namespace BossSystem.Boss.FleshBoss
             rb.gravityScale = 0f;
 
             Destroy(gameObject, lifetime);
+        }
+
+        public void InitializeTargetedFlight(Vector3 targetPosition, float speed)
+        {
+            if (rb == null) rb = GetComponent<Rigidbody2D>();
+
+            flightTargetPos = new Vector2(targetPosition.x, targetPosition.y);
+            flightSpeed = Mathf.Max(0.01f, speed);
+            isTargetedFlight = true;
+            isBouncing = false;
+            currentBounce = 0;
+
+            rb.gravityScale = 0f;
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+        }
+
+        private void FixedUpdate()
+        {
+            if (!isTargetedFlight || isDead || rb == null) return;
+
+            Vector2 next = Vector2.MoveTowards(
+                rb.position,
+                flightTargetPos,
+                flightSpeed * Time.fixedDeltaTime);
+            rb.MovePosition(next);
+
+            if (Vector2.Distance(next, flightTargetPos) <= FlightReachThreshold)
+            {
+                rb.MovePosition(flightTargetPos);
+                rb.linearVelocity = Vector2.zero;
+                rb.angularVelocity = 0f;
+                isTargetedFlight = false;
+            }
         }
 
         // ── 물리 충돌 ────────────────────────────────────────────

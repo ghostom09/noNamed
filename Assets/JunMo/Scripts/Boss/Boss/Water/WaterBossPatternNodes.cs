@@ -5,11 +5,6 @@ using BossSystem.Scripable;
 
 namespace BossSystem.Boss.WaterBoss
 {
-    // ═══════════════════════════════════════════════════════════════
-    //  패턴 1 : 십자 물줄기
-    //  텔레그래프: 원형(보스 중심), 반지름=beamLength
-    //  수정: 실패 경로 ForceReleasePattern 보장
-    // ═══════════════════════════════════════════════════════════════
     public class CrossWaterBeamNode : BTNode
     {
         private WaterBossController boss;
@@ -93,11 +88,6 @@ namespace BossSystem.Boss.WaterBoss
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  패턴 2 : 내려치기
-    //  텔레그래프: 원형(보스 중심), 반지름=slamRange
-    //  수정: 내부 거리 조건 완전 제거 (BT에서 처리 또는 거리 무관)
-    // ═══════════════════════════════════════════════════════════════
     public class GroundSlamNode : BTNode
     {
         private WaterBossController boss;
@@ -181,10 +171,6 @@ namespace BossSystem.Boss.WaterBoss
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  패턴 3 : 파도 발사
-    //  텔레그래프: 직선(발사 방향), 길이=maxRange, 폭=waveWidth
-    // ═══════════════════════════════════════════════════════════════
     public class WaveBlastNode : BTNode
     {
         private WaterBossController boss;
@@ -261,10 +247,6 @@ namespace BossSystem.Boss.WaterBoss
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  패턴 4 : 물기둥 속박
-    //  텔레그래프: 원형(플레이어 위치 고정), 반지름=pillarRadius
-    // ═══════════════════════════════════════════════════════════════
     public class WaterPillarBindNode : BTNode
     {
         private WaterBossController boss;
@@ -338,7 +320,12 @@ namespace BossSystem.Boss.WaterBoss
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  페이즈 2 : 범람 (IsExecutingPattern 체크 없음 — Parallel 상시)
+    //  페이즈 2 : 범람
+    //
+    //  수정: ParallelNode(requiredSuccess=1) 구조에서
+    //        페이즈1일 때 Failure → 패턴 Success와 합산되어 루트 재시작 문제 해결
+    //        → 페이즈1: Failure 대신 Running 반환 (아직 대기 중인 상태)
+    //        → 페이즈2 진입 시 딱 한 번 활성화 후 계속 Running
     // ═══════════════════════════════════════════════════════════════
     public class FloodFieldNode : BTNode
     {
@@ -350,8 +337,17 @@ namespace BossSystem.Boss.WaterBoss
 
         protected override NodeState OnEvaluate()
         {
-            if (!blackboard.IsPhase2) return NodeState.Failure;
-            if (!activated) { activated = true; boss.ActivateFloodField(); }
+            // ★ 페이즈1이어도 Failure가 아닌 Running 반환
+            //   Failure를 반환하면 ParallelNode(req=1)에서
+            //   패턴 노드 Success와 합산돼 루트가 재시작되어 FloodZone 중복 생성됨
+            if (!blackboard.IsPhase2) return NodeState.Running;
+
+            if (!activated)
+            {
+                activated = true;
+                boss.ActivateFloodField();
+            }
+
             return NodeState.Running;
         }
     }
