@@ -44,7 +44,6 @@ namespace BossSystem.Boss.FleshBoss
         protected override float ChaseSpeed            => chaseSpeed;
         protected override float ChaseStoppingDistance => chaseStoppingDistance;
 
-        // ★ ChargeNode에서 rb에 접근하기 위한 헬퍼 (BossBase.rb = protected)
         public Rigidbody2D GetRigidbody() => rb;
 
         protected override BTNode BuildBehaviorTree()
@@ -57,8 +56,8 @@ namespace BossSystem.Boss.FleshBoss
                 "Charge", chargeCooldown);
 
             var scatter = new CooldownNode(bb,
-                new FleshScatterNode(bb, this, scatterCount: 16, force: 10f,
-                                     data: scatterData),
+                new FleshScatterNode(bb, this, scatterCount: 16, speed: 6f,
+                    scatterRadius: 8f, data: scatterData),
                 "FleshScatter", scatterCooldown);
 
             var throwNode = new CooldownNode(bb,
@@ -139,6 +138,35 @@ namespace BossSystem.Boss.FleshBoss
             {
                 rbComp.AddForce(direction * force, ForceMode2D.Impulse);
                 rbComp.AddTorque(Random.Range(-5f, 5f), ForceMode2D.Impulse);
+            }
+        }
+
+        public void SpawnFleshProjectileToTarget(Vector3 position, Vector3 targetPosition,
+                                                 float speed, int bounces, bool isLarge = false)
+        {
+            var prefab = (isLarge && fleshChunkLargePrefab != null)
+                         ? fleshChunkLargePrefab : fleshChunkPrefab;
+            if (prefab == null) return;
+
+            var go = Instantiate(prefab, position,
+                                 Quaternion.Euler(0f, 0f, Random.Range(0f, 360f)));
+            var chunk = go.GetComponent<FleshChunk>();
+            if (chunk != null)
+            {
+                chunk.Initialize(this,
+                    hp:      isLarge ? 60f : 30f,
+                    dmg:     isLarge ? 30f : 15f,
+                    life:    12f,
+                    bounces: bounces);
+                chunk.InitializeTargetedFlight(targetPosition, speed);
+                RegisterChunk(chunk);
+            }
+
+            var rbComp = go.GetComponent<Rigidbody2D>();
+            if (rbComp != null)
+            {
+                rbComp.linearVelocity = Vector2.zero;
+                rbComp.angularVelocity = 0f;
             }
         }
 

@@ -3,51 +3,83 @@ using UnityEngine;
 
 namespace BossSystem.Boss.FireBoss
 {
-    // ═══════════════════════════════════════════════════════════════
-    //  불의 고리 — 탑다운 2D
-    //  · XY 평면에서 확장
-    //  · OverlapSphere → Y를 0으로 고정한 XZ 거리로 판정
-    // ═══════════════════════════════════════════════════════════════
+    /// <summary>
+    /// 불의 고리 (SpriteRenderer 버전)
+    /// </summary>
     public class FireRing : MonoBehaviour
     {
-        private float       expandSpeed;
-        private float       maxRadius;
-        private float       damage;
-        private bool        isGasTrigger;
+        private float expandSpeed;
+        private float maxRadius;
+        private float damage;
+        private bool isGasTrigger;
         private FireBossController boss;
 
-        private float       currentRadius = 0f;
-        private float       startTime;
-        private bool        started       = false;
-        private float       thickness     = 0.8f;
+        private float currentRadius = 0f;
+        private float startTime;
+        private bool started = false;
 
-        private HashSet<Collider2D> hitTargets = new ();
+        // 링의 충돌 판정 두께
+        private float thickness = 0.8f;
 
-        public void Initialize(float spd, float maxR, float dmg, float delay,
-                               bool gasTrigger, FireBossController bossRef)
+        private SpriteRenderer spriteRenderer;
+
+        private readonly HashSet<Collider2D> hitTargets = new();
+
+        private void Awake()
         {
-            expandSpeed  = spd;
-            maxRadius    = maxR;
-            damage       = dmg;
+            spriteRenderer = GetComponent<SpriteRenderer>();
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = new Color(1f, 0.4f, 0f, 0.85f);
+                spriteRenderer.sortingOrder = 4;
+            }
+        }
+
+        public void Initialize(
+            float spd,
+            float maxR,
+            float dmg,
+            float delay,
+            bool gasTrigger,
+            FireBossController bossRef)
+        {
+            expandSpeed = spd;
+            maxRadius = maxR;
+            damage = dmg;
             isGasTrigger = gasTrigger;
-            boss         = bossRef;
-            startTime    = Time.time + delay;
+            boss = bossRef;
+
+            startTime = Time.time + delay;
+
+            currentRadius = 0f;
+            started = false;
+
+            hitTargets.Clear();
 
             transform.localScale = Vector3.zero;
+
+            if (spriteRenderer != null)
+                spriteRenderer.enabled = false;
         }
 
         private void Update()
         {
             if (!started)
             {
-                if (Time.time < startTime) return;
+                if (Time.time < startTime)
+                    return;
+
                 started = true;
+
+                if (spriteRenderer != null)
+                    spriteRenderer.enabled = true;
             }
 
             currentRadius += expandSpeed * Time.deltaTime;
+            currentRadius = Mathf.Min(currentRadius, maxRadius);
 
-            // ★ 탑다운: X/Z만 스케일, Y는 얇게 유지
-            transform.localScale = new Vector3(currentRadius * 2f, currentRadius * 2f, 1f);
+            UpdateVisual();
 
             CheckRingOverlap();
 
@@ -55,39 +87,70 @@ namespace BossSystem.Boss.FireBoss
             {
                 if (isGasTrigger && boss != null)
                     boss.TriggerGasExplosion(transform.position, currentRadius);
+
                 Destroy(gameObject);
             }
         }
 
+        private void UpdateVisual()
+        {
+            // 기본 스프라이트가 지름 1 유닛이라고 가정
+            float diameter = currentRadius * 2f;
+
+            transform.localScale = new Vector3(
+                diameter,
+                diameter,
+                1f
+            );
+        }
+
         private void CheckRingOverlap()
         {
-            // ★ 탑다운: Y를 보스 Y로 고정한 위치에서 OverlapSphere
             Vector2 center = transform.position;
-            var hits = Physics2D.OverlapCircleAll(center, currentRadius + thickness * 0.5f);
 
-            foreach (var hit in hits)
+            float outerRadius = currentRadius + thickness * 0.5f;
+            float innerRadius = Mathf.Max(0f, currentRadius - thickness * 0.5f);
+
+            Collider2D[] hits = Physics2D.OverlapCircleAll(center, outerRadius);
+
+            foreach (Collider2D hit in hits)
             {
-                if (hit.isTrigger) continue;
-                if (hitTargets.Contains(hit)) continue;
+                if (hit.isTrigger)
+                    continue;
 
-                // XZ 거리로만 링 안쪽 판정
-                Vector2 bossXY =
-                    new Vector2(center.x, center.y);
-                Vector2 hitXY =
-                    new Vector2(
-                        hit.transform.position.x,
-                        hit.transform.position.y
-                    );
-                float dist = Vector2.Distance(bossXY, hitXY);
+                if (hitTargets.Contains(hit))
+                    continue;
 
-                if (dist < currentRadius - thickness * 0.5f) continue; // 내부 제외
+                if (!hit.CompareTag("Player"))
+                    continue;
 
-                if (hit.CompareTag("Player"))
-                {
-                    hitTargets.Add(hit);
-                    hit.GetComponent<PlayerHealth>()?.TakeDamage(damage);
-                }
+                float dist = Vector2.Distance(
+                    center,
+                    hit.transform.position
+                );
+
+                if (dist < innerRadius || dist > outerRadius)
+                    continue;
+
+                hitTargets.Add(hit);
+
+                PlayerHealth health = hit.GetComponent<PlayerHealth>();
+                if (health != null)
+                    health.TakeDamage(damage);
             }
         }
+
+#if UNITY_EDITOR
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = Color.red;
+
+            float outerRadius = currentRadius + thickness * 0.5f;
+            float innerRadius = Mathf.Max(0f, currentRadius - thickness * 0.5f);
+
+            Gizmos.DrawWireSphere(transform.position, outerRadius);
+            Gizmos.DrawWireSphere(transform.position, innerRadius);
+        }
+#endif
     }
 }

@@ -7,55 +7,79 @@ namespace BossSystem.Boss.FleshBoss
 {
     // ═══════════════════════════════════════════════════════════════
     //  패턴 1 : 돌진
-    //  수정: rb.linearVelocity로 방향/속도 고정
-    //        (rb.MovePosition은 FixedUpdate 타이밍 불일치로 방향 오류 발생)
     // ═══════════════════════════════════════════════════════════════
     public class ChargeNode : BTNode
     {
         private FleshBossController boss;
         private float chargeSpeed;
-        private float chargeDuration;
         private float trailInterval;
         private BossAttackData attackData;
 
         private enum Phase { Idle, Telegraph, Charge }
-        private Phase   phase         = Phase.Idle;
-        private float   chargeEndTime = 0f;
-        private Vector2 chargeDir;
-        private float   lastTrailTime = 0f;
+        private Phase phase         = Phase.Idle;
+        private float chargeEndTime = 0f;
+        private Vector2 chargeDir;          // 완전히 고정된 2D 방향
+        private Vector2 chargeStartPos;
+        private Vector2 chargeTargetPos;
+        private float chargeDistance;
+        private float chargeElapsed;
+        private float lastTrailTime = 0f;
+        private bool hasLoggedFirstMove = false;
+        private bool hasExpectedPosition = false;
+        private Vector2 lastExpectedPosition;
+        private RigidbodyType2D originalBodyType;
+        private float originalGravityScale;
+        private bool hasSavedPhysicsState = false;
         private Rigidbody2D rb;
 
-        private float ChargeDistance => chargeSpeed * chargeDuration;
+        private const float TargetReachThreshold = 0.05f;
+        private const float ChargeTimeoutPadding = 0.2f;
 
         public ChargeNode(BossBlackboard bb, FleshBossController boss,
             float chargeSpeed = 16f, float chargeDuration = 1.2f,
-            float collisionDamage = 40f, float trailInterval = 0.15f,
+            float collisionDamage = 40f, float trailInterval = 0.02f,
             BossAttackData data = null) : base(bb)
         {
             this.boss           = boss;
             this.chargeSpeed    = chargeSpeed;
-            this.chargeDuration = chargeDuration;
             this.trailInterval  = trailInterval;
             this.attackData     = data;
         }
 
-        public override void OnEnter() => phase = Phase.Idle;
+        public override void OnEnter()
+        {
+            EndChargePhysics();
+            phase = Phase.Idle;
+            hasExpectedPosition = false;
+            if (rb) rb.linearVelocity = Vector2.zero;
+        }
 
         protected override NodeState OnEvaluate()
         {
             switch (phase)
             {
                 case Phase.Idle:
+                {
                     if (boss.IsExecutingPattern) return NodeState.Failure;
-                    if (blackboard.PlayerTransform == null) return NodeState.Failure;
+
+                    var player = blackboard.PlayerTransform;
+                    if (player == null) return NodeState.Failure;
 
                     if (rb == null) rb = boss.GetRigidbody();
                     if (rb == null) return NodeState.Failure;
 
-                    // ★ 텔레그래프 시작 시점의 플레이어 방향을 고정
-                    chargeDir = new Vector2(
-                        blackboard.DirectionToPlayer.x,
-                        blackboard.DirectionToPlayer.y).normalized;
+                    Vector2 bossPos   = rb.transform.position;
+                    Vector2 playerPos = new Vector2(player.transform.position.x, player.transform.position.y);
+                    Vector2 rawDir    = playerPos - bossPos;
+
+                    if (rawDir.sqrMagnitude < 0.5f) return NodeState.Failure;
+
+                    chargeStartPos = bossPos;
+                    chargeTargetPos = playerPos;
+                    chargeDir = rawDir.normalized;
+                    chargeDistance = rawDir.magnitude;
+                    hasLoggedFirstMove = false;
+                    hasExpectedPosition = false;
 
                     phase = Phase.Telegraph;
                     boss.SetExecutingPattern(true);
@@ -63,15 +87,59 @@ namespace BossSystem.Boss.FleshBoss
 
                     TelegraphHelper.SpawnLine(
                         boss.transform.position, chargeDir,
-                        length: ChargeDistance, width: 2f,
+                        length: chargeDistance, width: 2f,
                         attackData, onComplete: OnTelegraphDone);
 
                     return NodeState.Running;
+                }
 
                 case Phase.Telegraph:
                     return NodeState.Running;
 
                 case Phase.Charge:
+                {
+                    Vector2 current = rb.position;
+                    if (hasExpectedPosition)
+                    {
+                        Vector2 drift = current - lastExpectedPosition;
+                        if (drift.sqrMagnitude > 0.0004f)
+                        {
+                            Debug.LogWarning(
+                                $"[FleshBoss][Charge][ExternalMoveDetected] state={phase} " +
+                                $"expected={lastExpectedPosition} actual={current} drift={drift} " +
+                                $"target={chargeTargetPos} dashDir={chargeDir} rbVelocity={rb.linearVelocity} " +
+                                $"transformPos={boss.transform.position}");
+                        }
+                    }
+
+                    chargeElapsed += Time.fixedDeltaTime;
+                    float travelDistance = Mathf.Min(chargeElapsed * chargeSpeed, chargeDistance);
+                    float remaining = Mathf.Max(0f, chargeDistance - travelDistance);
+                    Vector2 actualMoveDir = chargeDir;
+                    Vector2 next = remaining <= TargetReachThreshold
+                        ? chargeTargetPos
+                        : chargeStartPos + actualMoveDir * travelDistance;
+
+                    rb.linearVelocity = Vector2.zero;
+                    rb.MovePosition(next);
+                    lastExpectedPosition = next;
+                    hasExpectedPosition = true;
+
+                    Debug.Log(
+                        $"[FleshBoss][Charge][Frame] state={phase} bossPos={rb.position} " +
+                        $"transformPos={boss.transform.position} target={chargeTargetPos} " +
+                        $"dashDir={chargeDir} actualMoveDir={actualMoveDir} rbVelocity={rb.linearVelocity} " +
+                        $"next={next} elapsed={chargeElapsed:F3} remaining={remaining:F3}");
+
+                    if (!hasLoggedFirstMove)
+                    {
+                        hasLoggedFirstMove = true;
+                        Debug.Log(
+                            $"[FleshBoss][Charge][FirstMove] current={current} target={chargeTargetPos} " +
+                            $"calculatedDir={chargeDir} actualMoveDir={actualMoveDir} next={next} " +
+                            $"remaining={remaining:F3} rbVelocity={rb.linearVelocity}");
+                    }
+
                     // 장판 생성
                     if (Time.time - lastTrailTime >= trailInterval)
                     {
@@ -79,12 +147,32 @@ namespace BossSystem.Boss.FleshBoss
                         boss.SpawnTrailZone(boss.transform.position);
                     }
 
-                    // 돌진 종료
-                    if (Time.time >= chargeEndTime)
+                    if (Vector2.Distance(next, chargeTargetPos) <= TargetReachThreshold)
                     {
-                        // ★ 속도 정지
+                        rb.MovePosition(chargeTargetPos);
                         rb.linearVelocity = Vector2.zero;
+                        Debug.Log(
+                            $"[FleshBoss][Charge][Arrived] boss={rb.position} target={chargeTargetPos} " +
+                            $"calculatedDir={chargeDir} actualMoveDir={actualMoveDir}");
+                        EndChargePhysics();
+                        boss.SetCharging(false);
+                        boss.SetExecutingPattern(false);
 
+                        if (blackboard.IsPhase2)
+                            boss.SpawnFleshChunksAt(boss.transform.position, 3);
+
+                        phase = Phase.Idle;
+                        return NodeState.Success;
+                    }
+
+                    // 돌진 종료
+                    if (Time.time >= chargeEndTime) // ? 특정위치까지 간걸 확인후 scuccess 반환
+                    {
+                        rb.linearVelocity = Vector2.zero;
+                        Debug.LogWarning(
+                            $"[FleshBoss][Charge][Timeout] boss={rb.position} start={chargeStartPos} " +
+                            $"target={chargeTargetPos} calculatedDir={chargeDir} actualMoveDir={actualMoveDir}");
+                        EndChargePhysics();
                         boss.SetCharging(false);
                         boss.SetExecutingPattern(false);
 
@@ -95,9 +183,12 @@ namespace BossSystem.Boss.FleshBoss
                         return NodeState.Success;
                     }
                     return NodeState.Running;
+                }
             }
+
             boss.ForceReleasePattern();
             if (rb != null) rb.linearVelocity = Vector2.zero;
+            EndChargePhysics();
             phase = Phase.Idle;
             return NodeState.Failure;
         }
@@ -105,105 +196,157 @@ namespace BossSystem.Boss.FleshBoss
         private void OnTelegraphDone()
         {
             phase         = Phase.Charge;
-            chargeEndTime = Time.time + chargeDuration;
+            chargeEndTime = Time.time + (chargeDistance / chargeSpeed) + ChargeTimeoutPadding;
+            chargeElapsed = 0f;
             lastTrailTime = Time.time;
             boss.SetTelegraphing(false);
             boss.SetCharging(true);
-
-            // ★ 속도 고정 — FixedUpdate/Update 타이밍 상관없이 일정한 직진
-            rb.linearVelocity = chargeDir * chargeSpeed;
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  패턴 2 : 살점 흩뿌리기 (변경 없음)
-    // ═══════════════════════════════════════════════════════════════
-    public class FleshScatterNode : BTNode
-    {
-        private FleshBossController boss;
-        private int   scatterCount;
-        private float force;
-        private float fireInterval;
-        private BossAttackData attackData;
-
-        private enum Phase { Idle, Telegraph, Attack }
-        private Phase phase    = Phase.Idle;
-        private int   fired    = 0;
-        private float nextFire = 0f;
-
-        public FleshScatterNode(BossBlackboard bb, FleshBossController boss,
-            int scatterCount = 16, float force = 10f, float fireInterval = 0.05f,
-            BossAttackData data = null) : base(bb)
-        {
-            this.boss         = boss;
-            this.scatterCount = scatterCount;
-            this.force        = force;
-            this.fireInterval = fireInterval;
-            this.attackData   = data;
+            BeginChargePhysics();
+            Debug.Log(
+                $"[FleshBoss][Charge][Start] boss={rb.position} start={chargeStartPos} " +
+                $"target={chargeTargetPos} calculatedDir={chargeDir} actualMoveDir={chargeDir} " +
+                $"distance={chargeDistance:F3}");
+            // velocity는 설정하지 않음 — MovePosition으로만 이동
         }
 
-        public override void OnEnter() { phase = Phase.Idle; fired = 0; }
-
-        protected override NodeState OnEvaluate()
+        private void BeginChargePhysics()
         {
-            switch (phase)
+            if (rb == null) return;
+
+            if (!hasSavedPhysicsState)
             {
-                case Phase.Idle:
-                    if (boss.IsExecutingPattern) return NodeState.Failure;
-
-                    phase = Phase.Telegraph;
-                    boss.SetExecutingPattern(true);
-                    boss.SetTelegraphing(true);
-
-                    TelegraphHelper.Spawn(boss.transform, attackData,
-                        TelegraphShape.Circle, radius: force * 0.8f,
-                        followParent: true, onComplete: OnTelegraphDone);
-
-                    return NodeState.Running;
-
-                case Phase.Telegraph:
-                    return NodeState.Running;
-
-                case Phase.Attack:
-                    if (Time.time >= nextFire && fired < scatterCount)
-                    {
-                        float   angle = (360f / scatterCount) * fired;
-                        Vector3 dir   = Quaternion.Euler(0f, 0f, angle) * Vector3.right;
-                        dir.z = 0f;
-                        boss.SpawnFleshProjectile(boss.transform.position,
-                                                  dir.normalized, force, bounces: 0);
-                        fired++;
-                        nextFire = Time.time + fireInterval;
-                    }
-
-                    if (fired >= scatterCount)
-                    {
-                        boss.SetExecutingPattern(false);
-                        if (blackboard.IsPhase2)
-                            boss.SpawnFleshChunksAt(boss.transform.position, 4);
-                        phase = Phase.Idle;
-                        return NodeState.Success;
-                    }
-                    return NodeState.Running;
+                originalBodyType = rb.bodyType;
+                originalGravityScale = rb.gravityScale;
+                hasSavedPhysicsState = true;
             }
-            boss.ForceReleasePattern();
-            phase = Phase.Idle;
-            return NodeState.Failure;
+
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+            rb.gravityScale = 0f;
+            rb.bodyType = RigidbodyType2D.Kinematic;
         }
 
-        private void OnTelegraphDone()
+        private void EndChargePhysics()
         {
-            phase    = Phase.Attack;
-            fired    = 0;
-            nextFire = Time.time;
-            boss.SetTelegraphing(false);
+            if (rb == null || !hasSavedPhysicsState) return;
+
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+            rb.gravityScale = originalGravityScale;
+            rb.bodyType = originalBodyType;
+            hasSavedPhysicsState = false;
+            hasExpectedPosition = false;
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════
+//  패턴 2 : 살점 흩뿌리기
+// ═══════════════════════════════════════════════════════════════
+public class FleshScatterNode : BTNode
+{
+    private FleshBossController boss;
+    private int   scatterCount;
+    private float speed;          // force → speed로 의미 변경
+    private float fireInterval;
+    private float scatterRadius;  // 랜덤 목적지 반경
+    private BossAttackData attackData;
+
+    private enum Phase { Idle, Telegraph, Attack }
+    private Phase     phase       = Phase.Idle;
+    private int       fired       = 0;
+    private float     nextFire    = 0f;
+    private Vector3[] targetPositions;  // 미리 계산된 목적지들
+
+    public FleshScatterNode(BossBlackboard bb, FleshBossController boss,
+        int scatterCount = 16, float speed = 6f, float fireInterval = 0.05f,
+        float scatterRadius = 8f, BossAttackData data = null) : base(bb)
+    {
+        this.boss          = boss;
+        this.scatterCount  = scatterCount;
+        this.speed         = speed;
+        this.fireInterval  = fireInterval;
+        this.scatterRadius = scatterRadius;
+        this.attackData    = data;
+    }
+
+    public override void OnEnter() { phase = Phase.Idle; fired = 0; }
+
+    protected override NodeState OnEvaluate()
+    {
+        switch (phase)
+        {
+            case Phase.Idle:
+            {
+                if (boss.IsExecutingPattern) return NodeState.Failure;
+
+                // 목적지 미리 랜덤 결정
+                targetPositions = new Vector3[scatterCount];
+                for (int i = 0; i < scatterCount; i++)
+                {
+                    Vector2 rand = Random.insideUnitCircle.normalized
+                                   * Random.Range(scatterRadius * 0.4f, scatterRadius);
+                    targetPositions[i] = boss.transform.position + (Vector3)rand;
+                }
+
+                phase = Phase.Telegraph;
+                boss.SetExecutingPattern(true);
+                boss.SetTelegraphing(true);
+
+                // 텔레그래프: 도달 범위 원형 표시
+                TelegraphHelper.Spawn(boss.transform, attackData,
+                    TelegraphShape.Circle, radius: scatterRadius,
+                    followParent: true, onComplete: OnTelegraphDone);
+
+                return NodeState.Running;
+            }
+
+            case Phase.Telegraph:
+                return NodeState.Running;
+
+            case Phase.Attack:
+            {
+                if (Time.time >= nextFire && fired < scatterCount)
+                {
+                    boss.SpawnFleshProjectileToTarget(
+                        boss.transform.position,
+                        targetPositions[fired],   // 미리 정해진 목적지
+                        speed,
+                        bounces: 0,
+                        isLarge: false);
+
+                    fired++;
+                    nextFire = Time.time + fireInterval;
+                }
+
+                if (fired >= scatterCount)
+                {
+                    boss.SetExecutingPattern(false);
+                    if (blackboard.IsPhase2)
+                        boss.SpawnFleshChunksAt(boss.transform.position, 4);
+                    phase = Phase.Idle;
+                    return NodeState.Success;
+                }
+
+                return NodeState.Running;
+            }
+        }
+
+        boss.ForceReleasePattern();
+        phase = Phase.Idle;
+        return NodeState.Failure;
+    }
+
+    private void OnTelegraphDone()
+    {
+        phase    = Phase.Attack;
+        fired    = 0;
+        nextFire = Time.time;
+        boss.SetTelegraphing(false);
+    }
+}
 
     // ═══════════════════════════════════════════════════════════════
     //  패턴 3 : 살점 던지기
-    //  수정: 발사 방향에 위쪽 성분 추가 → 포물선 느낌
-    //        플레이어 위치 고정(텔레그래프) + 살짝 위로 던지기
     // ═══════════════════════════════════════════════════════════════
     public class FleshThrowNode : BTNode
     {
@@ -211,7 +354,6 @@ namespace BossSystem.Boss.FleshBoss
         private int   bounceCount;
         private float throwForce;
         private int   throwCount;
-        private float arcFactor;   // 포물선 위쪽 성분 (0=직선, 1=45도 위)
         private BossAttackData attackData;
 
         private enum Phase { Idle, Telegraph, Attack }
@@ -228,7 +370,6 @@ namespace BossSystem.Boss.FleshBoss
             this.bounceCount = bounceCount;
             this.throwForce  = throwForce;
             this.throwCount  = throwCount;
-            this.arcFactor   = arcFactor;
             this.attackData  = data;
         }
 
@@ -241,19 +382,13 @@ namespace BossSystem.Boss.FleshBoss
                 case Phase.Idle:
                     if (boss.IsExecutingPattern) return NodeState.Failure;
                     if (blackboard.PlayerTransform == null) return NodeState.Failure;
-
-                    // 텔레그래프 시점의 플레이어 위치 고정
                     targetPos = blackboard.PlayerTransform.position;
-
-                    phase = Phase.Telegraph;
+                    phase     = Phase.Telegraph;
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
-
-                    // 착탄 예정 위치에 원형 텔레그래프
                     TelegraphHelper.SpawnAt(targetPos, attackData,
                         TelegraphShape.Circle, radius: 1.5f,
                         onComplete: OnTelegraphDone);
-
                     return NodeState.Running;
 
                 case Phase.Telegraph:
@@ -262,11 +397,12 @@ namespace BossSystem.Boss.FleshBoss
                 case Phase.Attack:
                     if (Time.time >= nextThrow && thrown < throwCount)
                     {
-                        ThrowChunk();
+                        boss.SpawnFleshProjectileToTarget(boss.transform.position,
+                                                          targetPos, throwForce,
+                                                          bounces: bounceCount, isLarge: true);
                         thrown++;
                         nextThrow = Time.time + 0.3f;
                     }
-
                     if (thrown >= throwCount)
                     {
                         boss.SetExecutingPattern(false);
@@ -289,29 +425,10 @@ namespace BossSystem.Boss.FleshBoss
             nextThrow = Time.time;
             boss.SetTelegraphing(false);
         }
-
-        private void ThrowChunk()
-        {
-            // 플레이어 방향 벡터
-            Vector3 toTarget = (targetPos - boss.transform.position);
-            toTarget.z = 0f;
-            Vector3 flatDir = toTarget.normalized;
-
-            // ★ 위쪽 성분(Y+) 추가 → 포물선 던지기 느낌
-            //   탑다운 2D에서 Y+ = 화면 위쪽 = 던지는 호의 정점 방향
-            Vector3 launchDir = (flatDir + Vector3.up * arcFactor).normalized;
-
-            boss.SpawnFleshProjectile(
-                boss.transform.position,
-                launchDir,
-                throwForce,
-                bounces: bounceCount,
-                isLarge: true);
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  패턴 4 : 근접 주먹 (변경 없음)
+    //  패턴 4 : 근접 주먹
     // ═══════════════════════════════════════════════════════════════
     public class MeleeSmashNode : BTNode
     {
@@ -350,15 +467,12 @@ namespace BossSystem.Boss.FleshBoss
                 case Phase.Idle:
                     if (boss.IsExecutingPattern) return NodeState.Failure;
                     if (blackboard.DistanceToPlayer > smashRange) return NodeState.Failure;
-
                     phase = Phase.Telegraph;
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
-
                     TelegraphHelper.Spawn(boss.transform, attackData,
                         TelegraphShape.Circle, radius: smashRadius,
                         followParent: true, onComplete: OnTelegraphDone);
-
                     return NodeState.Running;
 
                 case Phase.Telegraph:
@@ -405,7 +519,7 @@ namespace BossSystem.Boss.FleshBoss
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  패턴 5 : 살점 흡수 (변경 없음)
+    //  패턴 5 : 살점 흡수
     // ═══════════════════════════════════════════════════════════════
     public class FleshAbsorbNode : BTNode
     {
@@ -461,11 +575,7 @@ namespace BossSystem.Boss.FleshBoss
                 boss.SetExecutingPattern(false);
             }
 
-            if (absorbed)
-            {
-                isActive = false;
-                return NodeState.Success;
-            }
+            if (absorbed) { isActive = false; return NodeState.Success; }
             return NodeState.Running;
         }
     }

@@ -84,20 +84,13 @@ namespace BossSystem.Boss
         }
 
         // ── 매 프레임 ─────────────────────────────────────────────
-        protected virtual void Update()
+        // BossBase.cs
+        protected virtual void FixedUpdate()          // Update → FixedUpdate
         {
             if (IsDead) return;
 
             blackboard.CurrentHP = currentHP;
 
-            if (!phase2Triggered && blackboard.IsPhase2)
-            {
-                phase2Triggered = true;
-                OnEnterPhase2();
-                OnPhase2Enter?.Invoke();
-            }
-
-            // ★ 안전장치: 패턴 타임아웃 체크
             if (IsExecutingPattern &&
                 Time.time - patternStartTime > patternTimeoutSec)
             {
@@ -109,6 +102,17 @@ namespace BossSystem.Boss
 
             if (!IsTelegraphing && !IsExecutingPattern)
                 ChasePlayer();
+        }
+
+        protected virtual void Update()
+        {
+            if (IsDead) return;
+            if (!phase2Triggered && blackboard.IsPhase2)
+            {
+                phase2Triggered = true;
+                OnEnterPhase2();
+                OnPhase2Enter?.Invoke();
+            }
         }
 
         // ── 추상/가상 ─────────────────────────────────────────────
@@ -149,11 +153,11 @@ namespace BossSystem.Boss
             if (rb != null) rb.linearVelocity = Vector2.zero;
         }
 
-        // ── 피해 / 사망 ───────────────────────────────────────────
         public virtual void TakeDamage(float damage)
         {
             if (IsDead) return;
             currentHP = Mathf.Max(0f, currentHP - damage);
+            blackboard.CurrentHP = currentHP;    // ← 즉시 동기화 추가
             if (currentHP <= 0f) { OnDeath?.Invoke(); OnDie(); }
         }
 
@@ -176,12 +180,11 @@ namespace BossSystem.Boss
 
         protected void MoveToward(Vector3 target, float speed)
         {
-            Vector3 dir = target - transform.position;
-            dir.z = 0f;
+            Vector2 bossPos   = rb.position;                              // ★
+            Vector2 targetPos = new Vector2(target.x, target.y);         // ★
+            Vector2 dir       = targetPos - bossPos;
             if (dir.sqrMagnitude < 0.01f) return;
-            Vector3 next = transform.position + speed * Time.deltaTime * dir.normalized;
-            next.z = transform.position.z;
-            rb.MovePosition(next);
+            rb.MovePosition(bossPos + dir.normalized * speed * Time.fixedDeltaTime); // ★
         }
     }
 }

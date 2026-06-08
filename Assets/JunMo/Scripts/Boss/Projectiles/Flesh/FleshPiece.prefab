@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: -5615450247384958087}
   - component: {fileID: 1020741750286329923}
   - component: {fileID: -3417771294697683196}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: FleshPiece
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -155,7 +155,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 0
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
