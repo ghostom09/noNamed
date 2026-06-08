@@ -1,10 +1,18 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using JunWoo;
 using UnityEngine;
 
 public class RoomController : MonoBehaviour
 {
     public RoomNode RoomData { get; private set; }
+
+    [Header("Room Area")]
+    [SerializeField] private Collider2D roomEnterTrigger;
+    [SerializeField] private bool fitRoomEnterTriggerToDefinition = true;
+    [SerializeField, Min(0f)] private float roomEnterTriggerInset = 1f;
+
+    [Header("Boundary")]
+    [SerializeField] private RoomBoundaryBuilder boundaryBuilder;
 
     [Header("Combat")]
     [SerializeField] private List<Transform> exitPoints = new List<Transform>();
@@ -22,6 +30,7 @@ public class RoomController : MonoBehaviour
     private readonly List<DoorController> _doors = new List<DoorController>();
 
     private Transform _doorRoot;
+    private Transform _collisionRoot;
     private int _remainingEnemies;
     private bool _isActive;
 
@@ -29,22 +38,82 @@ public class RoomController : MonoBehaviour
 
     public void Init(RoomNode data)
     {
-        Init(data, null);
+        Init(data, null, null);
     }
 
     public void Init(RoomNode data, Transform doorRoot)
     {
+        Init(data, doorRoot, null);
+    }
+
+    public void Init(RoomNode data, Transform doorRoot, Transform collisionRoot)
+    {
         RoomData = data;
         _doorRoot = doorRoot;
+        _collisionRoot = collisionRoot;
         _remainingEnemies = 0;
         _isActive = false;
 
+        SetupRoomEnterTrigger();
+        BuildBoundary();
         CreateConnectedDoors();
     }
 
     private void OnDestroy()
     {
+        ClearGeneratedObjects();
+    }
+
+    public void ClearGeneratedObjects()
+    {
+        UnblockExits();
         ClearDoors();
+
+        if (boundaryBuilder != null)
+            boundaryBuilder.Clear();
+    }
+
+    private void SetupRoomEnterTrigger()
+    {
+        if (!fitRoomEnterTriggerToDefinition || RoomData == null)
+            return;
+
+        if (roomEnterTrigger == null)
+            roomEnterTrigger = GetComponent<Collider2D>();
+
+        if (roomEnterTrigger == null)
+            return;
+
+        roomEnterTrigger.isTrigger = true;
+
+        var box = roomEnterTrigger as BoxCollider2D;
+        if (box == null)
+            return;
+
+        var scale = transform.lossyScale;
+        var scaleX = Mathf.Approximately(scale.x, 0f) ? 1f : Mathf.Abs(scale.x);
+        var scaleY = Mathf.Approximately(scale.y, 0f) ? 1f : Mathf.Abs(scale.y);
+        var size = RoomData.Size;
+        var inset = roomEnterTriggerInset * 2f;
+
+        box.offset = Vector2.zero;
+        box.size = new Vector2(
+            Mathf.Max(0.1f, (size.x - inset) / scaleX),
+            Mathf.Max(0.1f, (size.y - inset) / scaleY));
+    }
+
+    private void BuildBoundary()
+    {
+        if (RoomData == null)
+            return;
+
+        if (boundaryBuilder == null)
+            boundaryBuilder = GetComponent<RoomBoundaryBuilder>();
+
+        if (boundaryBuilder == null)
+            boundaryBuilder = gameObject.AddComponent<RoomBoundaryBuilder>();
+
+        boundaryBuilder.Build(RoomData, _collisionRoot);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -52,10 +121,10 @@ public class RoomController : MonoBehaviour
         if (RoomData == null) return;
         if (!other.CompareTag("Player")) return;
 
-        RoomManager.Instance.EnterRoom(this);
+        RoomManager.Instance.EnterRoom(this, other.transform);
     }
 
-    public void OnEnter()
+    public void OnEnter(Transform player)
     {
         if (RoomData == null)
             return;
@@ -74,7 +143,7 @@ public class RoomController : MonoBehaviour
         if (RoomData.Type == RoomType.Exit)
         {
             _isActive = false;
-            FloorManager.Instance.TryAdvanceFloor();
+            FloorManager.Instance.TryAdvanceFloor(player);
             return;
         }
 
@@ -96,7 +165,7 @@ public class RoomController : MonoBehaviour
 
         if (pattern == null)
         {
-            Debug.LogWarning($"{RoomData.Type} 방에 사용 가능한 Spawn Pattern이 없습니다.");
+            Debug.LogWarning($"{RoomData.Type} room has no valid spawn pattern.");
 
             if (autoClearWhenNoEnemiesSpawned)
                 OnCleared();
@@ -178,7 +247,16 @@ public class RoomController : MonoBehaviour
 
     private void BlockExits()
     {
-        if (blockPrefab == null || _blocks.Count > 0)
+        if (_blocks.Count > 0)
+            return;
+
+        if (boundaryBuilder != null && boundaryBuilder.HasDoorOpenings)
+        {
+            boundaryBuilder.BlockDoorOpenings(blockPrefab);
+            return;
+        }
+
+        if (blockPrefab == null)
             return;
 
         if (exitPoints != null && exitPoints.Count > 0)
@@ -207,6 +285,9 @@ public class RoomController : MonoBehaviour
 
     private void UnblockExits()
     {
+        if (boundaryBuilder != null)
+            boundaryBuilder.ClearDoorLocks();
+
         for (var i = 0; i < _blocks.Count; i++)
         {
             if (_blocks[i] != null)
@@ -218,7 +299,7 @@ public class RoomController : MonoBehaviour
 
     private void CreateExitBlock(Vector3 position)
     {
-        var parent = _doorRoot != null ? _doorRoot : transform;
+        var parent = _collisionRoot != null ? _collisionRoot : (_doorRoot != null ? _doorRoot : transform);
         var block = Instantiate(blockPrefab, position, Quaternion.identity, parent);
         _blocks.Add(block);
     }
@@ -234,10 +315,10 @@ public class RoomController : MonoBehaviour
                 // TODO: open archive reward UI.
                 break;
             case RewardType.RestReward:
-                // TODO: ^^
+                // TODO: open rest reward UI.
                 break;
             case RewardType.ContainmentReward:
-                // TODO: ^^
+                // TODO: open containment reward UI.
                 break;
             case RewardType.BossClear:
                 FloorManager.Instance.OnBossCleared();
@@ -252,7 +333,7 @@ public class RoomController : MonoBehaviour
         if (doorPrefab == null)
         {
             if (RoomData != null && RoomData.Connections != null && RoomData.Connections.Count > 0)
-                Debug.LogWarning($"{name}에 Door Prefab이 연결되지 않았습니다.");
+                Debug.LogWarning($"{name} has connections, but no Door Prefab is assigned.");
 
             return;
         }
@@ -344,4 +425,3 @@ public class RoomController : MonoBehaviour
         return null;
     }
 }
-

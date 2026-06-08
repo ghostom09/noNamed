@@ -196,7 +196,7 @@ CircleCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
@@ -515,7 +515,6 @@ MonoBehaviour:
   roomPrefab: {fileID: 193220045356802525, guid: 0a8c9715682341543bcfd9b7eb35d1a3, type: 3}
   roomRoot: {fileID: 0}
   doorRoot: {fileID: 0}
-  collisionRoot: {fileID: 0}
   scaleFallbackPrefabToRoomSize: 1
 --- !u!4 &1315179788
 Transform:
@@ -567,7 +566,7 @@ MonoBehaviour:
   fallbackMaxSideBranchesPerMainRoom: 2
   fallbackMaxChildBranchRoomCount: 1
   fallbackBossInterval: 3
-  fallbackRoomSpacing: 0
+  fallbackRoomSpacing: 2
 --- !u!4 &1409541146
 Transform:
   m_ObjectHideFlags: 0

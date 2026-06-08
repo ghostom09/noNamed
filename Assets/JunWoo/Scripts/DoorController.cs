@@ -1,11 +1,8 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 [RequireComponent(typeof(Collider2D))]
 public class DoorController : MonoBehaviour
 {
-    [SerializeField] private bool requireRoomCleared = true;
-
-    private RoomController _owner;
     private RoomConnection _connection;
     private Collider2D _collider;
     private Vector2Int _direction = Vector2Int.right;
@@ -23,24 +20,9 @@ public class DoorController : MonoBehaviour
 
     public void Init(RoomController owner, RoomConnection connection, Vector2Int direction)
     {
-        _owner = owner;
         _connection = connection;
         _direction = RoomDataUtility.NormalizeDirection(direction);
 
         gameObject.SetActive(connection != null);
-    }
-
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (_owner == null || _connection == null)
-            return;
-
-        if (!other.CompareTag("Player"))
-            return;
-
-        if (requireRoomCleared && !_owner.CanUseDoors)
-            return;
-
-        RoomManager.Instance.MoveThroughDoor(_connection, other.transform);
     }
 }

@@ -23,7 +23,7 @@ public class FloorRule : ScriptableObject
     [SerializeField] private bool hasBoss;
 
     [Header("Placement")]
-    [SerializeField, Min(0f)] private float roomSpacing = 2f;
+    [SerializeField, Min(0f)] private float roomSpacing = 0f;
 
     [Header("Required Room Types")]
     [SerializeField] private RoomDefinition corridorRoom;

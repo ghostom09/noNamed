@@ -14,7 +14,7 @@ public class DungeonGenerator : MonoBehaviour
 
     [Header("Placement")]
     [FormerlySerializedAs("roomPadding")]
-    [SerializeField, Min(0f)] private float fallbackRoomSpacing = 2f;
+    [SerializeField, Min(0f)] private float fallbackRoomSpacing = 0f;
 
     private const float BoundsContactTolerance = 0.01f;
 
