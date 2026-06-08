@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66bf2097adb6a71479d7e95a2b8f200c, type: 3}
+  m_Name: Reseacher
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyStats
+  damage: 0
+  moveSpeed: 3
+  attackSpeed: 1
+  maxHealth: 1
+  attackRange: 10
+  chaseRange: 5
+  kitingRange: 0
+  chaseType: 2
+  attackType: 8
