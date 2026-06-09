@@ -327,6 +327,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 2697575591934571485, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: maxHp
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 6143175457369133798, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -636,7 +640,7 @@ GameObject:
   - component: {fileID: 1920686479}
   - component: {fileID: 1920686478}
   - component: {fileID: 1920686480}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
   m_Icon: {fileID: 0}

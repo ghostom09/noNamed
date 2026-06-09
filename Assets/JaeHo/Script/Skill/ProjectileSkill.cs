@@ -145,14 +145,14 @@ public abstract class ProjectileSkill : SkillBase
     private static void ApplyLaserFollowUp(AttackHitResult hitResult, Collider2D collider)
     {
         if (!MutationEffectResolver.TryGetFollowUpMultiplier(hitResult, out float multiplier)) return;
-        if (collider.TryGetComponent<IDamageable>(out var damageable))
+        if (CombatComponentUtility.TryGet(collider, out IDamageable damageable))
             damageable.TakeDamage(hitResult.AppliedDamage * multiplier);
     }
 
     private static void ApplyLaserStun(AttackHitResult hitResult, Collider2D collider)
     {
         if (!MutationEffectResolver.TryGetStunDuration(hitResult, out float duration)) return;
-        if (collider.TryGetComponent<IStunnable>(out var stunnable))
+        if (CombatComponentUtility.TryGet(collider, out IStunnable stunnable))
             stunnable.ApplyStun(duration);
     }
 
@@ -161,7 +161,7 @@ public abstract class ProjectileSkill : SkillBase
         if (!MutationEffectResolver.TryGetBindData(hitResult, out float duration,
                 out float damagePerTick, out float tickInterval)) return;
 
-        if (collider.TryGetComponent<IBindable>(out var bindable))
+        if (CombatComponentUtility.TryGet(collider, out IBindable bindable))
             bindable.ApplyBind(duration, damagePerTick, tickInterval);
     }
 

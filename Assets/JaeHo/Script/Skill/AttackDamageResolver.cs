@@ -12,18 +12,18 @@ public static class AttackDamageResolver
         result = default;
 
         if (target == null) return false;
-        if (!target.TryGetComponent<IDamageable>(out var damageable)) return false;
+        if (!CombatComponentUtility.TryGet(target, out IDamageable damageable)) return false;
 
-        Health health = target.GetComponent<Health>();
-        bool wasAliveBeforeHit = health == null || !health.IsDead;
-        float hpBefore = health != null ? health.CurrentHp : -1f;
+        CombatComponentUtility.TryGet(target, out IHitPointStatus hitPointStatus);
+        bool wasAliveBeforeHit = hitPointStatus == null || !hitPointStatus.IsDead;
+        float hpBefore = hitPointStatus != null ? hitPointStatus.CurrentHp : -1f;
 
         bool isCritical = RollCritical(context);
         float appliedDamage = CalculateDamage(context, isCritical);
         damageable.TakeDamage(appliedDamage);
 
-        float hpAfter = health != null ? health.CurrentHp : -1f;
-        bool killedByHit = health != null && wasAliveBeforeHit && health.IsDead;
+        float hpAfter = hitPointStatus != null ? hitPointStatus.CurrentHp : -1f;
+        bool killedByHit = hitPointStatus != null && wasAliveBeforeHit && hitPointStatus.IsDead;
 
         result = new AttackHitResult(
             context,

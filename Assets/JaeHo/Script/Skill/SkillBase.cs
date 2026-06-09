@@ -102,7 +102,12 @@ public abstract class SkillBase : MonoBehaviour
 
     // ── 스킬 인터페이스 ─────────────────────────────────────────
 
-    public abstract void OnAttack();
+    public virtual void OnAttack()
+    {
+        OnAttack(SkillInputState.None);
+    }
+
+    public abstract void OnAttack(SkillInputState input);
 
     public virtual void OnEquip() { }
     public virtual void OnUnequip() { }

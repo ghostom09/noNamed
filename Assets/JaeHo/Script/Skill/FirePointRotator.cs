@@ -21,6 +21,8 @@ public class FirePointRotator : MonoBehaviour
     [SerializeField] private float orbitRadius = 1f;
 
     private Camera _mainCamera;
+    private Vector2 _lookScreenPosition;
+    private bool _hasExternalLookInput;
 
     private void Awake()
     {
@@ -32,15 +34,27 @@ public class FirePointRotator : MonoBehaviour
 
     private void Update()
     {
-        if (Mouse.current == null || firePoint == null) return;
+        if (firePoint == null) return;
 
         RotateFirePoint();
     }
 
+    public void SetLookScreenPosition(Vector2 screenPosition)
+    {
+        _lookScreenPosition = screenPosition;
+        _hasExternalLookInput = true;
+    }
+
     private void RotateFirePoint()
     {
-        // 마우스 월드 좌표 계산
-        Vector2 mouseScreen = Mouse.current.position.ReadValue();
+        if (!_hasExternalLookInput)
+        {
+            if (Mouse.current == null) return;
+            _lookScreenPosition = Mouse.current.position.ReadValue();
+        }
+
+        // 입력 화면 좌표를 월드 좌표로 변환
+        Vector2 mouseScreen = _lookScreenPosition;
         Vector3 mouseWorld = _mainCamera.ScreenToWorldPoint(
             new Vector3(mouseScreen.x, mouseScreen.y,
                 Mathf.Abs(_mainCamera.transform.position.z)));

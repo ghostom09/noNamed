@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 /// <summary>
 /// SkillB - 저격총.
@@ -22,12 +21,11 @@ public class SkillB : ProjectileSkill
             Debug.LogError($"[{name}] firePoint에 ParticleSystem 컴포넌트가 없음");
     }
 
-    public override void OnAttack()
+    public override void OnAttack(SkillInputState input)
     {
         AttackTimer += Time.deltaTime;
 
-        if (Mouse.current == null) return;
-        if (!Mouse.current.leftButton.isPressed)
+        if (!input.AttackHeld)
         {
             _fired = false;
             return;

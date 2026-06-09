@@ -7,6 +7,9 @@ public class SkillSwitcher : MonoBehaviour
 
     private int _currentIndex = 0;
     private SkillBase _currentSkill;
+    private bool _attackHeld;
+    private bool _attackPressed;
+    private bool _attackReleased;
 
     private void Awake()
     {
@@ -24,14 +27,45 @@ public class SkillSwitcher : MonoBehaviour
 
     private void Update()
     {
-        if (Mouse.current == null) return;
-        
-        float scroll = Mouse.current.scroll.ReadValue().y;
+        float scroll = Mouse.current != null ? Mouse.current.scroll.ReadValue().y : 0f;
 
         if (scroll > 0f) SwitchWeapon(-1);
         else if (scroll < 0f) SwitchWeapon(1);
         
-        _currentSkill?.OnAttack();
+        _currentSkill?.OnAttack(new SkillInputState(_attackHeld, _attackPressed, _attackReleased));
+
+        _attackPressed = false;
+        _attackReleased = false;
+    }
+
+    public void SetAttackHeld(bool isHeld)
+    {
+        if (isHeld && !_attackHeld)
+            _attackPressed = true;
+        else if (!isHeld && _attackHeld)
+            _attackReleased = true;
+
+        _attackHeld = isHeld;
+    }
+
+    public void PressAttack()
+    {
+        SetAttackHeld(true);
+    }
+
+    public void ReleaseAttack()
+    {
+        SetAttackHeld(false);
+    }
+
+    public void SwitchNext()
+    {
+        SwitchWeapon(1);
+    }
+
+    public void SwitchPrevious()
+    {
+        SwitchWeapon(-1);
     }
 
     private void SwitchWeapon(int direction)

@@ -178,7 +178,7 @@ public class Bullet : MonoBehaviour
     // 일반 충돌 (Bounce용)
     private void OnCollisionEnter2D(Collision2D col)
     {
-        if (col.collider.TryGetComponent<IDamageable>(out _))
+        if (CombatComponentUtility.TryGet(col.collider, out IDamageable _))
         {
             ContactPoint2D contact = col.GetContact(0);
             ApplyHit(col.collider, contact.point, contact.normal);
@@ -219,7 +219,7 @@ public class Bullet : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D col)
     {
         if (_pierced.Contains(col)) return;
-        if (!col.TryGetComponent<IDamageable>(out _)) return;
+        if (!CombatComponentUtility.TryGet(col, out IDamageable _)) return;
 
         _pierced.Add(col);
         ApplyHit(col, col.ClosestPoint(transform.position), -_direction);
@@ -346,7 +346,7 @@ public class Bullet : MonoBehaviour
     {
         MutationGrade grade = GetMutationGrade(MutationType.Slow, SkillTag.Slow, MutationTargetScope.Common);
         if (grade == MutationGrade.None) return;
-        if (!col.TryGetComponent<ISlowable>(out var slowable)) return;
+        if (!CombatComponentUtility.TryGet(col, out ISlowable slowable)) return;
 
         float duration = ResolveSlowDuration(grade, slowDuration);
         if (TryGetMutationData(MutationType.Slow, SkillTag.Slow, MutationTargetScope.Common, out var gradeData))
@@ -363,7 +363,7 @@ public class Bullet : MonoBehaviour
     {
         MutationGrade grade = GetMutationGrade(MutationType.Poison, SkillTag.Poison, MutationTargetScope.Common);
         if (grade == MutationGrade.None) return;
-        if (!col.TryGetComponent<IPoisonable>(out var poisonable)) return;
+        if (!CombatComponentUtility.TryGet(col, out IPoisonable poisonable)) return;
 
         bool shouldPoison = grade switch
         {
@@ -397,7 +397,7 @@ public class Bullet : MonoBehaviour
     private void TryApplyStun(AttackHitResult hitResult, Collider2D col)
     {
         if (!MutationEffectResolver.TryGetStunDuration(hitResult, out float duration)) return;
-        if (col.TryGetComponent<IStunnable>(out var stunnable))
+        if (CombatComponentUtility.TryGet(col, out IStunnable stunnable))
             stunnable.ApplyStun(duration);
     }
 
@@ -406,14 +406,14 @@ public class Bullet : MonoBehaviour
         if (!MutationEffectResolver.TryGetBindData(hitResult, out float duration,
                 out float damagePerTick, out float tickInterval)) return;
 
-        if (col.TryGetComponent<IBindable>(out var bindable))
+        if (CombatComponentUtility.TryGet(col, out IBindable bindable))
             bindable.ApplyBind(duration, damagePerTick, tickInterval);
     }
 
     private void TryApplyFollowUp(AttackHitResult hitResult, Collider2D col)
     {
         if (!MutationEffectResolver.TryGetFollowUpMultiplier(hitResult, out float multiplier)) return;
-        if (!col.TryGetComponent<IDamageable>(out var damageable)) return;
+        if (!CombatComponentUtility.TryGet(col, out IDamageable damageable)) return;
 
         damageable.TakeDamage(hitResult.AppliedDamage * multiplier);
     }
@@ -426,7 +426,7 @@ public class Bullet : MonoBehaviour
 
         for (int i = 0; i < hitsCount; i++)
         {
-            if (_explosionOverlapBuffer[i].TryGetComponent<IDamageable>(out var d))
+            if (CombatComponentUtility.TryGet(_explosionOverlapBuffer[i], out IDamageable d))
                 d.TakeDamage(explosionDamage);
         }
     }

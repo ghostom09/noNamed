@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 /// <summary>
 /// SkillD - 전방 직선 근거리 공격.
@@ -23,12 +22,11 @@ public class SkillD : MeleeSkill
             Debug.LogWarning($"[{name}] strikeEffect가 할당되지 않음 - 이펙트 없이 동작");
     }
 
-    public override void OnAttack()
+    public override void OnAttack(SkillInputState input)
     {
         AttackTimer += Time.deltaTime;
 
-        if (Mouse.current == null) return;
-        if (!Mouse.current.leftButton.wasPressedThisFrame) return;
+        if (!input.AttackPressed) return;
         if (AttackTimer < attackCooldown) return;
 
         AttackTimer = 0f;

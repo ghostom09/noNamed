@@ -203,7 +203,7 @@ public abstract class MeleeSkill : SkillBase
     private void TryApplyFollowUp(AttackHitResult hitResult, Collider2D col)
     {
         if (!MutationEffectResolver.TryGetFollowUpMultiplier(hitResult, out float multiplier)) return;
-        if (!col.TryGetComponent<IDamageable>(out var damageable)) return;
+        if (!CombatComponentUtility.TryGet(col, out IDamageable damageable)) return;
 
         damageable.TakeDamage(hitResult.AppliedDamage * multiplier);
     }
@@ -214,7 +214,7 @@ public abstract class MeleeSkill : SkillBase
                 out float collisionDamage, out float extraTargetDamage, out bool stunOnCollision))
             return;
 
-        if (!col.TryGetComponent<IKnockbackable>(out var knockbackable)) return;
+        if (!CombatComponentUtility.TryGet(col, out IKnockbackable knockbackable)) return;
 
         Vector2 direction = ((Vector2)col.bounds.center - hitResult.Context.Origin).normalized;
         if (direction.sqrMagnitude <= 0f)
@@ -226,7 +226,7 @@ public abstract class MeleeSkill : SkillBase
     private void TryApplyStun(AttackHitResult hitResult, Collider2D col)
     {
         if (!MutationEffectResolver.TryGetStunDuration(hitResult, out float duration)) return;
-        if (col.TryGetComponent<IStunnable>(out var stunnable))
+        if (CombatComponentUtility.TryGet(col, out IStunnable stunnable))
             stunnable.ApplyStun(duration);
     }
 
@@ -235,7 +235,7 @@ public abstract class MeleeSkill : SkillBase
         if (!MutationEffectResolver.TryGetBindData(hitResult, out float duration,
                 out float damagePerTick, out float tickInterval)) return;
 
-        if (col.TryGetComponent<IBindable>(out var bindable))
+        if (CombatComponentUtility.TryGet(col, out IBindable bindable))
             bindable.ApplyBind(duration, damagePerTick, tickInterval);
     }
 
@@ -267,7 +267,7 @@ public abstract class MeleeSkill : SkillBase
         foreach (var hit in hits)
         {
             if (hit == null || hit == originalTarget) continue;
-            if (hit.TryGetComponent<IDamageable>(out var damageable))
+            if (CombatComponentUtility.TryGet(hit, out IDamageable damageable))
                 damageable.TakeDamage(damage);
         }
     }
@@ -276,7 +276,7 @@ public abstract class MeleeSkill : SkillBase
     {
         MutationGrade grade = GetMutationGrade(context, MutationType.Slow, SkillTag.Slow);
         if (grade == MutationGrade.None) return;
-        if (!col.TryGetComponent<ISlowable>(out var slowable)) return;
+        if (!CombatComponentUtility.TryGet(col, out ISlowable slowable)) return;
 
         float duration = ResolveSlowDuration(grade, slowDuration);
         if (TryGetMutationData(context, MutationType.Slow, SkillTag.Slow, out var gradeData))
@@ -293,7 +293,7 @@ public abstract class MeleeSkill : SkillBase
     {
         MutationGrade grade = GetMutationGrade(context, MutationType.Poison, SkillTag.Poison);
         if (grade == MutationGrade.None) return;
-        if (!col.TryGetComponent<IPoisonable>(out var poisonable)) return;
+        if (!CombatComponentUtility.TryGet(col, out IPoisonable poisonable)) return;
 
         bool shouldPoison = grade switch
         {

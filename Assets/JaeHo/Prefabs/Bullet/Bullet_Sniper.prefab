@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 2782771297367284402}
   - component: {fileID: 3113542454067615563}
+  - component: {fileID: 4127442294410331846}
   - component: {fileID: 3857547844547562724}
   - component: {fileID: 3397506412281482922}
-  - component: {fileID: 4127442294410331846}
   m_Layer: 0
   m_Name: Bullet_Sniper
   m_TagString: Untagged
@@ -94,6 +94,31 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &4127442294410331846
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5897049778709254633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94038666affc17a4d9a2a428285c0a8e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Bullet
+  explosionRadius: 3
+  explosionLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  maxExplosionTargets: 10
+  slowMultiplier: 0.5
+  slowDuration: 2
+  poisonDamagePerTick: 5
+  poisonDuration: 3
+  poisonTickInterval: 1
+  homingSearchRadius: 8
+  homingTurnSpeed: 360
+  maxHomingTargets: 16
 --- !u!50 &3857547844547562724
 Rigidbody2D:
   serializedVersion: 5
@@ -158,24 +183,3 @@ CapsuleCollider2D:
   m_Offset: {x: 0, y: 0}
   m_Size: {x: 0.99999994, y: 2}
   m_Direction: 0
---- !u!114 &4127442294410331846
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5897049778709254633}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 94038666affc17a4d9a2a428285c0a8e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Bullet
-  explosionRadius: 3
-  explosionLayer:
-    serializedVersion: 2
-    m_Bits: 0
-  slowMultiplier: 0.5
-  slowDuration: 2
-  poisonDamagePerTick: 5
-  poisonDuration: 3
-  poisonTickInterval: 1

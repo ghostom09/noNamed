@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-public class Health : MonoBehaviour, IDamageable
+public class Health : MonoBehaviour, IDamageable, IHitPointStatus
 {
     [Header("--- Health Settings ---")]
     [SerializeField] private float maxHp = 100f;
