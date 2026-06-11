@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class FloorManager : Singleton<FloorManager>
 {
-    [SerializeField, Min(1)] private int maxFloor = 12;
+    [SerializeField, Min(1)] private int maxFloor = 8;
     [SerializeField, Min(1)] private int startFloor = 1;
     [SerializeField] private DungeonGenerator dungeonGenerator;
     [SerializeField] private RoomManager roomManager;
@@ -19,7 +19,7 @@ public class FloorManager : Singleton<FloorManager>
         LoadFloor(_currentFloor);
     }
 
-    private void LoadFloor(int floor)
+    private void LoadFloor(int floor, Transform playerToMove = null)
     {
         if (dungeonGenerator == null || roomManager == null)
         {
@@ -33,6 +33,9 @@ public class FloorManager : Singleton<FloorManager>
         var rooms = dungeonGenerator.GenerateRooms(floor, rule);
         roomManager.SpawnAllRooms(rooms);
 
+        if (playerToMove != null)
+            roomManager.MovePlayerToStartRoom(playerToMove);
+
         Debug.Log($"{floor} floor loaded.");
     }
 
@@ -42,7 +45,7 @@ public class FloorManager : Singleton<FloorManager>
         Debug.Log("Boss cleared.");
     }
 
-    public void TryAdvanceFloor()
+    public void TryAdvanceFloor(Transform playerToMove = null)
     {
         var rule = GetFloorRule(_currentFloor);
         if (RequiresBossClear(_currentFloor, rule) && !_isBossCleared)
@@ -58,7 +61,7 @@ public class FloorManager : Singleton<FloorManager>
         }
 
         _currentFloor++;
-        LoadFloor(_currentFloor);
+        LoadFloor(_currentFloor, playerToMove);
 
         Debug.Log($"Moved to floor {_currentFloor}.");
     }
@@ -92,3 +95,4 @@ public class FloorManager : Singleton<FloorManager>
         return _currentFloor;
     }
 }
+

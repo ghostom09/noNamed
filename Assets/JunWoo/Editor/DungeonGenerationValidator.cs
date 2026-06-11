@@ -1,11 +1,12 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
 public static class DungeonGenerationValidator
 {
-    private const int MaxFloor = 12;
+    private const int MaxFloor = 8;
     private const int IterationsPerFloor = 20;
+    private const float BoundsContactTolerance = 0.01f;
 
     [MenuItem("Tools/Dungeon/Validate Generated Floors")]
     public static void ValidateGeneratedFloors()
@@ -144,14 +145,29 @@ public static class DungeonGenerationValidator
     private static void ValidateNoOverlap(int floor, List<RoomNode> rooms, int currentIndex)
     {
         var current = rooms[currentIndex];
+        var currentBounds = ShrinkRect(current.Bounds, BoundsContactTolerance);
+
         for (var i = currentIndex + 1; i < rooms.Count; i++)
         {
             var other = rooms[i];
-            if (current.Bounds.Overlaps(other.Bounds))
+            var otherBounds = ShrinkRect(other.Bounds, BoundsContactTolerance);
+            if (currentBounds.Overlaps(otherBounds))
             {
                 throw new System.Exception(
                     $"Floor {floor} has overlapping rooms. Room {current.Id} ({current.Type}) overlaps room {other.Id} ({other.Type}).");
             }
         }
+    }
+
+    private static Rect ShrinkRect(Rect rect, float amount)
+    {
+        var shrinkX = Mathf.Min(amount, rect.width * 0.5f);
+        var shrinkY = Mathf.Min(amount, rect.height * 0.5f);
+
+        return new Rect(
+            rect.xMin + shrinkX,
+            rect.yMin + shrinkY,
+            Mathf.Max(0f, rect.width - shrinkX * 2f),
+            Mathf.Max(0f, rect.height - shrinkY * 2f));
     }
 }

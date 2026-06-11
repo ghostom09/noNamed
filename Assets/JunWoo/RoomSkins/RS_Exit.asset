@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fcdad8733c7b694dabc744945a03181, type: 3}
+  m_Name: RS_Exit
+  m_EditorClassIdentifier: Assembly-CSharp::RoomSkin
+  floorTiles:
+  - sprite: {fileID: 209751846086810860, guid: e6cc917232ecc614886a1c1978259c97, type: 3}
+    weight: 80
+  - sprite: {fileID: -4566316879399861448, guid: 1e35d0b03a385de43b1187fbfd8a6028, type: 3}
+    weight: 1
+  - sprite: {fileID: 1078624469457295140, guid: 10e0c43e7383fc24c8bfb0bafa3caab9, type: 3}
+    weight: 5
+  - sprite: {fileID: -4047708086730354666, guid: e06d80d172bbb79468be4b1dfd3b013c, type: 3}
+    weight: 1
+  floorSortingLayerName: Default
+  floorOrderInLayer: 0
+  borderTop: {fileID: 8708966673961140126, guid: cb8256e48375fe24d8c1b8bb937ac531, type: 3}
+  borderBottom: {fileID: 8708966673961140126, guid: cb8256e48375fe24d8c1b8bb937ac531, type: 3}
+  borderLeft: {fileID: 8708966673961140126, guid: cb8256e48375fe24d8c1b8bb937ac531, type: 3}
+  borderRight: {fileID: 8708966673961140126, guid: cb8256e48375fe24d8c1b8bb937ac531, type: 3}
+  cornerTopLeft: {fileID: 8708966673961140126, guid: cb8256e48375fe24d8c1b8bb937ac531, type: 3}
+  cornerTopRight: {fileID: 8708966673961140126, guid: cb8256e48375fe24d8c1b8bb937ac531, type: 3}
+  cornerBottomLeft: {fileID: 8708966673961140126, guid: cb8256e48375fe24d8c1b8bb937ac531, type: 3}
+  cornerBottomRight: {fileID: 8708966673961140126, guid: cb8256e48375fe24d8c1b8bb937ac531, type: 3}
+  borderSortingLayerName: Default
+  borderOrderInLayer: 10
+  doorFrameHorizontal: {fileID: -422902231735262196, guid: 1d1357b75c9ef5a4db08823c3a76eb45, type: 3}
+  doorFrameVertical: {fileID: -422902231735262196, guid: 1d1357b75c9ef5a4db08823c3a76eb45, type: 3}
+  doorFrameSortingLayerName: Default
+  doorFrameOrderInLayer: 11

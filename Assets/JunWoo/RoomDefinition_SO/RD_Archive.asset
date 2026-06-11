@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomDefinition
   type: 3
   prefab: {fileID: 193220045356802525, guid: 894b270a9c4ef14429b9e9711360add6, type: 3}
-  size: {x: 10, y: 10}
+  skin: {fileID: 11400000, guid: 3dcdece8b53033d4cad99a1e7670a295, type: 2}
+  size: {x: 20, y: 20}
   doorPoints:
   - id: Up
     direction: {x: 0, y: 1}
@@ -31,3 +32,6 @@ MonoBehaviour:
   startsCombat: 1
   locksDoors: 1
   rewardType: 2
+  wallColliderThickness: 2
+  doorOpeningSize: 4
+  doorLockColliderThickness: 1
