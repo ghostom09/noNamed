@@ -11,6 +11,10 @@ public class RoomController : MonoBehaviour
     [SerializeField] private bool fitRoomEnterTriggerToDefinition = true;
     [SerializeField, Min(0f)] private float roomEnterTriggerInset = 1f;
 
+    [Header("Visuals")]
+    [SerializeField] private RoomTileVisualBuilder tileVisualBuilder;
+
+
     [Header("Boundary")]
     [SerializeField] private RoomBoundaryBuilder boundaryBuilder;
 
@@ -55,6 +59,7 @@ public class RoomController : MonoBehaviour
         _isActive = false;
 
         SetupRoomEnterTrigger();
+        BuildTileVisuals();
         BuildBoundary();
         CreateConnectedDoors();
     }
@@ -68,6 +73,9 @@ public class RoomController : MonoBehaviour
     {
         UnblockExits();
         ClearDoors();
+
+        if (tileVisualBuilder != null)
+            tileVisualBuilder.Clear();
 
         if (boundaryBuilder != null)
             boundaryBuilder.Clear();
@@ -100,6 +108,21 @@ public class RoomController : MonoBehaviour
         box.size = new Vector2(
             Mathf.Max(0.1f, (size.x - inset) / scaleX),
             Mathf.Max(0.1f, (size.y - inset) / scaleY));
+    }
+
+
+    private void BuildTileVisuals()
+    {
+        if (RoomData == null)
+            return;
+
+        if (tileVisualBuilder == null)
+            tileVisualBuilder = GetComponent<RoomTileVisualBuilder>();
+
+        if (tileVisualBuilder == null)
+            tileVisualBuilder = gameObject.AddComponent<RoomTileVisualBuilder>();
+
+        tileVisualBuilder.Build(RoomData);
     }
 
     private void BuildBoundary()
@@ -330,33 +353,35 @@ public class RoomController : MonoBehaviour
     {
         ClearDoors();
 
+        if (RoomData == null || RoomData.Connections == null)
+            return;
+
         if (doorPrefab == null)
         {
-            if (RoomData != null && RoomData.Connections != null && RoomData.Connections.Count > 0)
+            if (RoomData.Connections.Count > 0)
                 Debug.LogWarning($"{name} has connections, but no Door Prefab is assigned.");
 
             return;
         }
 
-        var anchors = GetComponentsInChildren<DoorAnchor>(true);
-        for (var i = 0; i < anchors.Length; i++)
+        for (var i = 0; i < RoomData.Connections.Count; i++)
         {
-            var anchor = anchors[i];
-            if (anchor == null)
-                continue;
-
-            var connection = FindConnection(anchor.Direction);
+            var connection = RoomData.Connections[i];
             if (connection == null)
                 continue;
 
-            CreateDoor(anchor, connection);
+            var direction = RoomDataUtility.NormalizeDirection(connection.Direction);
+            var anchor = FindAnchor(direction);
+            CreateDoor(direction, connection, anchor);
         }
     }
 
-    private void CreateDoor(DoorAnchor anchor, RoomConnection connection)
+    private void CreateDoor(Vector2Int direction, RoomConnection connection, DoorAnchor anchor)
     {
         var parent = _doorRoot != null ? _doorRoot : null;
-        var obj = Instantiate(doorPrefab, anchor.transform.position, anchor.transform.rotation, parent);
+        var position = RoomData != null ? RoomData.GetDoorWorldPosition(direction) : (Vector2)transform.position;
+        var rotation = anchor != null ? anchor.transform.rotation : Quaternion.identity;
+        var obj = Instantiate(doorPrefab, new Vector3(position.x, position.y, transform.position.z), rotation, parent);
 
         var door = obj.GetComponent<DoorController>();
         if (door == null)
@@ -370,10 +395,25 @@ public class RoomController : MonoBehaviour
             collider = door.gameObject.AddComponent<BoxCollider2D>();
 
         collider.isTrigger = true;
-        door.Init(this, connection, anchor.Direction);
+        door.Init(this, connection, direction);
 
         _spawnedDoors.Add(obj);
         _doors.Add(door);
+    }
+
+    private DoorAnchor FindAnchor(Vector2Int direction)
+    {
+        var normalized = RoomDataUtility.NormalizeDirection(direction);
+        var anchors = GetComponentsInChildren<DoorAnchor>(true);
+
+        for (var i = 0; i < anchors.Length; i++)
+        {
+            var anchor = anchors[i];
+            if (anchor != null && RoomDataUtility.NormalizeDirection(anchor.Direction) == normalized)
+                return anchor;
+        }
+
+        return null;
     }
 
     private void ClearDoors()

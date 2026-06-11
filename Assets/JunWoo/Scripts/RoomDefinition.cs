@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
@@ -18,19 +18,29 @@ public class RoomDefinition : ScriptableObject
 {
     [SerializeField] private RoomType type;
     [SerializeField] private GameObject prefab;
+    [SerializeField] private RoomSkin skin;
     [SerializeField] private Vector2 size = new Vector2(10f, 10f);
     [SerializeField] private List<DoorPoint> doorPoints = new List<DoorPoint>();
     [SerializeField] private bool startsCombat = true;
     [SerializeField] private bool locksDoors = true;
     [SerializeField] private RewardType rewardType = RewardType.None;
 
+    [Header("Boundary")]
+    [SerializeField, Min(0.01f)] private float wallColliderThickness = 0.5f;
+    [SerializeField, Min(0.1f)] private float doorOpeningSize = 2.5f;
+    [SerializeField, Min(0.01f)] private float doorLockColliderThickness = 1f;
+
     public RoomType Type => type;
     public GameObject Prefab => prefab;
+    public RoomSkin Skin => skin;
     public Vector2 Size => new Vector2(Mathf.Max(0.1f, size.x), Mathf.Max(0.1f, size.y));
     public IReadOnlyList<DoorPoint> DoorPoints => doorPoints;
     public bool StartsCombat => startsCombat;
     public bool LocksDoors => locksDoors;
     public RewardType RewardType => rewardType;
+    public float WallColliderThickness => Mathf.Max(0.01f, wallColliderThickness);
+    public float DoorOpeningSize => Mathf.Max(0.1f, doorOpeningSize);
+    public float DoorLockColliderThickness => Mathf.Max(0.01f, doorLockColliderThickness);
 
     public Vector2 GetDoorLocalPosition(Vector2Int direction)
     {

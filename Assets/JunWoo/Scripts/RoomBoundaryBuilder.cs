@@ -37,6 +37,7 @@ public class RoomBoundaryBuilder : MonoBehaviour
         Clear();
 
         _room = room;
+        ApplyDefinitionSettings(_room);
         if (!buildWalls || _room == null)
             return;
 
@@ -125,6 +126,17 @@ public class RoomBoundaryBuilder : MonoBehaviour
         }
 
         _room = null;
+    }
+
+
+    private void ApplyDefinitionSettings(RoomNode room)
+    {
+        if (room == null || room.Definition == null)
+            return;
+
+        wallThickness = room.Definition.WallColliderThickness;
+        doorOpeningSize = room.Definition.DoorOpeningSize;
+        doorLockThickness = room.Definition.DoorLockColliderThickness;
     }
 
     private void CreateGeneratedRoot(Transform collisionRoot)
