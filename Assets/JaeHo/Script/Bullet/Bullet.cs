@@ -97,7 +97,7 @@ public class Bullet : MonoBehaviour
         _pierced.Clear();
 
         // 관통이면 트리거(통과), 아니면 일반 충돌
-        _col.isTrigger = HasPierce();
+        _col.isTrigger = true;
 
         _rb.linearVelocity = _direction * _data.speed;
 
@@ -219,10 +219,25 @@ public class Bullet : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D col)
     {
         if (_pierced.Contains(col)) return;
-        if (!CombatComponentUtility.TryGet(col, out IDamageable _)) return;
+
+        if (!CombatComponentUtility.TryGet(col, out IDamageable _))
+        {
+            HandleWorldTrigger(col);
+            return;
+        }
 
         _pierced.Add(col);
         ApplyHit(col, col.ClosestPoint(transform.position), -_direction);
+
+        if (!HasPierce())
+        {
+            if (HasRicochet())
+                RicochetFrom(col);
+            else
+                ReturnToPool();
+
+            return;
+        }
 
         if (!_hasUnlimitedPierce)
             _pierceCount--;
@@ -435,6 +450,50 @@ public class Bullet : MonoBehaviour
     {
         _rb.linearVelocity = Vector2.zero;
         BulletPool.Instance.Return(this, _data);
+    }
+
+    private void HandleWorldTrigger(Collider2D col)
+    {
+        if (!IsWorldHitTarget(col)) return;
+
+        if (HasRicochet())
+            RicochetFrom(col);
+        else
+            ReturnToPool();
+    }
+
+    private static bool IsWorldHitTarget(Collider2D col)
+    {
+        if (col == null) return false;
+        if (col.CompareTag("Wall")) return true;
+
+        int wallLayer = LayerMask.NameToLayer("Wall");
+        return wallLayer >= 0 && col.gameObject.layer == wallLayer;
+    }
+
+    private void RicochetFrom(Collider2D col)
+    {
+        if (!_hasUnlimitedBounce && _bounceCount <= 0)
+        {
+            ReturnToPool();
+            return;
+        }
+
+        if (!_hasUnlimitedBounce)
+            _bounceCount--;
+
+        _bounceDamageSteps++;
+
+        Vector2 closest = col.ClosestPoint(transform.position);
+        Vector2 normal = ((Vector2)transform.position - closest).normalized;
+        if (normal.sqrMagnitude <= 0.0001f)
+            normal = -_direction;
+
+        _direction = Vector2.Reflect(_direction, normal).normalized;
+        _rb.linearVelocity = _direction * _data.speed;
+
+        float angle = Mathf.Atan2(_direction.y, _direction.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.Euler(0f, 0f, angle);
     }
 
     private bool HasRicochet()

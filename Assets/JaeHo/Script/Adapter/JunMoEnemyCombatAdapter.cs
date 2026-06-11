@@ -53,10 +53,17 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
     {
         if (IsDead) return;
 
+        float hpBefore = _currentHp;
         _currentHp = Mathf.Max(0f, _currentHp - Mathf.Max(0f, amount));
 
+        Debug.Log(
+            $"[Enemy Hit] {gameObject.name} damage:{amount:0.##} hp:{hpBefore:0.##}->{_currentHp:0.##}");
+
         if (_currentHp <= 0f)
+        {
+            Debug.Log($"[Enemy Dead] {gameObject.name}");
             Die();
+        }
     }
 
     public void ApplySlow(float multiplier, float duration)
