@@ -39,6 +39,12 @@ public static class AttackDamageResolver
             hpBefore,
             hpAfter);
 
+        string skillName = context.SourceSkill != null ? context.SourceSkill.name : "UnknownSkill";
+        string criticalText = isCritical ? " CRITICAL" : string.Empty;
+        string hpText = hitPointStatus != null ? $" hp:{hpBefore:0.##}->{hpAfter:0.##}" : string.Empty;
+        Debug.Log(
+            $"[Skill Hit] {skillName} {context.ShapeType} -> {target.name} damage:{appliedDamage:0.##}{hpText}{criticalText}");
+
         context.SourceSkill?.ReportHitResult(result);
         return true;
     }

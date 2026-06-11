@@ -309,10 +309,11 @@ public class Bullet : MonoBehaviour
             return;
         }
 
+        int dataPierceCount = _data != null ? Mathf.Max(1, _data.maxPierceCount) : 1;
         _pierceCount = grade switch
         {
-            MutationGrade.Safe => 1,
-            MutationGrade.Caution => 3,
+            MutationGrade.Safe => dataPierceCount,
+            MutationGrade.Caution => Mathf.Max(dataPierceCount, 3),
             MutationGrade.Danger => int.MaxValue,
             MutationGrade.Quarantine => int.MaxValue,
             _ => 0
