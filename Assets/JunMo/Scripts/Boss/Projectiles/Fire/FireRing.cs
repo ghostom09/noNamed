@@ -12,6 +12,7 @@ namespace BossSystem.Boss.FireBoss
         private float maxRadius;
         private float damage;
         private bool isGasTrigger;
+        private bool isSolidCircle;
         private FireBossController boss;
 
         private float currentRadius = 0f;
@@ -42,12 +43,14 @@ namespace BossSystem.Boss.FireBoss
             float dmg,
             float delay,
             bool gasTrigger,
-            FireBossController bossRef)
+            FireBossController bossRef,
+            bool solidCircle = false)
         {
             expandSpeed = spd;
             maxRadius = maxR;
             damage = dmg;
             isGasTrigger = gasTrigger;
+            isSolidCircle = solidCircle;
             boss = bossRef;
 
             startTime = Time.time + delay;
@@ -108,7 +111,7 @@ namespace BossSystem.Boss.FireBoss
         {
             Vector2 center = transform.position;
 
-            float outerRadius = currentRadius + thickness * 0.5f;
+            float outerRadius = isSolidCircle ? currentRadius : currentRadius + thickness * 0.5f;
             float innerRadius = Mathf.Max(0f, currentRadius - thickness * 0.5f);
 
             Collider2D[] hits = Physics2D.OverlapCircleAll(center, outerRadius);
@@ -129,7 +132,10 @@ namespace BossSystem.Boss.FireBoss
                     hit.transform.position
                 );
 
-                if (dist < innerRadius || dist > outerRadius)
+                if (!isSolidCircle && dist < innerRadius)
+                    continue;
+
+                if (dist > outerRadius)
                     continue;
 
                 hitTargets.Add(hit);
@@ -139,18 +145,5 @@ namespace BossSystem.Boss.FireBoss
                     health.TakeDamage(damage);
             }
         }
-
-#if UNITY_EDITOR
-        private void OnDrawGizmosSelected()
-        {
-            Gizmos.color = Color.red;
-
-            float outerRadius = currentRadius + thickness * 0.5f;
-            float innerRadius = Mathf.Max(0f, currentRadius - thickness * 0.5f);
-
-            Gizmos.DrawWireSphere(transform.position, outerRadius);
-            Gizmos.DrawWireSphere(transform.position, innerRadius);
-        }
-#endif
     }
 }

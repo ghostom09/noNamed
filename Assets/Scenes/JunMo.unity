@@ -749,6 +749,10 @@ MonoBehaviour:
   maxHP: 1000
   moveSpeed: 3
   bossData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  circleTelegraphPrefab: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
+  lineTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
+  sectorTelegraphPrefab: {fileID: 512201486031211520, guid: 791e50d870c7c2f4f9c6fca49673e162, type: 3}
+  squareTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
   player: {fileID: 1782676436}
   patternTimeoutSec: 20
   closeRange: 5
@@ -768,6 +772,10 @@ MonoBehaviour:
   fireRingData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
   fireballPrefab: {fileID: 3605014151767436924, guid: a4972fbe958d4b64cbaf0be5d0964138, type: 3}
   fireRingPrefab: {fileID: 3605014151767436924, guid: 4d09dc0265875b34c80bff71f1f32c68, type: 3}
+  fireRingCenterPrefab: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
+  fireRingDonutPrefab: {fileID: 512201486031211520, guid: 1838ad76bb844974594214f9526a9dab, type: 3}
+  fireRingCenterTelegraphPrefab: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
+  fireRingDonutTelegraphPrefab: {fileID: 512201486031211520, guid: 1838ad76bb844974594214f9526a9dab, type: 3}
   gasCloudPrefab: {fileID: 3605014151767436924, guid: 3bc007424c60d9546a78ee64241f2a9c, type: 3}
   flameBreathVFX: {fileID: 3605014151767436924, guid: 3bc007424c60d9546a78ee64241f2a9c, type: 3}
 --- !u!61 &1562586148
@@ -936,7 +944,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1745440604
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -952,6 +960,10 @@ MonoBehaviour:
   maxHP: 1000
   moveSpeed: 3
   bossData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  circleTelegraphPrefab: {fileID: 3545705984393967262, guid: 02fe086d37958ea4d92dbddd9b68ef19, type: 3}
+  lineTelegraphPrefab: {fileID: 4047687611032215660, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
+  sectorTelegraphPrefab: {fileID: 1870111655378824443, guid: cb23719b3f29bc64ca5015f8d0653216, type: 3}
+  squareTelegraphPrefab: {fileID: 4047687611032215660, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
   player: {fileID: 0}
   patternTimeoutSec: 20
   meleeRange: 3.5
@@ -1295,7 +1307,7 @@ Transform:
   m_GameObject: {fileID: 1782676434}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 8.07, y: 0.02, z: 0}
+  m_LocalPosition: {x: 7.14, y: 0.69, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1393,7 +1405,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1897149835
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1409,6 +1421,10 @@ MonoBehaviour:
   maxHP: 1000
   moveSpeed: 3
   bossData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  circleTelegraphPrefab: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
+  lineTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
+  sectorTelegraphPrefab: {fileID: 512201486031211520, guid: 791e50d870c7c2f4f9c6fca49673e162, type: 3}
+  squareTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
   player: {fileID: 1782676436}
   patternTimeoutSec: 20
   beamCooldown: 8
@@ -1431,9 +1447,13 @@ MonoBehaviour:
   - {fileID: 904609220}
   beamPivot: {fileID: 2048155970}
   waterWavePrefab: {fileID: 9085461787720426981, guid: 63e7e7d1845e71e41b13c981c90ca87a, type: 3}
+  waterWaveTelegraph: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
   waterPillarPrefab: {fileID: 9085461787720426981, guid: 7f0fb89496f9d9c408569ef055687e38, type: 3}
+  waterPillarTelegraph: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
   floodZonePrefab: {fileID: 9085461787720426981, guid: c2535fb7b75bbc94ea5ed414bca874ad, type: 3}
+  floodZoneTelegraph: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
   slamVFXPrefab: {fileID: 0}
+  slamVFXTelegraph: {fileID: 0}
 --- !u!50 &1897149836
 Rigidbody2D:
   serializedVersion: 5

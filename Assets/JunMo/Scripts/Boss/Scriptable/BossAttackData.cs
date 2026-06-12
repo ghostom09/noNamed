@@ -26,13 +26,6 @@ namespace BossSystem.Scripable
         [Min(0f)]
         public float postFillDelay = 0.05f;
 
-        [Header("텔레그래프 색상")]
-        [Tooltip("범위 표시 색 (연한 빨간색)")]
-        public Color baseColor = new Color(1f, 0f, 0f, 0.5f);
-
-        [Tooltip("채워지는 색 (진한 빨간색)")]
-        public Color fillColor = new Color(1f, 0f, 0f, 1f);
-
         [Header("보스 체력 (선택)")]
         [Tooltip("0 이하면 BossBase.maxHP 기본값 사용")]
         public float overrideMaxHP = 0f;
@@ -40,5 +33,8 @@ namespace BossSystem.Scripable
         [Header("이동 속도 (선택)")]
         [Tooltip("0 이하면 BossBase.moveSpeed 기본값 사용")]
         public float overrideMoveSpeed = 0f;
+
+        [Header("텔레그래프 타입")]
+        public TelegraphShape shape;
     }
 }

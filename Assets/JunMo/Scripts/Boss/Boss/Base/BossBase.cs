@@ -16,6 +16,12 @@ namespace BossSystem.Boss
         [Header("ScriptableObject 오버라이드 (선택)")]
         [SerializeField] protected BossAttackData bossData;
 
+        [Header("Telegraph Prefabs")]
+        [SerializeField] protected GameObject circleTelegraphPrefab;
+        [SerializeField] protected GameObject lineTelegraphPrefab;
+        [SerializeField] protected GameObject sectorTelegraphPrefab;
+        [SerializeField] protected GameObject squareTelegraphPrefab;
+
         [Header("참조")]
         [SerializeField] protected Transform player;
 
@@ -43,6 +49,7 @@ namespace BossSystem.Boss
 
         protected float currentHP;
         private   bool  phase2Triggered = false;
+        private readonly TelegraphMaker telegraphMaker = new TelegraphMaker();
 
         // ── 초기화 ────────────────────────────────────────────────
         protected virtual void Awake()
@@ -170,6 +177,87 @@ namespace BossSystem.Boss
 
         // ── 이동 ──────────────────────────────────────────────────
         public Transform GetPlayer() => player;
+
+        public Telegraph SpawnTelegraph(
+            BossAttackData data,
+            TelegraphShape shape,
+            float radius,
+            Vector2 direction = default,
+            bool followBoss = true,
+            System.Action onComplete = null)
+        {
+            Telegraph telegraph = telegraphMaker.SpawnCircle(
+                GetTelegraphPrefab(shape),
+                transform.position,
+                radius,
+                data,
+                onComplete,
+                followBoss ? transform : null);
+
+            RotateTelegraphToDirection(telegraph, direction);
+            return telegraph;
+        }
+
+        public Telegraph SpawnTelegraphAt(
+            Vector3 position,
+            BossAttackData data,
+            TelegraphShape shape,
+            float radius,
+            Vector2 direction = default,
+            System.Action onComplete = null)
+        {
+            Telegraph telegraph = telegraphMaker.SpawnCircle(
+                GetTelegraphPrefab(shape),
+                position,
+                radius,
+                data,
+                onComplete);
+
+            RotateTelegraphToDirection(telegraph, direction);
+            return telegraph;
+        }
+
+        public Telegraph SpawnLineTelegraph(
+            Vector3 startPosition,
+            Vector2 direction,
+            float length,
+            float width,
+            BossAttackData data,
+            System.Action onComplete = null)
+        {
+            return telegraphMaker.SpawnLine(
+                lineTelegraphPrefab != null ? lineTelegraphPrefab : circleTelegraphPrefab,
+                startPosition,
+                direction,
+                length,
+                width,
+                data,
+                onComplete);
+        }
+
+        protected GameObject GetTelegraphPrefab(TelegraphShape shape)
+        {
+            switch (shape)
+            {
+                case TelegraphShape.Line:
+                    return lineTelegraphPrefab != null ? lineTelegraphPrefab : circleTelegraphPrefab;
+                case TelegraphShape.Sector:
+                    return sectorTelegraphPrefab != null ? sectorTelegraphPrefab : circleTelegraphPrefab;
+                case TelegraphShape.Square:
+                    return squareTelegraphPrefab != null ? squareTelegraphPrefab : circleTelegraphPrefab;
+                default:
+                    return circleTelegraphPrefab;
+            }
+        }
+
+        private static void RotateTelegraphToDirection(Telegraph telegraph, Vector2 direction)
+        {
+            if (telegraph == null || direction.sqrMagnitude <= 0f)
+                return;
+
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
+            telegraph.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+        }
 
         protected void ChasePlayer()
         {
