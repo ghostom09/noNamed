@@ -9,6 +9,7 @@ using UnityEngine.UI;
 public class CharacterStatUpgradeUI : MonoBehaviour
 {
     private const string PlayerStatManagerTypeName = "PlayerStatManager";
+    private const string HpBarViewTypeName = "HpBarView";
     private const string TitleLabel = "status";
 
     private static readonly StatBinding[] StatBindings =
@@ -24,7 +25,7 @@ public class CharacterStatUpgradeUI : MonoBehaviour
 
     [Header("Runtime Binding")]
     [SerializeField] private Component playerStatManager;
-    [SerializeField] private HpBarView hpBarView;
+    [SerializeField] private Component hpBarView;
     [SerializeField] private bool autoFindPlayerStatManager = true;
     [SerializeField] private bool useFallbackPreviewValues = true;
 
@@ -51,6 +52,7 @@ public class CharacterStatUpgradeUI : MonoBehaviour
 
     private readonly int[] pendingUpgradeCounts = new int[StatBindings.Length];
     private float nextRefreshTime;
+    private float nextRuntimeSearchTime;
     private int lastLevel = -1;
     private string statusMessage;
 
@@ -87,7 +89,7 @@ public class CharacterStatUpgradeUI : MonoBehaviour
         Refresh();
     }
 
-    public void SetHpBarView(HpBarView target)
+    public void SetHpBarView(Component target)
     {
         hpBarView = target;
         Refresh();
@@ -206,6 +208,7 @@ public class CharacterStatUpgradeUI : MonoBehaviour
             appliedToBackend = TryInvokeLevelUpFallback(selectedTotal);
         }
 
+        availablePoints = Mathf.Max(0, availablePoints - selectedTotal);
         Array.Clear(pendingUpgradeCounts, 0, pendingUpgradeCounts.Length);
         statusMessage = appliedToBackend
             ? "\uac15\ud654 \uc801\uc6a9 \uc644\ub8cc"
@@ -291,26 +294,41 @@ public class CharacterStatUpgradeUI : MonoBehaviour
 
     private void BindRuntimeReferences()
     {
-        if (hpBarView == null)
-        {
-            hpBarView = FindAnyObjectByType<HpBarView>();
-        }
-
-        if (playerStatManager != null || !autoFindPlayerStatManager)
+        if (playerStatManager != null && hpBarView != null)
         {
             return;
         }
 
+        if (Time.unscaledTime < nextRuntimeSearchTime)
+        {
+            return;
+        }
+
+        nextRuntimeSearchTime = Time.unscaledTime + 2f;
+
         MonoBehaviour[] behaviours = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude);
         foreach (MonoBehaviour behaviour in behaviours)
         {
-            if (behaviour == null || behaviour.GetType().Name != PlayerStatManagerTypeName)
+            if (behaviour == null)
             {
                 continue;
             }
 
-            playerStatManager = behaviour;
-            break;
+            string typeName = behaviour.GetType().Name;
+            if (hpBarView == null && typeName == HpBarViewTypeName)
+            {
+                hpBarView = behaviour;
+            }
+
+            if (playerStatManager == null && autoFindPlayerStatManager && typeName == PlayerStatManagerTypeName)
+            {
+                playerStatManager = behaviour;
+            }
+
+            if (playerStatManager != null && hpBarView != null)
+            {
+                return;
+            }
         }
     }
 
@@ -354,7 +372,19 @@ public class CharacterStatUpgradeUI : MonoBehaviour
             return;
         }
 
-        hpBarView.SetPlayerStat(statAsset, level);
+        MethodInfo setPlayerStatMethod = FindMethod(hpBarView.GetType(), "SetPlayerStat");
+        if (setPlayerStatMethod == null)
+        {
+            return;
+        }
+
+        ParameterInfo[] parameters = setPlayerStatMethod.GetParameters();
+        if (parameters.Length == 2 &&
+            typeof(ScriptableObject).IsAssignableFrom(parameters[0].ParameterType) &&
+            parameters[1].ParameterType == typeof(int))
+        {
+            setPlayerStatMethod.Invoke(hpBarView, new object[] { statAsset, level });
+        }
     }
 
     private bool TryInvokeStatUpgrade(StatBinding binding, int count)
