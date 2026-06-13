@@ -3,13 +3,12 @@ using UnityEngine;
 
 public class PlayerMove : MonoBehaviour
 {
-    [SerializeField] private float moveSpeed;
-    public float acceleration = 20f;
+    public float acceleration = 25f;
     public float deceleration = 25f;
     
-    public float dashSpeed = 15f;
-    public float dashTime = 0.3f;
-    public float dashCoolTime = 1.5f;
+    [SerializeField] private float dashSpeed = 40f;
+    [SerializeField] private float dashTime = 0.1f;
+    [SerializeField] private float dashCoolTime = 1.5f;
     
     private bool _isDashing = false;
     private bool _canDash = true;
@@ -21,7 +20,6 @@ public class PlayerMove : MonoBehaviour
     {
         _rb = GetComponent<Rigidbody2D>();
         _statManager = GetComponent<PlayerStatManager>();
-        moveSpeed = _statManager.MoveSpeed;
     }
     
     private void FixedUpdate()
@@ -32,7 +30,7 @@ public class PlayerMove : MonoBehaviour
     
     private void Move()
     {
-        Vector2 targetVelocity = moveDirection * moveSpeed;
+        Vector2 targetVelocity = moveDirection * _statManager.MoveSpeed;
         
         float currentAccelRate = (moveDirection.sqrMagnitude > 0.01f) ? acceleration : deceleration;
         
@@ -59,7 +57,7 @@ public class PlayerMove : MonoBehaviour
         
         yield return new WaitForSeconds(dashTime);
         _isDashing = false;
-        _rb.linearVelocity = moveDirection * moveSpeed;
+        _rb.linearVelocity = moveDirection * _statManager.MoveSpeed;
 
         yield return new WaitForSeconds(dashCoolTime - dashTime);
         

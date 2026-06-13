@@ -19,22 +19,10 @@ MonoBehaviour:
   moveSpeed: 5
   attackSpeed: 2
   skillArea: 2
-  levelTable:
-  - startLevel: 2
-    endLevel: 4
-    health: 1
-    meleeDamage: 1
-    rangedDamage: 1
-    criticalProbability: 1
-    moveSpeed: 1
-    attackSpeed: 1
-    skillArea: 1
-  - startLevel: 5
-    endLevel: 100
-    health: 2
-    meleeDamage: 2
-    rangedDamage: 2
-    criticalProbability: 2
-    moveSpeed: 2
-    attackSpeed: 2
-    skillArea: 2
+  healthPerPoint: 10
+  meleeDamagePerPoint: 2
+  rangedDamagePerPoint: 2
+  criticalPerPoint: 0.5
+  moveSpeedPerPoint: 1
+  attackSpeedPerPoint: 0.05
+  skillAreaPerPoint: 0.1

@@ -5,11 +5,14 @@ public class PlayerInputReader : MonoBehaviour
 {
     private PlayerMove _playerMove;
     private PlayerAttack _playerAttack;
+    private PlayerStatManager _statManager;
+    [SerializeField] private PlayerStatPanel _statPanel;
 
     private void Start()
     {
         _playerMove = GetComponent<PlayerMove>();
         _playerAttack = GetComponent<PlayerAttack>();
+        _statManager = GetComponent<PlayerStatManager>();
     }
 
     public void OnMove(InputAction.CallbackContext context)
