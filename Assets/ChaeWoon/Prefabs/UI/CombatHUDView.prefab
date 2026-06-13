@@ -67,8 +67,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 22daaf61126501a4394192b9c8156176, type: 2}
+  m_sharedMaterial: {fileID: 3064614500179574252, guid: 22daaf61126501a4394192b9c8156176, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -204,8 +204,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: '40 / 40 '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 22daaf61126501a4394192b9c8156176, type: 2}
+  m_sharedMaterial: {fileID: 3064614500179574252, guid: 22daaf61126501a4394192b9c8156176, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -617,6 +617,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d9c3aee2ecc82b24493dab1d559fa322, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HpBarView
+  autoBindRuntimeHealth: 1
+  hpBorderColor: {r: 0.08, g: 0.08, b: 0.08, a: 1}
+  hpBorderPadding: {x: 6, y: 6}
+  collapsedStatPanelPadding: {x: 40, y: 42}
+  expandedStatPanelSize: {x: 0, y: 0}
+  statPanelAnimationDuration: 0.2
+  statPanelEase:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  statTextTopOffset: 124
 --- !u!1 &4168274377216599592
 GameObject:
   m_ObjectHideFlags: 0
@@ -1011,6 +1042,7 @@ MonoBehaviour:
   highlightColor: {r: 1, g: 0.78, b: 0.12, a: 0.95}
   allowClickSelection: 1
   allowScrollSelection: 1
+  autoBindRuntimeSkillSwitcher: 1
   tooltipOffset: {x: 0, y: 120}
   tooltipSize: {x: 280, y: 180}
   skillTooltipData: []
@@ -1081,8 +1113,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 22daaf61126501a4394192b9c8156176, type: 2}
+  m_sharedMaterial: {fileID: 3064614500179574252, guid: 22daaf61126501a4394192b9c8156176, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1218,8 +1250,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 22daaf61126501a4394192b9c8156176, type: 2}
+  m_sharedMaterial: {fileID: 3064614500179574252, guid: 22daaf61126501a4394192b9c8156176, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1355,8 +1387,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 22daaf61126501a4394192b9c8156176, type: 2}
+  m_sharedMaterial: {fileID: 3064614500179574252, guid: 22daaf61126501a4394192b9c8156176, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

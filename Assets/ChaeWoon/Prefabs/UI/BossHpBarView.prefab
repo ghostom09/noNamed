@@ -56,14 +56,8 @@ MonoBehaviour:
   hideWhenBossDead: 0
   showHpNumbers: 0
   refreshInterval: 0.05
-  bossBarWidth: 760
-  bossBarRootHeight: 60
-  hpBarHeight: 50
-  hpBorderPadding: {x: 4, y: 4}
-  hpBorderColor: {r: 0.03, g: 0.01, b: 0.01, a: 0.96}
   panelRoot: {fileID: 2000000000000000002}
   bossNameText: {fileID: 3000000000000000003}
-  hpBackgroundImage: {fileID: 3000000000000000004}
   hpFillImage: {fileID: 3000000000000000006}
   hpText: {fileID: 0}
 --- !u!1 &1000000000000000002
@@ -170,8 +164,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Boss
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 22daaf61126501a4394192b9c8156176, type: 2}
+  m_sharedMaterial: {fileID: 3064614500179574252, guid: 22daaf61126501a4394192b9c8156176, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
