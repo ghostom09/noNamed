@@ -323,6 +323,10 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 4449645202974008344, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: m_SortingOrder
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: 5122892670904666086, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
       propertyPath: firePoint
       value: 
@@ -773,6 +777,163 @@ MonoBehaviour:
     prefab: {fileID: 3092186574268475802, guid: 4533dc6c25ea0334496ca1fd11e76f7d, type: 3}
   - attackType: 6
     prefab: {fileID: 3092186574268475802, guid: 4533dc6c25ea0334496ca1fd11e76f7d, type: 3}
+--- !u!1 &3000000101
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3000000103}
+  - component: {fileID: 3000000102}
+  m_Layer: 0
+  m_Name: RoomManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &3000000102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47b91397a0977764db75380e663347ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoomManager
+  roomPrefab: {fileID: 193220045356802525, guid: 0a8c9715682341543bcfd9b7eb35d1a3, type: 3}
+  roomRoot: {fileID: 0}
+  doorRoot: {fileID: 0}
+  collisionRoot: {fileID: 0}
+  scaleFallbackPrefabToRoomSize: 1
+--- !u!4 &3000000103
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000101}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.44195, y: 0.35363, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &3000000201
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3000000203}
+  - component: {fileID: 3000000202}
+  m_Layer: 0
+  m_Name: DungeonGenerator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &3000000202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ffec9d5483b16742bab964bda171f5b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonGenerator
+  fallbackMainPathRoomCount: 4
+  fallbackBranchChance: 0.5
+  fallbackChildBranchChance: 0.3
+  fallbackMaxSideBranchesPerMainRoom: 2
+  fallbackMaxChildBranchRoomCount: 1
+  fallbackBossInterval: 3
+  fallbackRoomSpacing: 0
+--- !u!4 &3000000203
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000201}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &3000000301
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3000000303}
+  - component: {fileID: 3000000302}
+  m_Layer: 0
+  m_Name: FloorManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &3000000302
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000301}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56dfc6b626ef6924286540fb5ed21469, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FloorManager
+  maxFloor: 8
+  startFloor: 1
+  dungeonGenerator: {fileID: 3000000202}
+  roomManager: {fileID: 3000000102}
+  floorRules:
+  - {fileID: 11400000, guid: 9bdbdadf3b9fc104794a7188cccab7c8, type: 2}
+  - {fileID: 11400000, guid: 4ae7e72e089394d4388014dc390877aa, type: 2}
+  - {fileID: 11400000, guid: 76b9dc93b1d3d8448b582aa3d3002973, type: 2}
+  - {fileID: 11400000, guid: e165d306c2930e640be8416cc7bf28ce, type: 2}
+  - {fileID: 11400000, guid: 2c029a73cd3debe48a99bcb83fb2a246, type: 2}
+  - {fileID: 11400000, guid: d1c0b1b391040e84c926a560c9677c56, type: 2}
+  - {fileID: 11400000, guid: 47a573913fda0af44b267bfa21b4fd66, type: 2}
+  - {fileID: 11400000, guid: 70fe78aa1375ce146b248d4dab3ce548, type: 2}
+--- !u!4 &3000000303
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000301}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.44195, y: 0.35363, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -783,3 +944,6 @@ SceneRoots:
   - {fileID: 1920686479}
   - {fileID: 308614935}
   - {fileID: 1920686485}
+  - {fileID: 3000000203}
+  - {fileID: 3000000103}
+  - {fileID: 3000000303}
