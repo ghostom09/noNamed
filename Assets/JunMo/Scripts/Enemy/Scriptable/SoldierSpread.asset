@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SoldierSpread
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStats
   damage: 0
-  moveSpeed: 5
+  moveSpeed: 3
   attackSpeed: 1
   maxHealth: 1
   attackRange: 10

@@ -36,9 +36,14 @@ namespace BossSystem.Boss.WaterBoss
 
         [Header("프리팹")]
         [SerializeField] private GameObject waterWavePrefab;
+        [SerializeField] private GameObject waterWaveTelegraph;
+        
         [SerializeField] private GameObject waterPillarPrefab;
+        [SerializeField] private GameObject waterPillarTelegraph;
         [SerializeField] private GameObject floodZonePrefab;
+        [SerializeField] private GameObject floodZoneTelegraph;
         [SerializeField] private GameObject slamVFXPrefab;
+        [SerializeField] private GameObject slamVFXTelegraph;
 
         private bool       floodActive   = false;
         private GameObject floodInstance = null;

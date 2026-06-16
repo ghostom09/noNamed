@@ -30,10 +30,9 @@ namespace BossSystem.Boss.FireBoss
         private BossAttackData attackData;
 
         private enum Phase { Idle, Telegraph, Attack }
-        private Phase phase       = Phase.Idle;
-        private float attackStart = 0f;
-        private float lastTick    = 0f;
-
+        private Phase _phase       = Phase.Idle;
+        private float _attackStart = 0f;
+        private float _lastTick    = 0f;
         public FlameBreathNode(BossBlackboard bb, FireBossController boss,
             float closeRange = 5f, float fanAngle = 90f,
             float damagePerSec = 30f, float duration = 2.5f,
@@ -50,13 +49,13 @@ namespace BossSystem.Boss.FireBoss
 
         protected override NodeState OnEvaluate()
         {
-            switch (phase)
+            switch (_phase)
             {
                 case Phase.Idle:
                     if (boss.IsExecutingPattern)        return NodeState.Failure;
                     if (blackboard.DistanceToPlayer > closeRange) return NodeState.Failure;
 
-                    phase = Phase.Telegraph;
+                    _phase = Phase.Telegraph;
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
 
@@ -65,11 +64,11 @@ namespace BossSystem.Boss.FireBoss
                         blackboard.DirectionToPlayer.x,
                         blackboard.DirectionToPlayer.y).normalized * fanAngle;
 
-                    TelegraphHelper.Spawn(boss.transform, attackData,
+                    boss.SpawnTelegraph(attackData,
                         TelegraphShape.Sector,
                         radius: closeRange,
                         direction: dir2D,
-                        followParent: true,
+                        followBoss: true,
                         onComplete: OnTelegraphDone);
 
                     return NodeState.Running;
@@ -78,13 +77,13 @@ namespace BossSystem.Boss.FireBoss
                     return NodeState.Running;
 
                 case Phase.Attack:
-                    if (Time.time - lastTick >= tickInterval)
+                    if (Time.time - _lastTick >= tickInterval)
                     {
-                        lastTick = Time.time;
+                        _lastTick = Time.time;
                         ApplyFanDamage();
                     }
 
-                    if (Time.time - attackStart >= duration)
+                    if (Time.time - _attackStart >= duration)
                     {
                         boss.PlayFlameBreathVFX(false);
                         boss.SetExecutingPattern(false);
@@ -92,22 +91,22 @@ namespace BossSystem.Boss.FireBoss
                         if (blackboard.IsPhase2)
                             boss.SpawnGasCloud(boss.transform.position, fanAngle);
 
-                        phase = Phase.Idle;
+                        _phase = Phase.Idle;
                         return NodeState.Success;
                     }
                     return NodeState.Running;
             }
             // 도달 불가 경로 — 안전 해제
             boss.ForceReleasePattern();
-            phase = Phase.Idle;
+            _phase = Phase.Idle;
             return NodeState.Failure;
         }
 
         private void OnTelegraphDone()
         {
-            phase       = Phase.Attack;
-            attackStart = Time.time;
-            lastTick    = Time.time;
+            _phase       = Phase.Attack;
+            _attackStart = Time.time;
+            _lastTick    = Time.time;
             boss.SetTelegraphing(false);
             boss.PlayFlameBreathVFX(true);
         }
@@ -172,9 +171,9 @@ namespace BossSystem.Boss.FireBoss
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
 
-                    TelegraphHelper.Spawn(boss.transform, attackData,
+                    boss.SpawnTelegraph(attackData,
                         TelegraphShape.Circle, radius: 2f,
-                        followParent: true, onComplete: OnTelegraphDone);
+                        followBoss: true, onComplete: OnTelegraphDone);
 
                     return NodeState.Running;
 
@@ -267,9 +266,7 @@ namespace BossSystem.Boss.FireBoss
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
 
-                    TelegraphHelper.Spawn(boss.transform, attackData,
-                        TelegraphShape.Circle, radius: maxRadius,
-                        followParent: true, onComplete: OnTelegraphDone);
+                    boss.SpawnFireRingTelegraphs(attackData, maxRadius, onComplete: OnTelegraphDone);
 
                     return NodeState.Running;
 
@@ -281,7 +278,8 @@ namespace BossSystem.Boss.FireBoss
                     {
                         boss.SpawnFireRing(boss.transform.position, expandSpeed,
                                            maxRadius, damage, ringsSpawned * 0.05f,
-                                           blackboard.IsPhase2);
+                                           blackboard.IsPhase2,
+                                           useCenterPrefab: ringsSpawned == 0);
                         ringsSpawned++;
                         nextRingTime = Time.time + ringInterval;
                     }

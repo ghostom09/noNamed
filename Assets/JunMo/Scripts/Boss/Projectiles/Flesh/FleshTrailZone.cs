@@ -12,15 +12,11 @@ namespace BossSystem.Boss.FleshBoss
         [SerializeField] private float duration = 3f;
         [SerializeField] private float tickRate = 0.5f;
 
-        private float spawnTime;
         private float lastTick;
 
         private void Start()
         {
-            spawnTime = Time.time;
-            lastTick  = Time.time;
-
-            // 시각적 페이드아웃 (선택)
+            lastTick = Time.time;
             StartCoroutine(FadeOut());
         }
 
@@ -33,11 +29,14 @@ namespace BossSystem.Boss.FleshBoss
 
         private void OnTriggerStay2D(Collider2D other)
         {
-            if (!other.CompareTag("Player")) return;
             if (Time.time - lastTick < tickRate) return;
-
             lastTick = Time.time;
-            // other.GetComponent<PlayerHealth>()?.TakeDamage(damage);
+
+            // if (other.TryGetComponent<IDamageable>(out var damageable))
+            // {
+            //     damageable.TakeDamage(damage);
+            //     Debug.Log($"[FleshTrailZone] 장판 데미지 {damage} 적용 -> {other.gameObject.name}");
+            // }
         }
 
         private System.Collections.IEnumerator FadeOut()

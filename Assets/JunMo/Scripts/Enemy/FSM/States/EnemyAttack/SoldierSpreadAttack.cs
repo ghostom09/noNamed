@@ -44,6 +44,7 @@ public class SoldierSpreadAttack : IAttack
 
         while (elapsed < SpreadDuration)
         {
+            
             FireBullet(fixedDir);
 
             yield return new WaitForSeconds(SpreadFireRate);

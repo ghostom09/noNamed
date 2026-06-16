@@ -28,7 +28,7 @@ namespace BossSystem.Boss.FireBoss
         [SerializeField] private float barrageCooldown  = 5f;
 
         [Header("불의 고리")]
-        [SerializeField] private int   ringCount    = 3;
+        [SerializeField] private int   ringCount    = 2;
         [SerializeField] private float ringCooldown = 7f;
 
         [Header("패턴 텔레그래프 SO")]
@@ -39,6 +39,10 @@ namespace BossSystem.Boss.FireBoss
         [Header("프리팹")]
         [SerializeField] private GameObject fireballPrefab;
         [SerializeField] private GameObject fireRingPrefab;
+        [SerializeField] private GameObject fireRingCenterPrefab;
+        [SerializeField] private GameObject fireRingDonutPrefab;
+        [SerializeField] private GameObject fireRingCenterTelegraphPrefab;
+        [SerializeField] private GameObject fireRingDonutTelegraphPrefab;
         [SerializeField] private GameObject gasCloudPrefab;
         [SerializeField] private GameObject flameBreathVFX;
 
@@ -109,12 +113,40 @@ namespace BossSystem.Boss.FireBoss
         }
 
         public void SpawnFireRing(Vector3 center, float expandSpeed, float maxRadius,
-                                   float damage, float delay, bool isGasTrigger)
+                                   float damage, float delay, bool isGasTrigger,
+                                   bool useCenterPrefab = false, bool useSecondPrefab = false)
         {
-            if (fireRingPrefab == null) return;
-            var go = Instantiate(fireRingPrefab, center, Quaternion.identity);
+            GameObject prefab = useCenterPrefab
+                ? fireRingCenterPrefab != null ? fireRingCenterPrefab : fireRingPrefab
+                : fireRingDonutPrefab != null ? fireRingDonutPrefab : fireRingPrefab;
+
+            if (prefab == null) return;
+            float targetRadius = useCenterPrefab ? Mathf.Max(1f, closeRange * 0.5f) : maxRadius;
+            var go = Instantiate(prefab, center, Quaternion.identity);
             go.GetComponent<FireRing>()
-              ?.Initialize(expandSpeed, maxRadius, damage, delay, isGasTrigger, this);
+              ?.Initialize(expandSpeed, targetRadius, damage, delay, isGasTrigger, this, useCenterPrefab);
+        }
+
+        public void SpawnFireRingTelegraphs(BossAttackData data, float maxRadius,
+                                            System.Action onComplete)
+        {
+            var maker = new TelegraphMaker();
+            float centerRadius = Mathf.Max(1f, closeRange * 0.5f);
+
+            maker.SpawnCircle(
+                fireRingCenterTelegraphPrefab != null ? fireRingCenterTelegraphPrefab : circleTelegraphPrefab,
+                transform.position,
+                centerRadius,
+                data,
+                parent: transform);
+
+            maker.SpawnCircle(
+                fireRingDonutTelegraphPrefab != null ? fireRingDonutTelegraphPrefab : circleTelegraphPrefab,
+                transform.position,
+                maxRadius,
+                data,
+                onComplete,
+                transform);
         }
 
         public void SpawnGasCloud(Vector3 center, float spreadAngle)

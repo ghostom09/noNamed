@@ -19,7 +19,7 @@ namespace BossSystem.Boss.WaterBoss
         private Phase phase        = Phase.Idle;
         private float startTime    = 0f;
         private float currentAngle = 0f;
-
+        
         public CrossWaterBeamNode(BossBlackboard bb, WaterBossController boss,
             float holdDuration = 3f, float rotateSpeed = 15f,
             float targetAngle = 45f, float beamDPS = 25f, float beamLength = 12f,
@@ -47,9 +47,10 @@ namespace BossSystem.Boss.WaterBoss
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
 
-                    TelegraphHelper.Spawn(boss.transform, attackData,
+                    boss.SpawnTelegraph(attackData,
                         TelegraphShape.Circle, radius: beamLength,
-                        followParent: true, onComplete: OnTelegraphDone);
+                        followBoss: true, onComplete: OnTelegraphDone);
+                    
 
                     return NodeState.Running;
 
@@ -126,9 +127,9 @@ namespace BossSystem.Boss.WaterBoss
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
 
-                    TelegraphHelper.Spawn(boss.transform, attackData,
+                    boss.SpawnTelegraph(attackData,
                         TelegraphShape.Circle, radius: slamRange,
-                        followParent: true, onComplete: OnTelegraphDone);
+                        followBoss: true, onComplete: OnTelegraphDone);
 
                     return NodeState.Running;
 
@@ -217,11 +218,11 @@ namespace BossSystem.Boss.WaterBoss
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
 
-                    TelegraphHelper.SpawnLine(
+                    boss.SpawnLineTelegraph(
                         boss.transform.position,
                         new Vector2(fireDir.x, fireDir.y),
                         length: maxRange, width: waveWidth,
-                        attackData, onComplete: OnTelegraphDone);
+                        data: attackData, onComplete: OnTelegraphDone);
 
                     return NodeState.Running;
 
@@ -287,7 +288,7 @@ namespace BossSystem.Boss.WaterBoss
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
 
-                    TelegraphHelper.SpawnAt(targetPos, attackData,
+                    boss.SpawnTelegraphAt(targetPos, attackData,
                         TelegraphShape.Circle, radius: pillarRadius,
                         onComplete: OnTelegraphDone);
 

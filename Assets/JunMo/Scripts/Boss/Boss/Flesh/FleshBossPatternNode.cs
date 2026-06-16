@@ -34,7 +34,7 @@ namespace BossSystem.Boss.FleshBoss
 
         private const float TargetReachThreshold = 0.05f;
         private const float ChargeTimeoutPadding = 0.2f;
-
+        
         public ChargeNode(BossBlackboard bb, FleshBossController boss,
             float chargeSpeed = 16f, float chargeDuration = 1.2f,
             float collisionDamage = 40f, float trailInterval = 0.02f,
@@ -85,10 +85,11 @@ namespace BossSystem.Boss.FleshBoss
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
 
-                    TelegraphHelper.SpawnLine(
-                        boss.transform.position, chargeDir,
+                    boss.SpawnLineTelegraph(
+                        boss.transform.position - (Vector3)(chargeDir * (chargeDistance * 0.5f)),
+                        chargeDir,
                         length: chargeDistance, width: 2f,
-                        attackData, onComplete: OnTelegraphDone);
+                        data: attackData, onComplete: OnTelegraphDone);
 
                     return NodeState.Running;
                 }
@@ -293,9 +294,9 @@ public class FleshScatterNode : BTNode
                 boss.SetTelegraphing(true);
 
                 // 텔레그래프: 도달 범위 원형 표시
-                TelegraphHelper.Spawn(boss.transform, attackData,
+                boss.SpawnTelegraph(attackData,
                     TelegraphShape.Circle, radius: scatterRadius,
-                    followParent: true, onComplete: OnTelegraphDone);
+                    followBoss: true, onComplete: OnTelegraphDone);
 
                 return NodeState.Running;
             }
@@ -386,7 +387,7 @@ public class FleshScatterNode : BTNode
                     phase     = Phase.Telegraph;
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
-                    TelegraphHelper.SpawnAt(targetPos, attackData,
+                    boss.SpawnTelegraphAt(targetPos, attackData,
                         TelegraphShape.Circle, radius: 1.5f,
                         onComplete: OnTelegraphDone);
                     return NodeState.Running;
@@ -398,8 +399,9 @@ public class FleshScatterNode : BTNode
                     if (Time.time >= nextThrow && thrown < throwCount)
                     {
                         boss.SpawnFleshProjectileToTarget(boss.transform.position,
-                                                          targetPos, throwForce,
-                                                          bounces: bounceCount, isLarge: true);
+                            targetPos, throwForce,
+                            bounces: bounceCount, isLarge: true,
+                            bounceTelegraphData: attackData);
                         thrown++;
                         nextThrow = Time.time + 0.3f;
                     }
@@ -470,9 +472,9 @@ public class FleshScatterNode : BTNode
                     phase = Phase.Telegraph;
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
-                    TelegraphHelper.Spawn(boss.transform, attackData,
+                    boss.SpawnTelegraph(attackData,
                         TelegraphShape.Circle, radius: smashRadius,
-                        followParent: true, onComplete: OnTelegraphDone);
+                        followBoss: true, onComplete: OnTelegraphDone);
                     return NodeState.Running;
 
                 case Phase.Telegraph:
