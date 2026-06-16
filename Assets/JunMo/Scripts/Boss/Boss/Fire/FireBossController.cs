@@ -114,7 +114,7 @@ namespace BossSystem.Boss.FireBoss
 
         public void SpawnFireRing(Vector3 center, float expandSpeed, float maxRadius,
                                    float damage, float delay, bool isGasTrigger,
-                                   bool useCenterPrefab = false)
+                                   bool useCenterPrefab = false, bool useSecondPrefab = false)
         {
             GameObject prefab = useCenterPrefab
                 ? fireRingCenterPrefab != null ? fireRingCenterPrefab : fireRingPrefab

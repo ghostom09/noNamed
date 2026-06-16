@@ -109,8 +109,12 @@ namespace BossSystem.Boss.FleshBoss
         private void OnCollisionEnter2D(Collision2D col)
         {
             if (!isCharging) return;
-            // if (col.gameObject.CompareTag("Player"))
-            //     col.gameObject.GetComponent<PlayerHealth>()?.TakeDamage(chargeDamage);
+            
+            // if (col.gameObject.TryGetComponent<IDamageable>(out var damageable))
+            // {
+            //     damageable.TakeDamage(chargeDamage);
+            //     Debug.Log($"[FleshBoss] 돌진 충돌 데미지 {chargeDamage} 적용 -> {col.gameObject.name}");
+            // }
         }
 
         public void SpawnFleshProjectile(Vector3 position, Vector3 direction,
@@ -178,8 +182,11 @@ namespace BossSystem.Boss.FleshBoss
             var hits = Physics2D.OverlapCircleAll(transform.position + transform.up * 2f, radius);
             foreach (var hit in hits)
             {
-                // if (hit.CompareTag("Player"))
-                //     hit.GetComponent<PlayerHealth>()?.TakeDamage(damage);
+                // if (hit.TryGetComponent<IDamageable>(out var damageable))
+                // {
+                //     damageable.TakeDamage(damage);
+                //     Debug.Log($"[FleshBoss] 스매시 데미지 {damage} 적용 -> {hit.gameObject.name}");
+                // }
             }
         }
 
@@ -277,5 +284,42 @@ namespace BossSystem.Boss.FleshBoss
         }
 
         private void CleanChunkList() => activeChunks.RemoveAll(c => c == null);
+        
+        public float GetColliderHalfHeight()
+        {
+            var col = GetComponent<Collider2D>();
+            return col != null ? col.bounds.size.y * 0.5f : 0f;
+        }
+        
+        public void SpawnFleshProjectileToTarget(Vector3 position, Vector3 targetPosition,
+            float speed, int bounces, bool isLarge = false,
+            BossAttackData bounceTelegraphData = null)
+        {
+            var prefab = (isLarge && fleshChunkLargePrefab != null)
+                ? fleshChunkLargePrefab : fleshChunkPrefab;
+            if (prefab == null) return;
+
+            var go = Instantiate(prefab, position,
+                Quaternion.Euler(0f, 0f, Random.Range(0f, 360f)));
+            var chunk = go.GetComponent<FleshChunk>();
+            if (chunk != null)
+            {
+                chunk.Initialize(this,
+                    hp:      isLarge ? 60f : 30f,
+                    dmg:     isLarge ? 30f : 15f,
+                    life:    12f,
+                    bounces: bounces,
+                    bounceTelegraph: bounceTelegraphData);
+                chunk.InitializeTargetedFlight(targetPosition, speed);
+                RegisterChunk(chunk);
+            }
+
+            var rbComp = go.GetComponent<Rigidbody2D>();
+            if (rbComp != null)
+            {
+                rbComp.linearVelocity = Vector2.zero;
+                rbComp.angularVelocity = 0f;
+            }
+        }
     }
 }

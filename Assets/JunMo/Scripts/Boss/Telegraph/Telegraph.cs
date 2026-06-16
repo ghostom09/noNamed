@@ -3,7 +3,8 @@ using System.Collections;
 using System;
 using BossSystem.Scripable;
 
-public enum TelegraphShape{
+public enum TelegraphShape
+{
     Circle,
     Sector,
     Square,
@@ -13,12 +14,14 @@ public enum TelegraphShape{
 public class Telegraph : MonoBehaviour
 {
     [SerializeField] private Transform timeTelegraph;
+    [SerializeField] private float defaultDuration = 1f;
 
     private SpriteRenderer _sr;
     private Coroutine _activeCoroutine;
 
     private BossAttackData _currentData;
     private Vector3 _targetScale;
+    private float _duration;
     public event Action OnComplete;
 
     private void Awake()
@@ -29,9 +32,12 @@ public class Telegraph : MonoBehaviour
             _targetScale = timeTelegraph.localScale;
     }
 
-    public void SpawnTelegraph(BossAttackData data, Action onComplete)
+    public void SpawnTelegraph(BossAttackData data, Action onComplete, float duration = -1f)
     {
+        Debug.Log($"[Telegraph] SpawnTelegraph 호출, timeTelegraph={timeTelegraph}, data={data}");
         _currentData = data;
+        _duration = duration > 0f ? duration : defaultDuration;
+
         if (onComplete != null)
             OnComplete += onComplete;
 
@@ -39,11 +45,6 @@ public class Telegraph : MonoBehaviour
             StopCoroutine(_activeCoroutine);
 
         _activeCoroutine = StartCoroutine(ChargeTelegraph());
-    }
-
-    private void Start()
-    {
-        StartCoroutine(ChargeTelegraph());
     }
 
     public void Cancel()
@@ -59,7 +60,7 @@ public class Telegraph : MonoBehaviour
 
     private IEnumerator ChargeTelegraph()
     {
-        float duration = 1f;
+        float duration = _duration;
         float elapsed = 0f;
 
         switch (_currentData.shape)
@@ -100,6 +101,7 @@ public class Telegraph : MonoBehaviour
         }
 
         timeTelegraph.localScale = _targetScale;
+        Complete();
     }
 
     private void Complete()
@@ -107,7 +109,7 @@ public class Telegraph : MonoBehaviour
         Action complete = OnComplete;
         OnComplete = null;
         complete?.Invoke();
-        
+
         Hide();
     }
 

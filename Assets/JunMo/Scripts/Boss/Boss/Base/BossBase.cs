@@ -184,7 +184,8 @@ namespace BossSystem.Boss
             float radius,
             Vector2 direction = default,
             bool followBoss = true,
-            System.Action onComplete = null)
+            System.Action onComplete = null,
+            float duration = -1f)
         {
             Telegraph telegraph = telegraphMaker.SpawnCircle(
                 GetTelegraphPrefab(shape),
@@ -192,7 +193,8 @@ namespace BossSystem.Boss
                 radius,
                 data,
                 onComplete,
-                followBoss ? transform : null);
+                followBoss ? transform : null,
+                duration);
 
             RotateTelegraphToDirection(telegraph, direction);
             return telegraph;
@@ -204,14 +206,17 @@ namespace BossSystem.Boss
             TelegraphShape shape,
             float radius,
             Vector2 direction = default,
-            System.Action onComplete = null)
+            System.Action onComplete = null,
+            float duration = -1f)
         {
             Telegraph telegraph = telegraphMaker.SpawnCircle(
                 GetTelegraphPrefab(shape),
                 position,
                 radius,
                 data,
-                onComplete);
+                onComplete,
+                null,
+                duration);
 
             RotateTelegraphToDirection(telegraph, direction);
             return telegraph;
@@ -223,7 +228,8 @@ namespace BossSystem.Boss
             float length,
             float width,
             BossAttackData data,
-            System.Action onComplete = null)
+            System.Action onComplete = null,
+            float duration = -1f)
         {
             return telegraphMaker.SpawnLine(
                 lineTelegraphPrefab != null ? lineTelegraphPrefab : circleTelegraphPrefab,
@@ -232,7 +238,8 @@ namespace BossSystem.Boss
                 length,
                 width,
                 data,
-                onComplete);
+                onComplete,
+                duration);
         }
 
         protected GameObject GetTelegraphPrefab(TelegraphShape shape)

@@ -944,7 +944,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1745440604
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -960,11 +960,11 @@ MonoBehaviour:
   maxHP: 1000
   moveSpeed: 3
   bossData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
-  circleTelegraphPrefab: {fileID: 3545705984393967262, guid: 02fe086d37958ea4d92dbddd9b68ef19, type: 3}
-  lineTelegraphPrefab: {fileID: 4047687611032215660, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
-  sectorTelegraphPrefab: {fileID: 1870111655378824443, guid: cb23719b3f29bc64ca5015f8d0653216, type: 3}
-  squareTelegraphPrefab: {fileID: 4047687611032215660, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
-  player: {fileID: 0}
+  circleTelegraphPrefab: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
+  lineTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
+  sectorTelegraphPrefab: {fileID: 512201486031211520, guid: 791e50d870c7c2f4f9c6fca49673e162, type: 3}
+  squareTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
+  player: {fileID: 1782676436}
   patternTimeoutSec: 20
   meleeRange: 3.5
   chaseSpeed: 1.5
@@ -1405,7 +1405,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1897149835
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using BossSystem.Scripable;
 
 namespace BossSystem.Boss.FleshBoss
 {
@@ -8,7 +9,7 @@ namespace BossSystem.Boss.FleshBoss
     /// ─ 파괴 가능한 오브젝트 (체력 있음)
     /// ─ 플레이어가 닿으면 데미지
     /// ─ 패턴 5: 보스가 흡수하면 체력 회복
-    /// ─ 패턴 3: BounceCount 설정 시 튕기다 사라짐
+    /// ─ 패턴 3: BounceCount 설정 시, 도착 후 같은 방향으로 N번 더 튕기며 회전 이동
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(Collider2D))]
@@ -19,10 +20,23 @@ namespace BossSystem.Boss.FleshBoss
         [SerializeField] private float touchDamage   = 15f;
         [SerializeField] private float lifetime      = 10f;   // 최대 생존 시간
 
-        // 튕기기 설정 (패턴 3 전용)
-        private int maxBounces    = 0;
-        private int currentBounce = 0;
-        private bool isBouncing   = false;
+        [Header("튕기기 설정")]
+        [SerializeField] private float bounceDistance         = 3f;
+        [SerializeField] private float bounceMoveSpeed        = 10f;
+        [SerializeField] private float bounceRotationSpeed    = 360f; // 초당 회전 각도
+        [SerializeField] private float bounceTelegraphRadius   = 1f;
+        [SerializeField] private float bounceTelegraphLead     = 0.3f; // 텔레그래프 선딜레이
+        [SerializeField] private float bounceTelegraphDuration = 0.3f; // 텔레그래프 차는 시간
+
+        // 튕기기 상태 (패턴 3 전용)
+        private int     maxBounces    = 0;
+        private int     currentBounce = 0;
+        private Vector2 flightDir;          // 날아간 방향 (튕길 때도 유지)
+
+        private enum BounceState { None, Telegraph, Moving }
+        private BounceState bounceState = BounceState.None;
+        private Vector2 bounceStartPos;
+        private Vector2 bounceTargetPos;
 
         // 컴포넌트
         private Rigidbody2D rb;
@@ -31,6 +45,9 @@ namespace BossSystem.Boss.FleshBoss
         private Vector2 flightTargetPos;
         private float flightSpeed = 0f;
         private const float FlightReachThreshold = 0.03f;
+
+        // 텔레그래프용 데이터
+        private BossAttackData bounceTelegraphData;
 
         // 이벤트
         public Action<FleshChunk> OnDestroyed;   // 보스가 구독해 목록 관리
@@ -41,16 +58,19 @@ namespace BossSystem.Boss.FleshBoss
 
         // ── 초기화 ──────────────────────────────────────────────
         public void Initialize(FleshBossController boss, float hp = 30f, float dmg = 15f,
-                               float life = 10f, int bounces = 0)
+                               float life = 10f, int bounces = 0,
+                               BossAttackData bounceTelegraph = null)
         {
-            owner         = boss;
-            chunkHP       = hp;
-            touchDamage   = dmg;
-            lifetime      = life;
-            maxBounces    = bounces;
-            isBouncing    = bounces > 0;
-            rb            = GetComponent<Rigidbody2D>();
-            rb.gravityScale = 0f;
+            owner               = boss;
+            chunkHP             = hp;
+            touchDamage         = dmg;
+            lifetime            = life;
+            maxBounces          = bounces;
+            currentBounce       = 0;
+            bounceState         = BounceState.None;
+            bounceTelegraphData = bounceTelegraph;
+            rb                  = GetComponent<Rigidbody2D>();
+            rb.gravityScale     = 0f;
 
             Destroy(gameObject, lifetime);
         }
@@ -59,66 +79,129 @@ namespace BossSystem.Boss.FleshBoss
         {
             if (rb == null) rb = GetComponent<Rigidbody2D>();
 
+            Vector2 start   = rb.position;
             flightTargetPos = new Vector2(targetPosition.x, targetPosition.y);
-            flightSpeed = Mathf.Max(0.01f, speed);
+            flightSpeed     = Mathf.Max(0.01f, speed);
             isTargetedFlight = true;
-            isBouncing = false;
-            currentBounce = 0;
 
-            rb.gravityScale = 0f;
-            rb.linearVelocity = Vector2.zero;
+            Vector2 toTarget = flightTargetPos - start;
+            flightDir = toTarget.sqrMagnitude > 0.0001f ? toTarget.normalized : Vector2.right;
+
+            rb.gravityScale    = 0f;
+            rb.linearVelocity  = Vector2.zero;
             rb.angularVelocity = 0f;
         }
 
         private void FixedUpdate()
         {
-            if (!isTargetedFlight || isDead || rb == null) return;
+            if (isDead || rb == null) return;
+
+            if (isTargetedFlight)
+            {
+                Vector2 next = Vector2.MoveTowards(
+                    rb.position,
+                    flightTargetPos,
+                    flightSpeed * Time.fixedDeltaTime);
+                rb.MovePosition(next);
+
+                if (Vector2.Distance(next, flightTargetPos) <= FlightReachThreshold)
+                {
+                    rb.MovePosition(flightTargetPos);
+                    rb.linearVelocity  = Vector2.zero;
+                    rb.angularVelocity = 0f;
+                    isTargetedFlight = false;
+
+                    if (maxBounces > 0)
+                        StartNextBounce();
+                }
+                return;
+            }
+
+            UpdateBounce();
+        }
+
+        // ── 튕기기 (도착 후 같은 방향으로 N번 추가 이동) ──────────
+        private void StartNextBounce()
+        {
+            if (currentBounce >= maxBounces)
+            {
+                rb.linearVelocity = Vector2.zero;
+                return;
+            }
+
+            bounceStartPos  = rb.position;
+            bounceTargetPos = bounceStartPos + flightDir * bounceDistance;
+
+            SpawnBounceTelegraph(bounceTargetPos);
+            bounceState = BounceState.Telegraph;
+
+            Invoke(nameof(BeginBounceMove), bounceTelegraphLead);
+        }
+
+        private void BeginBounceMove()
+        {
+            if (isDead) return;
+            bounceState = BounceState.Moving;
+        }
+
+        private void UpdateBounce()
+        {
+            if (bounceState != BounceState.Moving) return;
 
             Vector2 next = Vector2.MoveTowards(
                 rb.position,
-                flightTargetPos,
-                flightSpeed * Time.fixedDeltaTime);
+                bounceTargetPos,
+                bounceMoveSpeed * Time.fixedDeltaTime);
             rb.MovePosition(next);
+            rb.MoveRotation(rb.rotation + bounceRotationSpeed * Time.fixedDeltaTime);
 
-            if (Vector2.Distance(next, flightTargetPos) <= FlightReachThreshold)
+            if (Vector2.Distance(next, bounceTargetPos) <= FlightReachThreshold)
             {
-                rb.MovePosition(flightTargetPos);
-                rb.linearVelocity = Vector2.zero;
-                rb.angularVelocity = 0f;
-                isTargetedFlight = false;
+                rb.MovePosition(bounceTargetPos);
+                bounceState = BounceState.None;
+                currentBounce++;
+
+                if (currentBounce >= maxBounces)
+                {
+                    rb.linearVelocity = Vector2.zero;
+                    // 다 튕겨도 파괴하지 않음 (lifetime에 의해서만 소멸)
+                }
+                else
+                {
+                    StartNextBounce();
+                }
             }
         }
 
         // ── 물리 충돌 ────────────────────────────────────────────
-        private void OnCollisionEnter2D(Collision2D col)
-        {
-            // 플레이어에게 데미지
-            if (col.gameObject.CompareTag("Player"))
-            {
-                // col.gameObject.GetComponent<PlayerHealth>()?.TakeDamage(touchDamage);
-            }
-
-            // 튕기기 처리 (패턴 3)
-            if (isBouncing)
-            {
-                currentBounce++;
-                if (currentBounce >= maxBounces)
-                {
-                    DestroyChunk();
-                }
-                // 실제 튕김은 Rigidbody2D sharedMaterial의 bounciness로 처리
-                // 또는 여기서 직접 반사벡터 계산 가능
-            }
-        }
+        // private void OnCollisionEnter2D(Collision2D col)
+        // {
+        //     if (col.gameObject.TryGetComponent<IDamageable>(out var damageable))
+        //     {
+        //         damageable.TakeDamage(touchDamage);
+        //     }
+        // }
 
         // 트리거용 (장판 등)
-        private void OnTriggerEnter2D(Collider2D other)
+        // private void OnTriggerEnter2D(Collider2D other)
+        // {
+        //     if (other.TryGetComponent<IDamageable>(out var damageable))
+        //     {
+        //         damageable.TakeDamage(touchDamage);
+        //     }
+        // }
+
+        // ── 튕길 위치 텔레그래프 ──────────────────────────────────
+        private void SpawnBounceTelegraph(Vector2 position)
         {
-            if (other.CompareTag("Player"))
-            {
-                
-            }
-                // other.GetComponent<PlayerHealth>()?.TakeDamage(touchDamage);
+            if (owner == null || bounceTelegraphData == null) return;
+
+            owner.SpawnTelegraphAt(
+                position,
+                bounceTelegraphData,
+                TelegraphShape.Circle,
+                radius: bounceTelegraphRadius,
+                duration: bounceTelegraphDuration);
         }
 
         // ── 피해 수신 ────────────────────────────────────────────
@@ -151,7 +234,4 @@ namespace BossSystem.Boss.FleshBoss
         public float TouchDamage => touchDamage;
         public bool  IsDead      => isDead;
     }
-
-    // ── 간단한 PlayerHealth 참조용 (FireProjectiles.cs의 것과 동일 namespace 충돌 방지) ──
-    // 실제 프로젝트에서는 공용 namespace의 PlayerHealth를 사용하세요.
 }

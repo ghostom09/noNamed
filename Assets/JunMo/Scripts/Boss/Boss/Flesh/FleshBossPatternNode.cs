@@ -86,7 +86,8 @@ namespace BossSystem.Boss.FleshBoss
                     boss.SetTelegraphing(true);
 
                     boss.SpawnLineTelegraph(
-                        boss.transform.position, chargeDir,
+                        boss.transform.position - (Vector3)(chargeDir * (chargeDistance * 0.5f)),
+                        chargeDir,
                         length: chargeDistance, width: 2f,
                         data: attackData, onComplete: OnTelegraphDone);
 
@@ -398,8 +399,9 @@ public class FleshScatterNode : BTNode
                     if (Time.time >= nextThrow && thrown < throwCount)
                     {
                         boss.SpawnFleshProjectileToTarget(boss.transform.position,
-                                                          targetPos, throwForce,
-                                                          bounces: bounceCount, isLarge: true);
+                            targetPos, throwForce,
+                            bounces: bounceCount, isLarge: true,
+                            bounceTelegraphData: attackData);
                         thrown++;
                         nextThrow = Time.time + 0.3f;
                     }

@@ -9,9 +9,10 @@ public class TelegraphMaker
         float radius,
         BossAttackData data,
         System.Action onComplete = null,
-        Transform parent = null)
+        Transform parent = null,
+        float duration = -1f)
     {
-        Telegraph telegraph = SpawnBase(telegraphPrefab, position, Quaternion.identity, data, onComplete, parent);
+        Telegraph telegraph = SpawnBase(telegraphPrefab, position, Quaternion.identity, data, onComplete, parent, duration);
         if (telegraph != null)
             telegraph.transform.localScale = new Vector3(radius * 2f, radius * 2f, 1f);
 
@@ -25,7 +26,8 @@ public class TelegraphMaker
         float length,
         float width,
         BossAttackData data,
-        System.Action onComplete = null)
+        System.Action onComplete = null,
+        float duration = -1f)
     {
         Vector2 dir = direction.sqrMagnitude > 0f ? direction.normalized : Vector2.right;
         Vector2 center = (Vector2)startPosition + dir * (length * 0.5f);
@@ -36,7 +38,9 @@ public class TelegraphMaker
             new Vector3(center.x, center.y, startPosition.z),
             Quaternion.Euler(0f, 0f, angle),
             data,
-            onComplete);
+            onComplete,
+            null,
+            duration);
 
         if (telegraph != null)
             telegraph.transform.localScale = new Vector3(width, length, 1f);
@@ -50,7 +54,8 @@ public class TelegraphMaker
         Quaternion rotation,
         BossAttackData data,
         System.Action onComplete,
-        Transform parent = null)
+        Transform parent = null,
+        float duration = -1f)
     {
         if (telegraphPrefab == null)
         {
@@ -69,7 +74,7 @@ public class TelegraphMaker
             return null;
         }
 
-        telegraph.SpawnTelegraph(data, onComplete);
+        telegraph.SpawnTelegraph(data, onComplete, duration);
         return telegraph;
     }
 }
