@@ -8,6 +8,7 @@ public class HomingBullet : BulletBase
 
     public void InitHoming(float damage, Transform target, float speed = 6f, float homingDuration = 3f)
     {
+        Debug.Log(target);
         base.Init(damage, Vector2.zero, speed);
         _target = target;
         _homingDuration = homingDuration;
@@ -20,6 +21,8 @@ public class HomingBullet : BulletBase
         if (_target != null && _elapsed < _homingDuration)
         {
             direction = ((Vector2)_target.position - (Vector2)transform.position).normalized;
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0, 0, angle);
         }
 
         transform.Translate(speed * Time.deltaTime * direction, Space.World);

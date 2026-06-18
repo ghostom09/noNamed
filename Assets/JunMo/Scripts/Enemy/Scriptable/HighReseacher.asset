@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: HighReseacher
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStats
   damage: 3
-  moveSpeed: 10
-  attackSpeed: 4
+  moveSpeed: 2.5
+  attackSpeed: 2.5
   maxHealth: 8
-  attackRange: 10
-  chaseRange: 5
-  kitingRange: 0
+  attackRange: 6
+  chaseRange: 10
+  kitingRange: 3
   chaseType: 2
   attackType: 9

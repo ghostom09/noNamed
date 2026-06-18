@@ -17,5 +17,6 @@ public class ResearcherAttack : IAttack
         var bullet =Object.Instantiate
             (_bulletPrefab, _enemy.transform.position, Quaternion.Euler(0, 0, angle));
         bullet.GetComponent<BulletBase>()?.Init(_enemy.stats.damage, _enemy.GetVector2());
+        _enemy.ResetAttackTimer();
     }
 }

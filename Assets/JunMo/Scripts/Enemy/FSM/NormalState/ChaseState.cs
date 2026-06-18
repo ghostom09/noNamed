@@ -3,6 +3,7 @@ using UnityEngine;
 public class ChaseState : IState
 {
     private Enemy _enemy;
+    private RangedChase _chase;
 
     public ChaseState(Enemy enemy)
     {
@@ -16,17 +17,16 @@ public class ChaseState : IState
 
     public void Update()
     {
+        if (!_enemy.CanChaseRange())
+        {
+            _enemy.ChangeState(_enemy.MoveState);
+            return;
+        }
+        _enemy.Chase.Chase();
         if (_enemy.CanAttackRange() && _enemy.CanAttackSpeed())
         {
             _enemy.ChangeState(_enemy.AttackState);
-            return;
         }
-        if (_enemy.CanChaseRange())
-        {
-            _enemy.Chase.Chase();
-            return;
-        }
-        _enemy.ChangeState(_enemy.IdleState);
     }
 
     public void Exit()

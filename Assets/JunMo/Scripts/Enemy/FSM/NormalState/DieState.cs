@@ -13,23 +13,19 @@ public class DieState : IState
 
     public void Enter()
     {
-        _enemy.NotifyDead();
-
-        _enemy.enabled = false;
-
-        var collider = _enemy.GetComponent<Collider2D>();
-        if (collider != null)
-            collider.enabled = false;
-
-        Object.Destroy(_enemy.gameObject, 2f);
+        _enemy.rb.linearVelocity = Vector2.zero;
+        Object.Destroy(_enemy.gameObject, 1f);
+        _enemy.GetComponent<Collider2D>().enabled = false; // 피격 판정 제거
+        
         if (_isSuicideBomber)
         {
-            Explode();
+            _enemy.Explode();
         }
         else
         {
             // 일반 사망 애니메이션
         }
+        _enemy.enabled = false;           // AI/이동 중단
     }
 
     public void Update()
@@ -40,10 +36,5 @@ public class DieState : IState
     public void Exit()
     {
         
-    }
-
-    private void Explode()
-    {
-        _enemy.ChangeState(_enemy.AttackState);
     }
 }
