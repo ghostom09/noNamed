@@ -957,7 +957,8 @@ GameObject:
   - component: {fileID: 177484192}
   - component: {fileID: 177484191}
   - component: {fileID: 177484190}
-  m_Layer: 0
+  - component: {fileID: 177484195}
+  m_Layer: 8
   m_Name: Fire
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1006,6 +1007,10 @@ MonoBehaviour:
   maxHP: 1000
   moveSpeed: 3
   bossData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  circleTelegraphPrefab: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
+  lineTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
+  sectorTelegraphPrefab: {fileID: 512201486031211520, guid: 791e50d870c7c2f4f9c6fca49673e162, type: 3}
+  squareTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
   player: {fileID: 0}
   patternTimeoutSec: 20
   closeRange: 5
@@ -1025,8 +1030,26 @@ MonoBehaviour:
   fireRingData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
   fireballPrefab: {fileID: 3605014151767436924, guid: a4972fbe958d4b64cbaf0be5d0964138, type: 3}
   fireRingPrefab: {fileID: 3605014151767436924, guid: 4d09dc0265875b34c80bff71f1f32c68, type: 3}
+  fireRingCenterPrefab: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
+  fireRingDonutPrefab: {fileID: 512201486031211520, guid: 1838ad76bb844974594214f9526a9dab, type: 3}
+  fireRingCenterTelegraphPrefab: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
+  fireRingDonutTelegraphPrefab: {fileID: 512201486031211520, guid: 1838ad76bb844974594214f9526a9dab, type: 3}
   gasCloudPrefab: {fileID: 3605014151767436924, guid: 3bc007424c60d9546a78ee64241f2a9c, type: 3}
   flameBreathVFX: {fileID: 3605014151767436924, guid: 3bc007424c60d9546a78ee64241f2a9c, type: 3}
+--- !u!114 &177484195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 177484189}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b5c92db4d7c4a7f8b3ccfe478965f12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JunMoBossCombatAdapter
+  boss: {fileID: 177484191}
+  targetRigidbody: {fileID: 177484190}
 --- !u!61 &177484192
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -6052,7 +6075,8 @@ GameObject:
   - component: {fileID: 990575185}
   - component: {fileID: 990575184}
   - component: {fileID: 990575183}
-  m_Layer: 0
+  - component: {fileID: 990575188}
+  m_Layer: 8
   m_Name: Water
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6074,6 +6098,10 @@ MonoBehaviour:
   maxHP: 1000
   moveSpeed: 3
   bossData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  circleTelegraphPrefab: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
+  lineTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
+  sectorTelegraphPrefab: {fileID: 512201486031211520, guid: 791e50d870c7c2f4f9c6fca49673e162, type: 3}
+  squareTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
   player: {fileID: 0}
   patternTimeoutSec: 20
   beamCooldown: 8
@@ -6096,9 +6124,27 @@ MonoBehaviour:
   - {fileID: 1241416556}
   beamPivot: {fileID: 1190354851}
   waterWavePrefab: {fileID: 9085461787720426981, guid: 63e7e7d1845e71e41b13c981c90ca87a, type: 3}
+  waterWaveTelegraph: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
   waterPillarPrefab: {fileID: 9085461787720426981, guid: 7f0fb89496f9d9c408569ef055687e38, type: 3}
+  waterPillarTelegraph: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
   floodZonePrefab: {fileID: 9085461787720426981, guid: c2535fb7b75bbc94ea5ed414bca874ad, type: 3}
+  floodZoneTelegraph: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
   slamVFXPrefab: {fileID: 0}
+  slamVFXTelegraph: {fileID: 0}
+--- !u!114 &990575188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 990575182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b5c92db4d7c4a7f8b3ccfe478965f12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JunMoBossCombatAdapter
+  boss: {fileID: 990575183}
+  targetRigidbody: {fileID: 990575184}
 --- !u!50 &990575184
 Rigidbody2D:
   serializedVersion: 5
@@ -10032,6 +10078,7 @@ GameObject:
   - component: {fileID: 1608904341}
   - component: {fileID: 1608904340}
   - component: {fileID: 1608904345}
+  - component: {fileID: 1608904346}
   m_Layer: 8
   m_Name: Flesh
   m_TagString: Untagged
@@ -10054,6 +10101,10 @@ MonoBehaviour:
   maxHP: 1000
   moveSpeed: 3
   bossData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
+  circleTelegraphPrefab: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
+  lineTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
+  sectorTelegraphPrefab: {fileID: 512201486031211520, guid: 791e50d870c7c2f4f9c6fca49673e162, type: 3}
+  squareTelegraphPrefab: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
   player: {fileID: 0}
   patternTimeoutSec: 20
   meleeRange: 3.5
@@ -10072,6 +10123,20 @@ MonoBehaviour:
   fleshChunkLargePrefab: {fileID: 8335309446694885841, guid: a2a82a04a0867554783b87c200f18c88, type: 3}
   trailZonePrefab: {fileID: 2420077796377916295, guid: 70425802c77c2b94ea525b03fddbcc3d, type: 3}
   absorbVFXPrefab: {fileID: 2420077796377916295, guid: 70425802c77c2b94ea525b03fddbcc3d, type: 3}
+--- !u!114 &1608904346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1608904339}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b5c92db4d7c4a7f8b3ccfe478965f12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JunMoBossCombatAdapter
+  boss: {fileID: 1608904340}
+  targetRigidbody: {fileID: 1608904341}
 --- !u!50 &1608904341
 Rigidbody2D:
   serializedVersion: 5

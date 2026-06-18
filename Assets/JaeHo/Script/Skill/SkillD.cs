@@ -70,14 +70,22 @@ public class SkillD : MeleeSkill
         }
         else
         {
+            bool normalTargetHit = false;
+
             for (int i = 0; i < hitCount; i++)
             {
                 Collider2D hit = GetCollectedTarget(i);
                 if (hit == null) continue;
                 if (!HasLineOfSight(origin, hit)) continue;
 
+                bool isFleshChunk = hit.GetComponentInParent<BossSystem.Boss.FleshBoss.FleshChunk>() != null;
+
+                if (!isFleshChunk && normalTargetHit) continue;
+
                 ApplyDamage(context, hit, hit.bounds.center);
-                break;
+
+                if (!isFleshChunk)
+                    normalTargetHit = true;
             }
         }
     }
