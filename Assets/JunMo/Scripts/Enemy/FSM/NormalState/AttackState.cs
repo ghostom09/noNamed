@@ -16,21 +16,28 @@ public class AttackState : IState
 
     public void Update()
     {
+        _enemy.rb.linearVelocity = Vector2.zero;
+
+        if (_enemy.IsAttacking)
+            return;
+
         if (_enemy.CanAttackRange() && _enemy.CanAttackSpeed())
         {
             _enemy.Attack.Attack();
             return;
         }
+
         if (_enemy.CanChaseRange())
         {
-            _enemy.ChangeState(_enemy.ChaseState); // 상태 전환
+            _enemy.ChangeState(_enemy.ChaseState);
             return;
         }
+
         _enemy.ChangeState(_enemy.IdleState);
     }
 
     public void Exit()
     {
-        _enemy.ResetAttackTimer();
+        
     }
 }

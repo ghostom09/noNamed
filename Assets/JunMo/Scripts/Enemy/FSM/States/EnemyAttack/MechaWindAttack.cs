@@ -33,7 +33,7 @@ public class MechaWindAttack : IAttack
         float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
  
         // 부채꼴 범위 내 플레이어 감지
-        for (int i = 0; i <= RayCount; i++)
+        for (int i = 0; i < RayCount; i++)
         {
             float angle = baseAngle - SwingAngle / 2f + (SwingAngle / RayCount) * i;
             float rad = angle * Mathf.Deg2Rad;

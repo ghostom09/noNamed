@@ -40,17 +40,21 @@ public class SoldierSpreadAttack : IAttack
 
     private IEnumerator SpreadFire(Vector2 fixedDir)
     {
+        _enemy.IsAttacking = true;
+
         float elapsed = 0f;
 
         while (elapsed < SpreadDuration)
         {
-            
             FireBullet(fixedDir);
 
             yield return new WaitForSeconds(SpreadFireRate);
 
             elapsed += SpreadFireRate;
         }
+
+        _enemy.IsAttacking = false;
+        _enemy.ResetAttackTimer();
     }
 
     private void FireBullet(Vector2 fixedDir)

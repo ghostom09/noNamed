@@ -6,8 +6,7 @@ public class SilenceBullet : BulletBase
 
     protected override void OnHitPlayer(Collider2D other)
     {
-        // other.GetComponent<PlayerStats>()?.TakeDamage(damage);
-        // other.GetComponent<PlayerSkillController>()?.ApplySilence(silenceDuration);
+        // other.GetComponent<PlayerSkillController>()?.ApplySilence(silenceDuration); 코드가 어떻게 됨?
         Debug.Log($"[SilenceBullet] 스킬 봉인 {silenceDuration}초");
     }
 }

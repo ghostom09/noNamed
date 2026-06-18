@@ -17,15 +17,22 @@ public class RangedChase : IChase
         Vector2 dir = _enemy.GetVector2();
 
         float kiting = _enemy.stats.kitingRange;
-        float chaseRange = _enemy.stats.chaseRange;
+        float attackRange = _enemy.stats.attackRange;
 
         if (distance < kiting)
         {
+            // 너무 가까우면 후퇴
             _enemy.rb.linearVelocity = -dir * _enemy.stats.moveSpeed;
         }
-        else if (distance >= kiting && distance < chaseRange)
+        else if (distance <= attackRange)
         {
+            // 공격 가능 거리면 정지
             _enemy.rb.linearVelocity = Vector2.zero;
+        }
+        else
+        {
+            // 공격 범위 밖이면 접근
+            _enemy.rb.linearVelocity = dir * _enemy.stats.moveSpeed;
         }
     }
 }

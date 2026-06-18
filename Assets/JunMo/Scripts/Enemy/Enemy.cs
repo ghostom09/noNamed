@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
@@ -11,7 +13,6 @@ public class Enemy : MonoBehaviour
     public AttackState AttackState;
     public ChaseState ChaseState;
     public DieState DieState;
-    public EnemyStats stats;
     public CCState CcState;
     public HitState HitState;
     
@@ -19,14 +20,21 @@ public class Enemy : MonoBehaviour
     public IAttack Attack;
     public IChase Chase;
     
+    public EnemyStats stats;
+    
     [HideInInspector]public Rigidbody2D rb;
     private float _attackTime = 0f;
+    private float explosionRadius = 3f;
+    private bool _hasExploded = false;
+    private GameObject _boom;
     
     public event Action<Enemy> OnDead;
+    public bool IsAttacking { get; set; }
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        target = GameObject.Find("Player").transform;
         // OnDead?.Invoke(this);
     }
 
@@ -116,4 +124,62 @@ public class Enemy : MonoBehaviour
     public void ApplySnare(float duration) => CcState.ApplySnare(duration);
     public void ApplyKnockBack(Vector2 hitDir, float force, float duration) 
         => CcState.ApplyKnockback(hitDir, force, duration);
+
+    public void Explode()
+    {
+        if (_hasExploded)
+            return;
+
+        _hasExploded = true;
+        StartCoroutine(Boom());
+    }
+
+    private IEnumerator Boom()
+    {
+        yield return new WaitForSeconds(0.5f);
+        _boom = EnemyPrefabController.Instance.GetPrefab(stats.attackType);
+        var boom = Instantiate(_boom, transform.position, Quaternion.identity);
+        Destroy(boom, 1f);
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
+
+        foreach (var hit in hits)
+        {
+            if (hit.CompareTag("Player"))
+            {
+                // if (hit.gameObject.TryGetComponent<IDamageable>(out var damageable))
+                // {
+                //     damageable.TakeDamage(stats.damage);
+                //     Debug.Log($"자폭 데미지{stats.damage}");
+                // }
+            }
+        }
+        StopCoroutine(Boom());
+    }
+    
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+
+        Vector2 baseDir = GetVector2();
+        float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
+
+        Vector3 prevPoint = transform.position;
+
+        for (int i = 0; i < 10; i++)
+        {
+            float angle = baseAngle - 120f / 2f + (120f / 10f) * i;
+            float rad = angle * Mathf.Deg2Rad;
+
+            Vector3 point = transform.position +
+                            new Vector3(Mathf.Cos(rad), Mathf.Sin(rad), 0) * 2f;
+
+            Gizmos.DrawLine(transform.position, point);
+
+            if (i > 0)
+                Gizmos.DrawLine(prevPoint, point);
+
+            prevPoint = point;
+        }
+    }
 }

@@ -16,8 +16,8 @@ MonoBehaviour:
   moveSpeed: 3
   attackSpeed: 1
   maxHealth: 1
-  attackRange: 10
-  chaseRange: 5
-  kitingRange: 7
+  attackRange: 6
+  chaseRange: 10
+  kitingRange: 3
   chaseType: 2
   attackType: 5
