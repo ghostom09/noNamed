@@ -11,6 +11,8 @@ public class SkillSwitcher : MonoBehaviour
     private bool _attackPressed;
     private bool _attackReleased;
 
+    public SkillBase CurrentSkill => _currentSkill;
+
     private void Awake()
     {
         if (skills.Length == 0)

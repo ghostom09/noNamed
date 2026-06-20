@@ -10396,6 +10396,7 @@ GameObject:
   m_Component:
   - component: {fileID: 357398978621855829}
   - component: {fileID: 2673228888836160473}
+  - component: {fileID: 7389204412137081351}
   m_Layer: 0
   m_Name: SkillHolder
   m_TagString: Untagged
@@ -10439,6 +10440,20 @@ MonoBehaviour:
   - {fileID: 6010131023413708053}
   - {fileID: 7447620352392539635}
   - {fileID: 5122892670904666086}
+--- !u!114 &7389204412137081351
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5514372054255237666}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e55fe27c9960b84985fa162b6a90cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTagDebugController
+  skillSwitcher: {fileID: 2673228888836160473}
+  targetTags: 32
 --- !u!1 &6421150843506762015
 GameObject:
   m_ObjectHideFlags: 0

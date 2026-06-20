@@ -305,7 +305,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e7d9c7f2b3b4a14b6c8a9d0e1f23456, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossHpBarUI
-  boss: {fileID: 0}
+  boss: {fileID: 1608904340}
   bossNameOverride: 
   autoFindBoss: 1
   hideWhenNoBoss: 0
@@ -1036,20 +1036,6 @@ MonoBehaviour:
   fireRingDonutTelegraphPrefab: {fileID: 512201486031211520, guid: 1838ad76bb844974594214f9526a9dab, type: 3}
   gasCloudPrefab: {fileID: 3605014151767436924, guid: 3bc007424c60d9546a78ee64241f2a9c, type: 3}
   flameBreathVFX: {fileID: 3605014151767436924, guid: 3bc007424c60d9546a78ee64241f2a9c, type: 3}
---- !u!114 &177484195
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 177484189}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b5c92db4d7c4a7f8b3ccfe478965f12, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JunMoBossCombatAdapter
-  boss: {fileID: 177484191}
-  targetRigidbody: {fileID: 177484190}
 --- !u!61 &177484192
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1170,6 +1156,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &177484195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 177484189}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b5c92db4d7c4a7f8b3ccfe478965f12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JunMoBossCombatAdapter
+  boss: {fileID: 177484191}
+  targetRigidbody: {fileID: 177484190}
 --- !u!1 &189889185
 GameObject:
   m_ObjectHideFlags: 0
@@ -3641,6 +3641,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2376096167461283000, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
       insertIndex: -1
       addedObject: {fileID: 612237827}
+    - targetCorrespondingSourceObject: {fileID: 2376096167461283000, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 612237832}
     - targetCorrespondingSourceObject: {fileID: 4632819360830164712, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
       insertIndex: -1
       addedObject: {fileID: 612237826}
@@ -3791,6 +3794,20 @@ MonoBehaviour:
   autoFindSkillsInChildren: 1
   addMissingLoadouts: 1
   skills: []
+--- !u!114 &612237832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 612237823}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e55fe27c9960b84985fa162b6a90cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTagDebugController
+  skillSwitcher: {fileID: 612237818}
+  targetTags: 2
 --- !u!1 &650713165
 GameObject:
   m_ObjectHideFlags: 0
@@ -6131,20 +6148,6 @@ MonoBehaviour:
   floodZoneTelegraph: {fileID: 512201486031211520, guid: 0093a873d5b568d409529f9b08850a60, type: 3}
   slamVFXPrefab: {fileID: 0}
   slamVFXTelegraph: {fileID: 0}
---- !u!114 &990575188
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 990575182}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b5c92db4d7c4a7f8b3ccfe478965f12, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JunMoBossCombatAdapter
-  boss: {fileID: 990575183}
-  targetRigidbody: {fileID: 990575184}
 --- !u!50 &990575184
 Rigidbody2D:
   serializedVersion: 5
@@ -6293,6 +6296,20 @@ Transform:
   - {fileID: 1190354851}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &990575188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 990575182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b5c92db4d7c4a7f8b3ccfe478965f12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JunMoBossCombatAdapter
+  boss: {fileID: 990575183}
+  targetRigidbody: {fileID: 990575184}
 --- !u!1 &996802349
 GameObject:
   m_ObjectHideFlags: 0
@@ -10123,20 +10140,6 @@ MonoBehaviour:
   fleshChunkLargePrefab: {fileID: 8335309446694885841, guid: a2a82a04a0867554783b87c200f18c88, type: 3}
   trailZonePrefab: {fileID: 2420077796377916295, guid: 70425802c77c2b94ea525b03fddbcc3d, type: 3}
   absorbVFXPrefab: {fileID: 2420077796377916295, guid: 70425802c77c2b94ea525b03fddbcc3d, type: 3}
---- !u!114 &1608904346
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1608904339}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b5c92db4d7c4a7f8b3ccfe478965f12, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JunMoBossCombatAdapter
-  boss: {fileID: 1608904340}
-  targetRigidbody: {fileID: 1608904341}
 --- !u!50 &1608904341
 Rigidbody2D:
   serializedVersion: 5
@@ -10297,6 +10300,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JunMoEnemyCombatAdapter
   enemy: {fileID: 580792493}
+  targetRigidbody: {fileID: 1608904341}
+--- !u!114 &1608904346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1608904339}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b5c92db4d7c4a7f8b3ccfe478965f12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JunMoBossCombatAdapter
+  boss: {fileID: 1608904340}
   targetRigidbody: {fileID: 1608904341}
 --- !u!1 &1628858017
 GameObject:
