@@ -53,6 +53,12 @@ public sealed class MutationLoadout : MonoBehaviour
                definition.TryGetGradeData(GetStackCount(mutationType), out gradeData);
     }
 
+    public void SetDefinitions(MutationDefinition[] newDefinitions)
+    {
+        definitions = newDefinitions ?? Array.Empty<MutationDefinition>();
+        RebuildCache();
+    }
+
     public void AddStack(MutationType mutationType, int amount = 1)
     {
         if (amount == 0) return;

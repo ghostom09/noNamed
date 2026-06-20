@@ -37,5 +37,6 @@ public enum MutationTriggerType
     OnHit,
     OnCriticalHit,
     OnKill,
-    OnProjectileExpired
+    OnProjectileExpired,
+    OnCriticalHitOrKill
 }

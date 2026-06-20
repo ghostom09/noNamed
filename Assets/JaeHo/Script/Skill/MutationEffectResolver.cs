@@ -54,6 +54,7 @@ public static class MutationEffectResolver
             MutationTriggerType.OnCriticalHit => hitResult.IsCritical,
             MutationTriggerType.OnKill => hitResult.KilledByHit,
             MutationTriggerType.OnProjectileExpired => false,
+            MutationTriggerType.OnCriticalHitOrKill => hitResult.IsCritical || hitResult.KilledByHit,
             _ => false
         };
     }
