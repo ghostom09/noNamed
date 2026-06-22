@@ -53,7 +53,7 @@ MonoBehaviour:
   firePoint: {fileID: 104228167813093036}
   criticalChance: 0.1
   criticalMultiplier: 1.5
-  defaultTags: 16
+  defaultTags: 0
   mutationLoadout: {fileID: 0}
   attackRadius: 3
   maxHitBufferSize: 32
@@ -63,10 +63,10 @@ MonoBehaviour:
     m_Bits: 1024
   projectileAbsorbLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 2048
   maxAbsorbBufferSize: 24
-  slowMultiplier: 0.5
-  slowDuration: 2
+  slowMultiplier: 0.2
+  slowDuration: 4
   poisonDamagePerTick: 5
   poisonDuration: 3
   poisonTickInterval: 1
@@ -10453,7 +10453,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillTagDebugController
   skillSwitcher: {fileID: 2673228888836160473}
-  targetTags: 0
+  targetTags: 4
 --- !u!1 &6421150843506762015
 GameObject:
   m_ObjectHideFlags: 0
@@ -15411,10 +15411,10 @@ MonoBehaviour:
     m_Bits: 1024
   projectileAbsorbLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 2048
   maxAbsorbBufferSize: 24
-  slowMultiplier: 0.5
-  slowDuration: 2
+  slowMultiplier: 0.2
+  slowDuration: 4
   poisonDamagePerTick: 5
   poisonDuration: 3
   poisonTickInterval: 1

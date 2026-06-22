@@ -111,8 +111,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   maxExplosionTargets: 10
-  slowMultiplier: 0.5
-  slowDuration: 2
+  slowMultiplier: 0.2
+  slowDuration: 4
   poisonDamagePerTick: 5
   poisonDuration: 3
   poisonTickInterval: 1
