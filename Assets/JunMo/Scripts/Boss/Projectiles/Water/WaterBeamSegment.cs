@@ -14,9 +14,27 @@ namespace BossSystem.Boss.WaterBoss
         private float tickInterval = 0.1f;
         private float lastTick     = 0f;
 
-        public void Initialize(float damagePerSec)
+        public void Initialize(float damagePerSec, float length)
         {
             dps = damagePerSec;
+            SetLength(length);
+        }
+
+        private void SetLength(float length)
+        {
+            float fullLength = length * 2f;
+            transform.localScale = Vector3.one;
+            var col = GetComponent<BoxCollider2D>();
+            if (col != null)
+            {
+                col.isTrigger = true;
+                col.size = new Vector2(col.size.x, fullLength);
+                col.offset = new Vector2(col.offset.x, 0f);
+            }
+
+            var sprite = GetComponent<SpriteRenderer>();
+            if (sprite != null)
+                sprite.size = new Vector2(sprite.size.x, fullLength);
         }
 
         private void OnTriggerStay2D(Collider2D other)

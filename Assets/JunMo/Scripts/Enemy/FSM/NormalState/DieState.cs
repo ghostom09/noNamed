@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class DieState : IState
 {
-    private Enemy _enemy;
-    private bool _isSuicideBomber;
+    private readonly Enemy _enemy;
+    private readonly bool _isSuicideBomber;
 
     public DieState(Enemy enemy, bool isSuicideBomber = false)
     {
@@ -13,28 +13,32 @@ public class DieState : IState
 
     public void Enter()
     {
-        _enemy.rb.linearVelocity = Vector2.zero;
-        Object.Destroy(_enemy.gameObject, 1f);
-        _enemy.GetComponent<Collider2D>().enabled = false; // 피격 판정 제거
-        
-        if (_isSuicideBomber)
-        {
+        if (_enemy.TryStartChaseBeforeExplosion())
+            return;
+
+        StopAndDestroy();
+
+        if (_isSuicideBomber && !_enemy.HasExploded)
             _enemy.Explode();
-        }
-        else
-        {
-            // 일반 사망 애니메이션
-        }
-        _enemy.enabled = false;           // AI/이동 중단
+
+        _enemy.enabled = false;
     }
 
     public void Update()
     {
-        
     }
 
     public void Exit()
     {
-        
+    }
+
+    private void StopAndDestroy()
+    {
+        _enemy.rb.linearVelocity = Vector2.zero;
+        Object.Destroy(_enemy.gameObject, 1f);
+
+        Collider2D enemyCollider = _enemy.GetComponent<Collider2D>();
+        if (enemyCollider != null)
+            enemyCollider.enabled = false;
     }
 }

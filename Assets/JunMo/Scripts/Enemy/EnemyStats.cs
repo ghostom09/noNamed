@@ -39,4 +39,5 @@ public class EnemyStats : ScriptableObject
 
     [Header("공격")]
     public float durationWarning;
+    public float silenceDuration = 3f;
 }
