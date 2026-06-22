@@ -15,7 +15,7 @@ MonoBehaviour:
   type: 1
   prefab: {fileID: 193220045356802525, guid: a546132393cc0e4408e5c171fb53a77a, type: 3}
   skin: {fileID: 11400000, guid: ea53ecef7544f2f4da7baaf6e7629388, type: 2}
-  size: {x: 16, y: 16}
+  size: {x: 20, y: 16}
   doorPoints:
   - id: Left
     direction: {x: -1, y: 0}
