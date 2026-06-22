@@ -180,10 +180,10 @@ public static class MutationEffectResolver
     {
         duration = 0f;
 
-        MutationGrade grade = GetGrade(context, MutationType.Homing, SkillTag.None, MutationTargetScope.RangedOnly);
+        MutationGrade grade = GetGrade(context, MutationType.Homing, SkillTag.Homing, MutationTargetScope.RangedOnly);
         if (grade == MutationGrade.None) return false;
 
-        if (TryGetGradeData(context, MutationType.Homing, SkillTag.None,
+        if (TryGetGradeData(context, MutationType.Homing, SkillTag.Homing,
                 MutationTargetScope.RangedOnly, out var gradeData) && gradeData.Duration > 0f)
         {
             duration = gradeData.Duration;
@@ -192,6 +192,7 @@ public static class MutationEffectResolver
 
         duration = grade switch
         {
+            MutationGrade.Safe => 2f,
             MutationGrade.Caution => 3f,
             MutationGrade.Danger => 5f,
             MutationGrade.Quarantine => float.PositiveInfinity,

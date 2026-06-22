@@ -42,4 +42,10 @@ public enum SkillTag
 
     /// <summary> Follow-up hit - applies an extra hit based on the previous damage. </summary>
     FollowUp    = 1 << 7,   // 128
+
+    /// <summary> Spread shot - test/debug tag that maps to MutationType.Spread. </summary>
+    Spread      = 1 << 8,   // 256
+
+    /// <summary> Homing shot - test/debug tag that maps to MutationType.Homing. </summary>
+    Homing      = 1 << 9,   // 512
 }

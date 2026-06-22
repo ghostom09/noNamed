@@ -57,7 +57,7 @@ public abstract class ProjectileSkill : SkillBase
         MutationGrade spreadGrade = MutationEffectResolver.GetGrade(
             context,
             MutationType.Spread,
-            SkillTag.None,
+            SkillTag.Spread,
             MutationTargetScope.Common);
 
         if (spreadGrade == MutationGrade.None)
@@ -145,8 +145,12 @@ public abstract class ProjectileSkill : SkillBase
     private static void ApplyLaserFollowUp(AttackHitResult hitResult, Collider2D collider)
     {
         if (!MutationEffectResolver.TryGetFollowUpMultiplier(hitResult, out float multiplier)) return;
-        if (CombatComponentUtility.TryGet(collider, out IDamageable damageable))
-            damageable.TakeDamage(hitResult.AppliedDamage * multiplier);
+        IDamageable damageable = hitResult.Damageable;
+        if (damageable == null) return;
+
+        float followUpDamage = hitResult.AppliedDamage * multiplier;
+        Debug.Log($"[FollowUp Hit] {hitResult.Context.SourceSkill?.name ?? "UnknownSkill"} -> {collider.name} damage:{followUpDamage:0.##} ({multiplier:0.##}x)");
+        damageable.TakeDamage(followUpDamage);
     }
 
     private static void ApplyLaserStun(AttackHitResult hitResult, Collider2D collider)
@@ -167,7 +171,7 @@ public abstract class ProjectileSkill : SkillBase
 
     private static int ResolveSpreadCount(AttackContext context, MutationGrade grade)
     {
-        if (MutationEffectResolver.TryGetGradeData(context, MutationType.Spread, SkillTag.None,
+        if (MutationEffectResolver.TryGetGradeData(context, MutationType.Spread, SkillTag.Spread,
                 MutationTargetScope.Common, out var gradeData) && gradeData.Count > 0)
             return gradeData.Count;
 
@@ -183,7 +187,7 @@ public abstract class ProjectileSkill : SkillBase
 
     private static float ResolveSpreadDamageMultiplier(AttackContext context, MutationGrade grade)
     {
-        if (MutationEffectResolver.TryGetGradeData(context, MutationType.Spread, SkillTag.None,
+        if (MutationEffectResolver.TryGetGradeData(context, MutationType.Spread, SkillTag.Spread,
                 MutationTargetScope.Common, out var gradeData) && gradeData.DamageMultiplier > 0f)
             return gradeData.DamageMultiplier;
 

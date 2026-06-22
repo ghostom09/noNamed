@@ -179,6 +179,6 @@ MonoBehaviour:
   poisonDamagePerTick: 5
   poisonDuration: 3
   poisonTickInterval: 1
-  homingSearchRadius: 8
-  homingTurnSpeed: 360
+  homingSearchRadius: 12
+  homingTurnSpeed: 720
   maxHomingTargets: 16

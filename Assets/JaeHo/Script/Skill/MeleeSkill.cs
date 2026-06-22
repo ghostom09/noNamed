@@ -203,9 +203,12 @@ public abstract class MeleeSkill : SkillBase
     private void TryApplyFollowUp(AttackHitResult hitResult, Collider2D col)
     {
         if (!MutationEffectResolver.TryGetFollowUpMultiplier(hitResult, out float multiplier)) return;
-        if (!CombatComponentUtility.TryGet(col, out IDamageable damageable)) return;
+        IDamageable damageable = hitResult.Damageable;
+        if (damageable == null) return;
 
-        damageable.TakeDamage(hitResult.AppliedDamage * multiplier);
+        float followUpDamage = hitResult.AppliedDamage * multiplier;
+        Debug.Log($"[FollowUp Hit] {name} -> {col.name} damage:{followUpDamage:0.##} ({multiplier:0.##}x)", this);
+        damageable.TakeDamage(followUpDamage);
     }
 
     private void TryApplyKnockback(AttackHitResult hitResult, Collider2D col)

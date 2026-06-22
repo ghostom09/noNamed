@@ -33,8 +33,8 @@ public class Bullet : MonoBehaviour
     [SerializeField] private float poisonTickInterval = 1f;
 
     [Header("--- Homing Settings ---")]
-    [SerializeField] private float homingSearchRadius = 8f;
-    [SerializeField] private float homingTurnSpeed = 360f;
+    [SerializeField] private float homingSearchRadius = 12f;
+    [SerializeField] private float homingTurnSpeed = 720f;
     [SerializeField] private int maxHomingTargets = 16;
 
     // 런타임 상태
@@ -429,9 +429,12 @@ public class Bullet : MonoBehaviour
     private void TryApplyFollowUp(AttackHitResult hitResult, Collider2D col)
     {
         if (!MutationEffectResolver.TryGetFollowUpMultiplier(hitResult, out float multiplier)) return;
-        if (!CombatComponentUtility.TryGet(col, out IDamageable damageable)) return;
+        IDamageable damageable = hitResult.Damageable;
+        if (damageable == null) return;
 
-        damageable.TakeDamage(hitResult.AppliedDamage * multiplier);
+        float followUpDamage = hitResult.AppliedDamage * multiplier;
+        Debug.Log($"[FollowUp Hit] {hitResult.Context.SourceSkill?.name ?? "UnknownSkill"} -> {col.name} damage:{followUpDamage:0.##} ({multiplier:0.##}x)", this);
+        damageable.TakeDamage(followUpDamage);
     }
 
     // 폭발
