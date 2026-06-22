@@ -39,4 +39,7 @@ public enum SkillTag
     
     /// <summary> 둔화 - 타격 대상 이동속도 감소. </summary>
     Slow        = 1 << 6,   // 64
+
+    /// <summary> Follow-up hit - applies an extra hit based on the previous damage. </summary>
+    FollowUp    = 1 << 7,   // 128
 }

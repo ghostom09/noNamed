@@ -67,12 +67,12 @@ public static class MutationEffectResolver
         MutationGrade grade = GetGrade(
             context,
             MutationType.FollowUp,
-            SkillTag.None,
+            SkillTag.FollowUp,
             MutationTargetScope.Common);
 
         if (grade == MutationGrade.None) return false;
 
-        if (TryGetGradeData(context, MutationType.FollowUp, SkillTag.None,
+        if (TryGetGradeData(context, MutationType.FollowUp, SkillTag.FollowUp,
                 MutationTargetScope.Common, out var gradeData))
         {
             if (!ShouldTrigger(gradeData, hitResult)) return false;

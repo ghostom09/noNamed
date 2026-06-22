@@ -964,7 +964,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!50 &177484190
 Rigidbody2D:
   serializedVersion: 5
@@ -3582,6 +3582,10 @@ PrefabInstance:
       propertyPath: acceleration
       value: 25
       objectReference: {fileID: 0}
+    - target: {fileID: 4449645202974008344, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: m_SortingOrder
+      value: 30
+      objectReference: {fileID: 0}
     - target: {fileID: 6123872552592524966, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
       propertyPath: skillSwitcher
       value: 
@@ -3820,7 +3824,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillTagDebugController
   skillSwitcher: {fileID: 612237818}
-  targetTags: 0
+  targetTags: 2
 --- !u!1 &650713165
 GameObject:
   m_ObjectHideFlags: 0
@@ -6120,7 +6124,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 990575182}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 000fd58081c441b419b876dd3fe88149, type: 3}
   m_Name: 
@@ -6281,7 +6285,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 1
+  m_SortingOrder: 30
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
   m_Color: {r: 0.1367736, g: 0.013207495, b: 1, a: 1}
@@ -10115,7 +10119,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1608904340
 MonoBehaviour:
   m_ObjectHideFlags: 0
