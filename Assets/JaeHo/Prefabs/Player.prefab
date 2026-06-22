@@ -10453,7 +10453,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillTagDebugController
   skillSwitcher: {fileID: 2673228888836160473}
-  targetTags: 32
+  targetTags: 0
 --- !u!1 &6421150843506762015
 GameObject:
   m_ObjectHideFlags: 0

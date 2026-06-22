@@ -12,6 +12,7 @@ public static class AttackDamageResolver
         result = default;
 
         if (target == null) return false;
+        if (!IsTargetLayer(context, target)) return false;
         if (!CombatComponentUtility.TryGet(target, out IDamageable damageable)) return false;
 
         CombatComponentUtility.TryGet(target, out IHitPointStatus hitPointStatus);
@@ -55,6 +56,14 @@ public static class AttackDamageResolver
         if (context.CriticalChance >= 1f) return true;
 
         return Random.value < context.CriticalChance;
+    }
+
+    private static bool IsTargetLayer(AttackContext context, Collider2D target)
+    {
+        if (context.TargetLayer.value == 0) return true;
+
+        int targetLayerMask = 1 << target.gameObject.layer;
+        return (context.TargetLayer.value & targetLayerMask) != 0;
     }
 
     private static float CalculateDamage(AttackContext context, bool isCritical)

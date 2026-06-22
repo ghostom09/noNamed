@@ -8,7 +8,7 @@ public class SkillTagDebugController : MonoBehaviour
     [SerializeField] private SkillSwitcher skillSwitcher;
 
     [Header("Debug Tags")]
-    [SerializeField] private SkillTag targetTags = SkillTag.Poison;
+    [SerializeField] private SkillTag targetTags = SkillTag.None;
 
     private void Awake()
     {
