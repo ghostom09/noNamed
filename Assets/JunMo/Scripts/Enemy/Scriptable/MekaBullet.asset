@@ -14,10 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStats
   damage: 0
   moveSpeed: 3
-  attackSpeed: 31
+  attackSpeed: 3
   maxHealth: 1
   attackRange: 6
   chaseRange: 10
   kitingRange: 3
   chaseType: 2
   attackType: 3
+  durationWarning: 1

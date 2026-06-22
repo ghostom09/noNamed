@@ -16,19 +16,27 @@ public class SoldierThreeAttack : IAttack
  
     public void Attack()
     {
-        if (!_enemy.CanAttackSpeed()) return;
+        if (_enemy.IsAttacking) return;
  
-        _enemy.ResetAttackTimer();
         _coroutineRunner.StartCoroutine(BurstFire());
     }
  
     private IEnumerator BurstFire()
     {
+        _enemy.IsAttacking = true;
+        _enemy.AttackWarn();
+
+        yield return new WaitForSeconds(_enemy.stats.durationWarning);
+
+        if (!_enemy)
+            yield break;
         for (int i = 0; i < 3; i++)
         {
             SpawnBullet();
             yield return new WaitForSeconds(0.3f);
         }
+        _enemy.IsAttacking = false;
+        _enemy.ResetAttackTimer();
     }
  
     private void SpawnBullet()

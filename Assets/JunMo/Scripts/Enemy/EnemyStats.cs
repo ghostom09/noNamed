@@ -36,4 +36,7 @@ public class EnemyStats : ScriptableObject
     [Header("몬스터 타입")]
     public ChaseType chaseType;
     public AttackType attackType;
+
+    [Header("공격")]
+    public float durationWarning;
 }

@@ -26,6 +26,10 @@ public class MechaBulletAttack : IAttack
     private IEnumerator Shoot()
     {
         _enemy.IsAttacking = true;
+        _enemy.AttackWarn();
+        yield return new WaitForSeconds(_enemy.stats.durationWarning);
+        if (!_enemy)
+            yield break;
         Transform player = _enemy.GetTransform();
         
         for (int i = 0; i < 2; i++)

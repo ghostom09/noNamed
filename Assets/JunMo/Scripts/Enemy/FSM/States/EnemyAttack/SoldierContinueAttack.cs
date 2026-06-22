@@ -25,6 +25,10 @@ public class SoldierContinueAttack : IAttack
     private IEnumerator Spread()
     {
         _enemy.IsAttacking = true;
+        _enemy.AttackWarn();
+        yield return new WaitForSeconds(_enemy.stats.durationWarning);
+        if (_enemy)
+            yield break;
 
         for (int i = 0; i < 10; i++)
         {

@@ -10,14 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 66bf2097adb6a71479d7e95a2b8f200c, type: 3}
-  m_Name: dummy 3
+  m_Name: MekaWind
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStats
   damage: 0
   moveSpeed: 3
-  attackSpeed: 31
+  attackSpeed: 2
   maxHealth: 1
-  attackRange: 10
-  chaseRange: 5
+  attackRange: 3
+  chaseRange: 10
   kitingRange: 0
   chaseType: 0
   attackType: 2
+  durationWarning: 1

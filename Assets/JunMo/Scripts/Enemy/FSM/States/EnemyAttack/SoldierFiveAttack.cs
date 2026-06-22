@@ -13,14 +13,24 @@ public class SoldierFiveAttack : IAttack
     {
         _enemy = enemy;
         _bulletPrefab = bulletPrefab;
-        // stats.attackSpeed = 4f 로 설정
     }
  
     public void Attack()
     {
         if (!_enemy.CanAttackSpeed()) return;
- 
-        _enemy.ResetAttackTimer();
+        
+        if (_enemy.IsAttacking) return;
+        _enemy.StartCoroutine(Attacking());
+    }
+    
+    private IEnumerator Attacking()
+    {
+        _enemy.IsAttacking = true;
+        _enemy.AttackWarn();
+        yield return new WaitForSeconds(_enemy.stats.durationWarning);
+        if (!_enemy)
+            yield break;
+        
  
         Vector2 baseDir = _enemy.GetVector2();
         float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
@@ -36,5 +46,8 @@ public class SoldierFiveAttack : IAttack
                 (_bulletPrefab, _enemy.transform.position, Quaternion.Euler(0, 0, angle2));
             bullet.GetComponent<BulletBase>()?.Init(_enemy.stats.damage, dir);
         }
+        
+        _enemy.ResetAttackTimer();
+        _enemy.IsAttacking = false;
     }
 }

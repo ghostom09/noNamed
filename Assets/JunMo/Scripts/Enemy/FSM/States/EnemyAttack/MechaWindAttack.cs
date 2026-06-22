@@ -18,34 +18,55 @@ public class MechaWindAttack : IAttack
  
     public void Attack()
     {
-        if (!_enemy.CanAttackRange() || !_enemy.CanAttackSpeed()) return;
- 
-        _enemy.ResetAttackTimer();
+        if(_enemy.IsAttacking) return;
+        
         _coroutineRunner.StartCoroutine(SwingAttack());
     }
  
     private IEnumerator SwingAttack()
     {
-        // 모션 딜레이 (애니메이션 연동 가능)
+        _enemy.rb.linearVelocity = Vector3.zero;
+        _enemy.IsAttacking = true;
+        _enemy.AttackWarn();
+
+        yield return new WaitForSeconds(_enemy.stats.durationWarning);
+        if (!_enemy)
+            yield break;
+
+        float angle2 = Mathf.Atan2(_enemy.GetVector2().y, _enemy.GetVector2().x) * Mathf.Rad2Deg;
+        var prefab = Object.Instantiate
+            (EnemyPrefabController.Instance.GetPrefab(_enemy.stats.attackType),
+                _enemy.transform.position, Quaternion.Euler(0, 0, angle2 - 110f));
+        Object.Destroy(prefab, 0.5f);
+        
         yield return new WaitForSeconds(0.2f);
- 
+    
         Vector2 baseDir = _enemy.GetVector2();
-        float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
- 
-        // 부채꼴 범위 내 플레이어 감지
-        for (int i = 0; i < RayCount; i++)
+    
+        Collider2D[] targets =
+            Physics2D.OverlapCircleAll(
+                _enemy.transform.position,
+                SwingRange
+            );
+    
+        foreach (Collider2D target in targets)
         {
-            float angle = baseAngle - SwingAngle / 2f + (SwingAngle / RayCount) * i;
-            float rad = angle * Mathf.Deg2Rad;
-            Vector2 dir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
- 
-            RaycastHit2D hit = Physics2D.Raycast(_enemy.transform.position, dir, SwingRange);
-            if (hit.collider != null && hit.collider.CompareTag("Player"))
+            if (!target.CompareTag("Player"))
+                continue;
+    
+            Vector2 dirToTarget =
+                (target.transform.position - _enemy.transform.position).normalized;
+    
+            float angle =
+                Vector2.Angle(baseDir, dirToTarget);
+    
+            if (angle <= SwingAngle * 0.5f)
             {
-                // hit.collider.GetComponent<PlayerStats>()?.TakeDamage(_enemy.stats.damage);
                 Debug.Log("[Meka2] 부채꼴 공격 히트");
-                break; // 한 번만 데미지
+                break;
             }
         }
+        _enemy.IsAttacking = false;
+        _enemy.ResetAttackTimer();
     }
 }
