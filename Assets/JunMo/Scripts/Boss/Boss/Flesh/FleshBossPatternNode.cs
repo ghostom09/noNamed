@@ -12,6 +12,7 @@ namespace BossSystem.Boss.FleshBoss
     {
         private FleshBossController boss;
         private float chargeSpeed;
+        private float collisionDamage;
         private float trailInterval;
         private BossAttackData attackData;
 
@@ -42,6 +43,7 @@ namespace BossSystem.Boss.FleshBoss
         {
             this.boss           = boss;
             this.chargeSpeed    = chargeSpeed;
+            this.collisionDamage = collisionDamage;
             this.trailInterval  = trailInterval;
             this.attackData     = data;
         }
@@ -123,6 +125,7 @@ namespace BossSystem.Boss.FleshBoss
 
                     rb.linearVelocity = Vector2.zero;
                     rb.MovePosition(next);
+                    boss.ApplyChargeDamageAt(next, collisionDamage);
                     lastExpectedPosition = next;
                     hasExpectedPosition = true;
 
@@ -247,26 +250,24 @@ public class FleshScatterNode : BTNode
 {
     private FleshBossController boss;
     private int   scatterCount;
-    private float speed;          // force → speed로 의미 변경
+    private float force;
     private float fireInterval;
-    private float scatterRadius;  // 랜덤 목적지 반경
     private BossAttackData attackData;
 
     private enum Phase { Idle, Telegraph, Attack }
     private Phase     phase       = Phase.Idle;
     private int       fired       = 0;
     private float     nextFire    = 0f;
-    private Vector3[] targetPositions;  // 미리 계산된 목적지들
+    private const float ScatterRange = 7f;
 
     public FleshScatterNode(BossBlackboard bb, FleshBossController boss,
-        int scatterCount = 16, float speed = 6f, float fireInterval = 0.05f,
-        float scatterRadius = 8f, BossAttackData data = null) : base(bb)
+        int scatterCount = 12, float force = 10f, float fireInterval = 0.05f,
+        BossAttackData data = null) : base(bb)
     {
         this.boss          = boss;
         this.scatterCount  = scatterCount;
-        this.speed         = speed;
+        this.force         = force;
         this.fireInterval  = fireInterval;
-        this.scatterRadius = scatterRadius;
         this.attackData    = data;
     }
 
@@ -281,21 +282,13 @@ public class FleshScatterNode : BTNode
                 if (boss.IsExecutingPattern) return NodeState.Failure;
 
                 // 목적지 미리 랜덤 결정
-                targetPositions = new Vector3[scatterCount];
-                for (int i = 0; i < scatterCount; i++)
-                {
-                    Vector2 rand = Random.insideUnitCircle.normalized
-                                   * Random.Range(scatterRadius * 0.4f, scatterRadius);
-                    targetPositions[i] = boss.transform.position + (Vector3)rand;
-                }
-
                 phase = Phase.Telegraph;
                 boss.SetExecutingPattern(true);
                 boss.SetTelegraphing(true);
 
                 // 텔레그래프: 도달 범위 원형 표시
                 boss.SpawnTelegraph(attackData,
-                    TelegraphShape.Circle, radius: scatterRadius,
+                    TelegraphShape.Circle, radius: ScatterRange,
                     followBoss: true, onComplete: OnTelegraphDone);
 
                 return NodeState.Running;
@@ -308,12 +301,14 @@ public class FleshScatterNode : BTNode
             {
                 if (Time.time >= nextFire && fired < scatterCount)
                 {
-                    boss.SpawnFleshProjectileToTarget(
-                        boss.transform.position,
-                        targetPositions[fired],   // 미리 정해진 목적지
-                        speed,
-                        bounces: 0,
-                        isLarge: false);
+                    float angle = (360f / scatterCount) * fired;
+                    Vector3 dir = Quaternion.Euler(0f, 0f, angle) * Vector3.right;
+                    dir.z = 0f;
+                    boss.SpawnFleshProjectile(boss.transform.position,
+                                              dir.normalized, force,
+                                              bounces: 0, isLarge: false,
+                                              sizeScale: 0.75f,
+                                              maxTravelRange: ScatterRange);
 
                     fired++;
                     nextFire = Time.time + fireInterval;
@@ -401,7 +396,8 @@ public class FleshScatterNode : BTNode
                         boss.SpawnFleshProjectileToTarget(boss.transform.position,
                             targetPos, throwForce,
                             bounces: bounceCount, isLarge: true,
-                            bounceTelegraphData: attackData);
+                            bounceTelegraphData: attackData,
+                            sizeScale: 1.25f);
                         thrown++;
                         nextThrow = Time.time + 0.3f;
                     }

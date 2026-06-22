@@ -8,9 +8,9 @@ namespace BossSystem.Boss.FleshBoss
     /// </summary>
     public class FleshTrailZone : MonoBehaviour
     {
-        [SerializeField] private float damage   = 20f;
+        [SerializeField] private float damagePerSecond = 3f;
         [SerializeField] private float duration = 3f;
-        [SerializeField] private float tickRate = 0.5f;
+        [SerializeField] private float tickRate = 0.25f;
 
         private float lastTick;
 
@@ -20,9 +20,9 @@ namespace BossSystem.Boss.FleshBoss
             StartCoroutine(FadeOut());
         }
 
-        public void Initialize(float dmg, float dur)
+        public void Initialize(float dps, float dur)
         {
-            damage   = dmg;
+            damagePerSecond = dps;
             duration = dur;
             Destroy(gameObject, duration);
         }
@@ -31,6 +31,9 @@ namespace BossSystem.Boss.FleshBoss
         {
             if (Time.time - lastTick < tickRate) return;
             lastTick = Time.time;
+
+            other.GetComponent<BossSystem.Boss.FireBoss.PlayerHealth>()
+                ?.TakeDamage(damagePerSecond * tickRate);
 
             // if (other.TryGetComponent<IDamageable>(out var damageable))
             // {

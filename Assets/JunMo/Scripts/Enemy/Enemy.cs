@@ -7,6 +7,8 @@ public class Enemy : MonoBehaviour
 {
     [SerializeField]private Transform target;
     [SerializeField] private GameObject warning;
+    [SerializeField] private EnemyGrade grade = EnemyGrade.Normal;
+    [SerializeField] private GameObject eliteBorder;
     private IState _currentState;
     
     public IdleState IdleState;
@@ -27,10 +29,12 @@ public class Enemy : MonoBehaviour
     private float _attackTime = 0f;
     private float explosionRadius = 3f;
     private bool _hasExploded = false;
+    private bool _isChasingBeforeExplosion = false;
     private GameObject _boom;
     
     public event Action<Enemy> OnDead;
     public bool IsAttacking { get; set; }
+    public bool HasExploded => _hasExploded;
 
     private void Awake()
     {
@@ -41,6 +45,16 @@ public class Enemy : MonoBehaviour
 
     private void Start()
     {
+        stats = Instantiate(stats);
+
+        if (eliteBorder != null)
+            eliteBorder.SetActive(grade == EnemyGrade.Elite);
+
+        if (grade == EnemyGrade.Elite)
+        {
+            EliteEnemyModifier.Apply(stats);
+        }
+
         IdleState = new IdleState(this);
         MoveState = new MoveState(this);
         AttackState = new AttackState(this);
@@ -128,7 +142,9 @@ public class Enemy : MonoBehaviour
 
     public void AttackWarn()
     {
-        var prefab = Instantiate(warning, transform.position + new Vector3(0, 1, 0), Quaternion.identity);
+        var prefab = Instantiate(warning, transform);
+        prefab.transform.localPosition = new Vector3(0, 1, 0);
+        prefab.transform.localRotation = Quaternion.identity;
         Destroy(prefab, stats.durationWarning);
     }
     
@@ -136,6 +152,43 @@ public class Enemy : MonoBehaviour
     public void ApplySnare(float duration) => CcState.ApplySnare(duration);
     public void ApplyKnockBack(Vector2 hitDir, float force, float duration) 
         => CcState.ApplyKnockback(hitDir, force, duration);
+
+    public bool TryStartChaseBeforeExplosion()
+    {
+        if (stats.attackType != AttackType.MechaBoom || _hasExploded || _isChasingBeforeExplosion)
+            return false;
+
+        StartCoroutine(ChaseBeforeExplosion());
+        return true;
+    }
+
+    private IEnumerator ChaseBeforeExplosion()
+    {
+        _isChasingBeforeExplosion = true;
+        IsAttacking = true;
+        AttackWarn();
+
+        float timer = 0f;
+        while (timer < stats.durationWarning)
+        {
+            Vector2 nextPosition = (Vector2)transform.position
+                                   + GetVector2() * (stats.moveSpeed * Time.deltaTime);
+            rb.MovePosition(nextPosition);
+
+            timer += Time.deltaTime;
+            yield return null;
+        }
+
+        IsAttacking = false;
+        _isChasingBeforeExplosion = false;
+        Explode();
+        rb.linearVelocity = Vector2.zero;
+        Destroy(gameObject, 1f);
+
+        Collider2D enemyCollider = GetComponent<Collider2D>();
+        if (enemyCollider != null)
+            enemyCollider.enabled = false;
+    }
 
     public void Explode()
     {

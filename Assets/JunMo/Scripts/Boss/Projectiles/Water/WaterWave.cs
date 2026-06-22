@@ -17,6 +17,7 @@ namespace BossSystem.Boss.WaterBoss
         private float   damage;
         private float   knockbackForce;
         private float   maxRange;
+        private float   waveDepth;
         private Vector3 spawnPos;
 
         private HashSet<Collider2D> hitTargets = new HashSet<Collider2D>();
@@ -29,7 +30,9 @@ namespace BossSystem.Boss.WaterBoss
             damage         = dmg;
             knockbackForce = knockback;
             maxRange       = range;
+            waveDepth      = width;
             spawnPos       = transform.position;
+            transform.localScale = Vector3.one;
 
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0f, 0f, angle);
@@ -39,8 +42,13 @@ namespace BossSystem.Boss.WaterBoss
             if (col != null)
             {
                 col.isTrigger = true;
-                col.size      = new Vector2(maxRange, width);
+                col.size      = new Vector2(waveDepth, width);
+                col.offset    = new Vector2(waveDepth * 0.5f, 0f);
             }
+
+            var sprite = GetComponent<SpriteRenderer>();
+            if (sprite != null)
+                sprite.size = new Vector2(waveDepth, width);
 
             var rb = GetComponent<Rigidbody2D>();
             if (rb != null)

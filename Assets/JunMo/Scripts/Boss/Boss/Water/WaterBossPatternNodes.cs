@@ -47,9 +47,7 @@ namespace BossSystem.Boss.WaterBoss
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
 
-                    boss.SpawnTelegraph(attackData,
-                        TelegraphShape.Circle, radius: beamLength,
-                        followBoss: true, onComplete: OnTelegraphDone);
+                    boss.SpawnCrossBeamTelegraphs(beamLength, attackData, OnTelegraphDone);
                     
 
                     return NodeState.Running;

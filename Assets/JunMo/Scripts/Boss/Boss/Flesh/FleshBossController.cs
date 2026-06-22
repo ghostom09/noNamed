@@ -36,6 +36,7 @@ namespace BossSystem.Boss.FleshBoss
         [SerializeField] private GameObject absorbVFXPrefab;
 
         private List<FleshChunk> activeChunks     = new List<FleshChunk>();
+        private HashSet<GameObject> chargeDamagedTargets = new HashSet<GameObject>();
         private GameObject       absorbVFXInstance;
         private bool             isCharging        = false;
         private float            chargeDamage      = 40f;
@@ -56,8 +57,8 @@ namespace BossSystem.Boss.FleshBoss
                 "Charge", chargeCooldown);
 
             var scatter = new CooldownNode(bb,
-                new FleshScatterNode(bb, this, scatterCount: 16, speed: 6f,
-                    scatterRadius: 8f, data: scatterData),
+                new FleshScatterNode(bb, this, scatterCount: 12, force: 10f,
+                                     data: scatterData),
                 "FleshScatter", scatterCooldown);
 
             var throwNode = new CooldownNode(bb,
@@ -96,19 +97,39 @@ namespace BossSystem.Boss.FleshBoss
             Debug.Log("[FleshBoss] 페이즈2 - 흡수 패턴 활성화!");
         }
 
-        public void SetCharging(bool value) => isCharging = value;
+        public void SetCharging(bool value)
+        {
+            isCharging = value;
+            if (value) chargeDamagedTargets.Clear();
+        }
+
+        public void ApplyChargeDamageAt(Vector2 position, float damage)
+        {
+            var col = GetComponent<Collider2D>();
+            Vector2 size = col != null ? col.bounds.size : Vector2.one;
+            var hits = Physics2D.OverlapBoxAll(position, size, 0f);
+            foreach (var hit in hits)
+            {
+                if (hit == null || hit.gameObject == gameObject) continue;
+                if (chargeDamagedTargets.Contains(hit.gameObject)) continue;
+                if (!ApplyDamageToPlayer(hit.gameObject, damage)) continue;
+                chargeDamagedTargets.Add(hit.gameObject);
+            }
+        }
 
         public void SpawnTrailZone(Vector3 position)
         {
             if (trailZonePrefab == null) return;
             var go   = Instantiate(trailZonePrefab, position, Quaternion.identity);
+            go.transform.localScale = new Vector3(1.5f, 1.5f, 1f);
             var zone = go.GetComponent<FleshTrailZone>();
-            zone?.Initialize(20f, 3f);
+            zone?.Initialize(dps: 3f, dur: 3f);
         }
 
         private void OnCollisionEnter2D(Collision2D col)
         {
             if (!isCharging) return;
+            ApplyDamageToPlayer(col.gameObject, chargeDamage);
             
             // if (col.gameObject.TryGetComponent<IDamageable>(out var damageable))
             // {
@@ -118,7 +139,9 @@ namespace BossSystem.Boss.FleshBoss
         }
 
         public void SpawnFleshProjectile(Vector3 position, Vector3 direction,
-                                         float force, int bounces, bool isLarge = false)
+                                         float force, int bounces, bool isLarge = false,
+                                         float sizeScale = 1f,
+                                         float maxTravelRange = 0f)
         {
             var prefab = (isLarge && fleshChunkLargePrefab != null)
                          ? fleshChunkLargePrefab : fleshChunkPrefab;
@@ -126,6 +149,7 @@ namespace BossSystem.Boss.FleshBoss
 
             var go    = Instantiate(prefab, position,
                                     Quaternion.Euler(0f, 0f, Random.Range(0f, 360f)));
+            go.transform.localScale = Vector3.one * sizeScale;
             var chunk = go.GetComponent<FleshChunk>();
             if (chunk != null)
             {
@@ -133,7 +157,8 @@ namespace BossSystem.Boss.FleshBoss
                     hp:      isLarge ? 60f : 30f,
                     dmg:     isLarge ? 30f : 15f,
                     life:    12f,
-                    bounces: bounces);
+                    bounces: bounces,
+                    maxRange: maxTravelRange);
                 RegisterChunk(chunk);
             }
 
@@ -145,35 +170,6 @@ namespace BossSystem.Boss.FleshBoss
             }
         }
 
-        public void SpawnFleshProjectileToTarget(Vector3 position, Vector3 targetPosition,
-                                                 float speed, int bounces, bool isLarge = false)
-        {
-            var prefab = (isLarge && fleshChunkLargePrefab != null)
-                         ? fleshChunkLargePrefab : fleshChunkPrefab;
-            if (prefab == null) return;
-
-            var go = Instantiate(prefab, position,
-                                 Quaternion.Euler(0f, 0f, Random.Range(0f, 360f)));
-            var chunk = go.GetComponent<FleshChunk>();
-            if (chunk != null)
-            {
-                chunk.Initialize(this,
-                    hp:      isLarge ? 60f : 30f,
-                    dmg:     isLarge ? 30f : 15f,
-                    life:    12f,
-                    bounces: bounces);
-                chunk.InitializeTargetedFlight(targetPosition, speed);
-                RegisterChunk(chunk);
-            }
-
-            var rbComp = go.GetComponent<Rigidbody2D>();
-            if (rbComp != null)
-            {
-                rbComp.linearVelocity = Vector2.zero;
-                rbComp.angularVelocity = 0f;
-            }
-        }
-
         public void PlaySmashWindup() => Debug.Log("[FleshBoss] 주먹 예비 동작");
         public void PlaySmashHit()    => Debug.Log("[FleshBoss] 주먹 히트!");
 
@@ -182,6 +178,7 @@ namespace BossSystem.Boss.FleshBoss
             var hits = Physics2D.OverlapCircleAll(transform.position + transform.up * 2f, radius);
             foreach (var hit in hits)
             {
+                ApplyDamageToPlayer(hit.gameObject, damage);
                 // if (hit.TryGetComponent<IDamageable>(out var damageable))
                 // {
                 //     damageable.TakeDamage(damage);
@@ -284,6 +281,14 @@ namespace BossSystem.Boss.FleshBoss
         }
 
         private void CleanChunkList() => activeChunks.RemoveAll(c => c == null);
+
+        private static bool ApplyDamageToPlayer(GameObject target, float damage)
+        {
+            var health = target.GetComponent<BossSystem.Boss.FireBoss.PlayerHealth>();
+            if (health == null) return false;
+            health.TakeDamage(damage);
+            return true;
+        }
         
         public float GetColliderHalfHeight()
         {
@@ -293,7 +298,8 @@ namespace BossSystem.Boss.FleshBoss
         
         public void SpawnFleshProjectileToTarget(Vector3 position, Vector3 targetPosition,
             float speed, int bounces, bool isLarge = false,
-            BossAttackData bounceTelegraphData = null)
+            BossAttackData bounceTelegraphData = null,
+            float sizeScale = 1f)
         {
             var prefab = (isLarge && fleshChunkLargePrefab != null)
                 ? fleshChunkLargePrefab : fleshChunkPrefab;
@@ -301,6 +307,7 @@ namespace BossSystem.Boss.FleshBoss
 
             var go = Instantiate(prefab, position,
                 Quaternion.Euler(0f, 0f, Random.Range(0f, 360f)));
+            go.transform.localScale = Vector3.one * sizeScale;
             var chunk = go.GetComponent<FleshChunk>();
             if (chunk != null)
             {

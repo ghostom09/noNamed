@@ -38,7 +38,11 @@ public class HighResearcherAttack : IAttack
             Quaternion.Euler(0, 0, angle)
         );
 
-        bullet.GetComponent<SilenceBullet>()?.Init(_enemy.stats.damage, dir);
+        bullet.GetComponent<SilenceBullet>()?.Init(
+            _enemy.stats.damage,
+            dir,
+            _enemy.stats.silenceDuration
+        );
 
         _enemy.ResetAttackTimer();
         _enemy.IsAttacking = false;

@@ -41,6 +41,8 @@ namespace BossSystem.Boss.FleshBoss
         // 컴포넌트
         private Rigidbody2D rb;
         private bool isDead = false;
+        private Vector2 spawnPosition;
+        private float maxTravelRange = 0f;
         private bool isTargetedFlight = false;
         private Vector2 flightTargetPos;
         private float flightSpeed = 0f;
@@ -59,7 +61,8 @@ namespace BossSystem.Boss.FleshBoss
         // ── 초기화 ──────────────────────────────────────────────
         public void Initialize(FleshBossController boss, float hp = 30f, float dmg = 15f,
                                float life = 10f, int bounces = 0,
-                               BossAttackData bounceTelegraph = null)
+                               BossAttackData bounceTelegraph = null,
+                               float maxRange = 0f)
         {
             owner               = boss;
             chunkHP             = hp;
@@ -71,6 +74,8 @@ namespace BossSystem.Boss.FleshBoss
             bounceTelegraphData = bounceTelegraph;
             rb                  = GetComponent<Rigidbody2D>();
             rb.gravityScale     = 0f;
+            spawnPosition       = rb.position;
+            maxTravelRange      = maxRange;
 
             Destroy(gameObject, lifetime);
         }
@@ -95,6 +100,13 @@ namespace BossSystem.Boss.FleshBoss
         private void FixedUpdate()
         {
             if (isDead || rb == null) return;
+
+            if (maxTravelRange > 0f &&
+                Vector2.Distance(spawnPosition, rb.position) >= maxTravelRange)
+            {
+                DestroyChunk();
+                return;
+            }
 
             if (isTargetedFlight)
             {
@@ -164,6 +176,7 @@ namespace BossSystem.Boss.FleshBoss
                 if (currentBounce >= maxBounces)
                 {
                     rb.linearVelocity = Vector2.zero;
+                    DestroyChunk();
                     // 다 튕겨도 파괴하지 않음 (lifetime에 의해서만 소멸)
                 }
                 else
@@ -174,6 +187,16 @@ namespace BossSystem.Boss.FleshBoss
         }
 
         // ── 물리 충돌 ────────────────────────────────────────────
+        private void OnCollisionEnter2D(Collision2D col)
+        {
+            col.gameObject.GetComponent<BossSystem.Boss.FireBoss.PlayerHealth>()?.TakeDamage(touchDamage);
+        }
+
+        private void OnTriggerEnter2D(Collider2D other)
+        {
+            other.GetComponent<BossSystem.Boss.FireBoss.PlayerHealth>()?.TakeDamage(touchDamage);
+        }
+
         // private void OnCollisionEnter2D(Collision2D col)
         // {
         //     if (col.gameObject.TryGetComponent<IDamageable>(out var damageable))
