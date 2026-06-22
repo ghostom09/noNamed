@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public class RoomTileVisualBuilder : MonoBehaviour
 {
@@ -24,8 +25,13 @@ public class RoomTileVisualBuilder : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool logBuildResult;
 
-    private readonly List<GameObject> _generatedObjects = new List<GameObject>();
+    private readonly Dictionary<Sprite, Tile> _tileCache = new Dictionary<Sprite, Tile>();
+
     private Transform _generatedRoot;
+    private Grid _grid;
+    private Tilemap _floorTilemap;
+    private Tilemap _borderTilemap;
+    private Tilemap _doorFrameTilemap;
 
     public bool BuildOnRoomInit => buildOnRoomInit;
 
@@ -42,7 +48,7 @@ public class RoomTileVisualBuilder : MonoBehaviour
         var columns = Mathf.Max(1, Mathf.RoundToInt(room.Size.x / safeTileSize.x));
         var rows = Mathf.Max(1, Mathf.RoundToInt(room.Size.y / safeTileSize.y));
 
-        CreateGeneratedRoot(room);
+        CreateGeneratedRoot(room, skin, columns, rows, safeTileSize);
 
         if (buildFloor)
             BuildFloor(room, skin, columns, rows, safeTileSize);
@@ -50,35 +56,81 @@ public class RoomTileVisualBuilder : MonoBehaviour
         if (buildBorder)
             BuildBorder(room, skin, columns, rows, safeTileSize);
 
+        CompressTilemaps();
+
         if (logBuildResult)
-            Debug.Log($"Built tile visuals for room {room.Id} ({room.Type}). Size: {columns}x{rows}, Objects: {_generatedObjects.Count}");
+            Debug.Log($"Built tilemap visuals for room {room.Id} ({room.Type}). Size: {columns}x{rows}, Runtime tiles: {_tileCache.Count}");
     }
 
     public void Clear()
     {
-        for (var i = 0; i < _generatedObjects.Count; i++)
-        {
-            if (_generatedObjects[i] != null)
-                DestroyGeneratedObject(_generatedObjects[i]);
-        }
+        if (_floorTilemap != null)
+            _floorTilemap.ClearAllTiles();
 
-        _generatedObjects.Clear();
+        if (_borderTilemap != null)
+            _borderTilemap.ClearAllTiles();
+
+        if (_doorFrameTilemap != null)
+            _doorFrameTilemap.ClearAllTiles();
 
         if (_generatedRoot != null)
         {
             DestroyGeneratedObject(_generatedRoot.gameObject);
             _generatedRoot = null;
         }
+
+        _grid = null;
+        _floorTilemap = null;
+        _borderTilemap = null;
+        _doorFrameTilemap = null;
+
+        foreach (var pair in _tileCache)
+        {
+            if (pair.Value != null)
+                DestroyGeneratedObject(pair.Value);
+        }
+
+        _tileCache.Clear();
     }
 
-    private void CreateGeneratedRoot(RoomNode room)
+    private void CreateGeneratedRoot(RoomNode room, RoomSkin skin, int columns, int rows, Vector2 safeTileSize)
     {
-        var rootObject = new GameObject($"RoomTiles_{room.Id}_{room.Type}");
+        var rootObject = new GameObject($"RoomTilemaps_{room.Id}_{room.Type}");
         _generatedRoot = rootObject.transform;
         _generatedRoot.SetParent(transform, false);
         _generatedRoot.localPosition = Vector3.zero;
         _generatedRoot.localRotation = Quaternion.identity;
         _generatedRoot.localScale = GetInverseParentScale();
+
+        _grid = rootObject.AddComponent<Grid>();
+        _grid.cellSize = new Vector3(safeTileSize.x, safeTileSize.y, 1f);
+        _grid.cellGap = Vector3.zero;
+        _grid.cellLayout = GridLayout.CellLayout.Rectangle;
+        _grid.cellSwizzle = GridLayout.CellSwizzle.XYZ;
+
+        var origin = new Vector3(columns * safeTileSize.x * -0.5f, rows * safeTileSize.y * -0.5f, 0f);
+
+        _floorTilemap = CreateTilemap("FloorTilemap", origin, skin.FloorSortingLayerName, skin.FloorOrderInLayer);
+        _borderTilemap = CreateTilemap("BorderTilemap", origin, skin.BorderSortingLayerName, skin.BorderOrderInLayer);
+        _doorFrameTilemap = CreateTilemap("DoorFrameTilemap", origin, skin.DoorFrameSortingLayerName, skin.DoorFrameOrderInLayer);
+    }
+
+    private Tilemap CreateTilemap(string objectName, Vector3 localPosition, string sortingLayerName, int orderInLayer)
+    {
+        var obj = new GameObject(objectName);
+        obj.transform.SetParent(_generatedRoot, false);
+        obj.transform.localPosition = localPosition;
+        obj.transform.localRotation = Quaternion.identity;
+        obj.transform.localScale = Vector3.one;
+
+        var tilemap = obj.AddComponent<Tilemap>();
+        tilemap.tileAnchor = new Vector3(0.5f, 0.5f, 0f);
+
+        var renderer = obj.AddComponent<TilemapRenderer>();
+        renderer.sortingLayerName = sortingLayerName;
+        renderer.sortingOrder = orderInLayer;
+
+        return tilemap;
     }
 
     private void BuildFloor(RoomNode room, RoomSkin skin, int columns, int rows, Vector2 safeTileSize)
@@ -99,16 +151,10 @@ public class RoomTileVisualBuilder : MonoBehaviour
                     : skin.GetRandomFloorSprite(random);
 
                 sequenceIndex++;
-
-                if (sprite == null)
-                    continue;
-
-                var localPosition = GetTileLocalPosition(x, y, columns, rows, safeTileSize);
-                CreateSpriteObject($"Floor_{x}_{y}", sprite, localPosition, skin.FloorSortingLayerName, skin.FloorOrderInLayer, safeTileSize);
+                SetTile(_floorTilemap, x, y, sprite, safeTileSize);
             }
         }
     }
-
 
     private List<Sprite> CreateWeightedFloorSpriteSequence(RoomSkin skin, int tileCount, System.Random random)
     {
@@ -193,25 +239,25 @@ public class RoomTileVisualBuilder : MonoBehaviour
         for (var x = 0; x < columns; x++)
         {
             if (!IsDoorOpeningTile(room, Vector2Int.up, x, columns, rows, safeTileSize))
-                CreateBorderTile($"Border_Top_{x}", skin.BorderTop, GetTileLocalPosition(x, rows - 1, columns, rows, safeTileSize), skin, safeTileSize);
+                SetTile(_borderTilemap, x, rows - 1, skin.BorderTop, safeTileSize);
 
             if (!IsDoorOpeningTile(room, Vector2Int.down, x, columns, rows, safeTileSize))
-                CreateBorderTile($"Border_Bottom_{x}", skin.BorderBottom, GetTileLocalPosition(x, 0, columns, rows, safeTileSize), skin, safeTileSize);
+                SetTile(_borderTilemap, x, 0, skin.BorderBottom, safeTileSize);
         }
 
         for (var y = 0; y < rows; y++)
         {
             if (!IsDoorOpeningTile(room, Vector2Int.left, y, columns, rows, safeTileSize))
-                CreateBorderTile($"Border_Left_{y}", skin.BorderLeft, GetTileLocalPosition(0, y, columns, rows, safeTileSize), skin, safeTileSize);
+                SetTile(_borderTilemap, 0, y, skin.BorderLeft, safeTileSize);
 
             if (!IsDoorOpeningTile(room, Vector2Int.right, y, columns, rows, safeTileSize))
-                CreateBorderTile($"Border_Right_{y}", skin.BorderRight, GetTileLocalPosition(columns - 1, y, columns, rows, safeTileSize), skin, safeTileSize);
+                SetTile(_borderTilemap, columns - 1, y, skin.BorderRight, safeTileSize);
         }
 
-        CreateBorderTile("Corner_TopLeft", skin.CornerTopLeft, GetTileLocalPosition(0, rows - 1, columns, rows, safeTileSize), skin, safeTileSize);
-        CreateBorderTile("Corner_TopRight", skin.CornerTopRight, GetTileLocalPosition(columns - 1, rows - 1, columns, rows, safeTileSize), skin, safeTileSize);
-        CreateBorderTile("Corner_BottomLeft", skin.CornerBottomLeft, GetTileLocalPosition(0, 0, columns, rows, safeTileSize), skin, safeTileSize);
-        CreateBorderTile("Corner_BottomRight", skin.CornerBottomRight, GetTileLocalPosition(columns - 1, 0, columns, rows, safeTileSize), skin, safeTileSize);
+        SetTile(_borderTilemap, 0, rows - 1, skin.CornerTopLeft, safeTileSize);
+        SetTile(_borderTilemap, columns - 1, rows - 1, skin.CornerTopRight, safeTileSize);
+        SetTile(_borderTilemap, 0, 0, skin.CornerBottomLeft, safeTileSize);
+        SetTile(_borderTilemap, columns - 1, 0, skin.CornerBottomRight, safeTileSize);
 
         if (buildDoorFrames)
             BuildDoorFrames(room, skin, columns, rows, safeTileSize);
@@ -229,51 +275,61 @@ public class RoomTileVisualBuilder : MonoBehaviour
                 continue;
 
             var direction = RoomDataUtility.NormalizeDirection(connection.Direction);
-            var doorLocalPosition = room.GetDoorLocalPosition(direction);
             var sprite = direction.x == 0 ? skin.DoorFrameHorizontal : skin.DoorFrameVertical;
-            var frameSize = GetDoorFrameTargetSize(room, direction, safeTileSize);
 
-            CreateSpriteObject($"DoorFrame_{DirectionName(direction)}", sprite, doorLocalPosition, skin.DoorFrameSortingLayerName, skin.DoorFrameOrderInLayer, frameSize);
+            if (direction.x == 0)
+            {
+                var y = direction.y > 0 ? rows - 1 : 0;
+                for (var x = 0; x < columns; x++)
+                {
+                    if (IsDoorOpeningTile(room, direction, x, columns, rows, safeTileSize))
+                        SetTile(_doorFrameTilemap, x, y, sprite, safeTileSize);
+                }
+
+                continue;
+            }
+
+            var edgeX = direction.x > 0 ? columns - 1 : 0;
+            for (var y = 0; y < rows; y++)
+            {
+                if (IsDoorOpeningTile(room, direction, y, columns, rows, safeTileSize))
+                    SetTile(_doorFrameTilemap, edgeX, y, sprite, safeTileSize);
+            }
         }
     }
 
-    private void CreateBorderTile(string objectName, Sprite sprite, Vector2 localPosition, RoomSkin skin, Vector2 safeTileSize)
+    private void SetTile(Tilemap tilemap, int x, int y, Sprite sprite, Vector2 targetSize)
     {
-        CreateSpriteObject(objectName, sprite, localPosition, skin.BorderSortingLayerName, skin.BorderOrderInLayer, safeTileSize);
-    }
-
-    private void CreateSpriteObject(string objectName, Sprite sprite, Vector2 localPosition, string sortingLayerName, int orderInLayer, Vector2 targetSize)
-    {
-        if (sprite == null || _generatedRoot == null)
+        if (tilemap == null || sprite == null)
             return;
 
-        var obj = new GameObject(objectName);
-        obj.transform.SetParent(_generatedRoot, false);
-        obj.transform.localPosition = new Vector3(localPosition.x, localPosition.y, 0f);
-        obj.transform.localRotation = Quaternion.identity;
-        obj.transform.localScale = Vector3.one;
+        tilemap.SetTile(new Vector3Int(x, y, 0), GetTile(sprite, targetSize));
+    }
 
-        var renderer = obj.AddComponent<SpriteRenderer>();
-        renderer.sprite = sprite;
-        renderer.sortingLayerName = sortingLayerName;
-        renderer.sortingOrder = orderInLayer;
+    private Tile GetTile(Sprite sprite, Vector2 targetSize)
+    {
+        if (sprite == null)
+            return null;
+
+        if (_tileCache.TryGetValue(sprite, out var cachedTile) && cachedTile != null)
+            return cachedTile;
+
+        var tile = ScriptableObject.CreateInstance<Tile>();
+        tile.name = $"RuntimeTile_{sprite.name}";
+        tile.sprite = sprite;
+        tile.colliderType = Tile.ColliderType.None;
 
         if (fitSpriteToTileSize && sprite.bounds.size.x > 0f && sprite.bounds.size.y > 0f)
         {
-            obj.transform.localScale = new Vector3(
+            var scale = new Vector3(
                 targetSize.x / sprite.bounds.size.x,
                 targetSize.y / sprite.bounds.size.y,
                 1f);
+            tile.transform = Matrix4x4.Scale(scale);
         }
 
-        _generatedObjects.Add(obj);
-    }
-
-    private Vector2 GetTileLocalPosition(int x, int y, int columns, int rows, Vector2 safeTileSize)
-    {
-        var startX = columns * safeTileSize.x * -0.5f + safeTileSize.x * 0.5f;
-        var startY = rows * safeTileSize.y * -0.5f + safeTileSize.y * 0.5f;
-        return new Vector2(startX + x * safeTileSize.x, startY + y * safeTileSize.y);
+        _tileCache.Add(sprite, tile);
+        return tile;
     }
 
     private bool IsDoorOpeningTile(RoomNode room, Vector2Int direction, int edgeIndex, int columns, int rows, Vector2 safeTileSize)
@@ -298,8 +354,6 @@ public class RoomTileVisualBuilder : MonoBehaviour
         return tileMin < openingMax - epsilon && tileMax > openingMin + epsilon;
     }
 
-
-
     private float GetDoorOpeningWorldSize(RoomNode room, Vector2Int direction, Vector2 safeTileSize)
     {
         var normalized = RoomDataUtility.NormalizeDirection(direction);
@@ -309,16 +363,6 @@ public class RoomTileVisualBuilder : MonoBehaviour
             return Mathf.Max(1, doorOpeningTiles) * tileSizeOnDoorAxis;
 
         return Mathf.Max(tileSizeOnDoorAxis, room.Definition.DoorOpeningSize);
-    }
-
-    private Vector2 GetDoorFrameTargetSize(RoomNode room, Vector2Int direction, Vector2 safeTileSize)
-    {
-        var normalized = RoomDataUtility.NormalizeDirection(direction);
-        var openingSize = GetDoorOpeningWorldSize(room, normalized, safeTileSize);
-
-        return normalized.x == 0
-            ? new Vector2(openingSize, safeTileSize.y)
-            : new Vector2(safeTileSize.x, openingSize);
     }
 
     private bool HasConnection(RoomNode room, Vector2Int direction)
@@ -337,6 +381,18 @@ public class RoomTileVisualBuilder : MonoBehaviour
         return false;
     }
 
+    private void CompressTilemaps()
+    {
+        if (_floorTilemap != null)
+            _floorTilemap.CompressBounds();
+
+        if (_borderTilemap != null)
+            _borderTilemap.CompressBounds();
+
+        if (_doorFrameTilemap != null)
+            _doorFrameTilemap.CompressBounds();
+    }
+
     private System.Random CreateRandom(RoomNode room)
     {
         var seed = extraRandomSeed;
@@ -350,17 +406,6 @@ public class RoomTileVisualBuilder : MonoBehaviour
     {
         return new Vector2(Mathf.Max(0.01f, tileWorldSize.x), Mathf.Max(0.01f, tileWorldSize.y));
     }
-
-    private string DirectionName(Vector2Int direction)
-    {
-        var normalized = RoomDataUtility.NormalizeDirection(direction);
-
-        if (normalized == Vector2Int.up) return "Up";
-        if (normalized == Vector2Int.down) return "Down";
-        if (normalized == Vector2Int.left) return "Left";
-        return "Right";
-    }
-
 
     private Vector3 GetInverseParentScale()
     {

@@ -15,12 +15,6 @@ MonoBehaviour:
   floorTiles:
   - sprite: {fileID: 209751846086810860, guid: e6cc917232ecc614886a1c1978259c97, type: 3}
     weight: 80
-  - sprite: {fileID: -4566316879399861448, guid: 1e35d0b03a385de43b1187fbfd8a6028, type: 3}
-    weight: 1
-  - sprite: {fileID: 1078624469457295140, guid: 10e0c43e7383fc24c8bfb0bafa3caab9, type: 3}
-    weight: 5
-  - sprite: {fileID: -4047708086730354666, guid: e06d80d172bbb79468be4b1dfd3b013c, type: 3}
-    weight: 1
   floorSortingLayerName: Default
   floorOrderInLayer: 0
   borderTop: {fileID: 8708966673961140126, guid: cb8256e48375fe24d8c1b8bb937ac531, type: 3}
