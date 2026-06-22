@@ -135,6 +135,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   target: {fileID: 0}
+  warning: {fileID: 3877398648368966767, guid: 796207ea1e7e31a40a57c05f926cdfa9, type: 3}
   stats: {fileID: 11400000, guid: b80998655a92d6c4e90d10631ee74b57, type: 2}
   rb: {fileID: 0}
 --- !u!61 &6683941054817292905

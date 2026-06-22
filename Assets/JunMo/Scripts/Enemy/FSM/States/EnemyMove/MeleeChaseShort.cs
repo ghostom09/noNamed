@@ -13,6 +13,15 @@ public class MeleeChaseShort : IChase
     {
         Debug.Log("<color=red>Fatal Error:</color> 9150");
         Vector2 toPlayer = _enemy.GetVector2();
+        
+        Vector2 toPlayerRaw = _enemy.GetVectorNotNormalized();
+        float distance = toPlayerRaw.magnitude;
+
+        if (distance <= 1f)
+        {
+            _enemy.rb.linearVelocity = Vector2.zero;
+            return;
+        }
         _enemy.rb.linearVelocity = toPlayer * _enemy.stats.moveSpeed;
     }
 }

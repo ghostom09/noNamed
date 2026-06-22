@@ -6,6 +6,7 @@ using UnityEngine;
 public class Enemy : MonoBehaviour
 {
     [SerializeField]private Transform target;
+    [SerializeField] private GameObject warning;
     private IState _currentState;
     
     public IdleState IdleState;
@@ -100,6 +101,11 @@ public class Enemy : MonoBehaviour
         return dir.normalized;
     }
 
+    public Vector2 GetVectorNotNormalized()
+    {
+        return (Vector2)target.position - (Vector2)transform.position;
+    }
+
     public Vector2 GetPlayerVector2() // 위치
     {
         return target.position;
@@ -119,6 +125,12 @@ public class Enemy : MonoBehaviour
     {
         _attackTime = 0f;
     }
+
+    public void AttackWarn()
+    {
+        var prefab = Instantiate(warning, transform.position + new Vector3(0, 1, 0), Quaternion.identity);
+        Destroy(prefab, stats.durationWarning);
+    }
     
     public void ApplyStun(float duration) => CcState.ApplyStun(duration);
     public void ApplySnare(float duration) => CcState.ApplySnare(duration);
@@ -131,12 +143,7 @@ public class Enemy : MonoBehaviour
             return;
 
         _hasExploded = true;
-        StartCoroutine(Boom());
-    }
-
-    private IEnumerator Boom()
-    {
-        yield return new WaitForSeconds(0.5f);
+        
         _boom = EnemyPrefabController.Instance.GetPrefab(stats.attackType);
         var boom = Instantiate(_boom, transform.position, Quaternion.identity);
         Destroy(boom, 1f);
@@ -153,33 +160,6 @@ public class Enemy : MonoBehaviour
                 //     Debug.Log($"자폭 데미지{stats.damage}");
                 // }
             }
-        }
-        StopCoroutine(Boom());
-    }
-    
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red;
-
-        Vector2 baseDir = GetVector2();
-        float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
-
-        Vector3 prevPoint = transform.position;
-
-        for (int i = 0; i < 10; i++)
-        {
-            float angle = baseAngle - 120f / 2f + (120f / 10f) * i;
-            float rad = angle * Mathf.Deg2Rad;
-
-            Vector3 point = transform.position +
-                            new Vector3(Mathf.Cos(rad), Mathf.Sin(rad), 0) * 2f;
-
-            Gizmos.DrawLine(transform.position, point);
-
-            if (i > 0)
-                Gizmos.DrawLine(prevPoint, point);
-
-            prevPoint = point;
-        }
+        } 
     }
 }

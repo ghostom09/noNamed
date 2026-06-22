@@ -10,37 +10,30 @@ public class SoldierSpreadAttack : IAttack
     private const float RandomAngleRange = 30f;
     private const float SpreadFireRate = 0.2f;
     private const float SpreadDuration = 2f;
-    private const float Cooldown = 5f;
-
-    private float _timer;
 
     public SoldierSpreadAttack(Enemy enemy, GameObject bulletPrefab)
     {
         _enemy = enemy;
         _bulletPrefab = bulletPrefab;
         _coroutineRunner = enemy;
-
-        _timer = Cooldown;
     }
 
     public void Attack()
     {
-        _timer += Time.deltaTime;
-
-        if (_timer < Cooldown)
-            return;
-
-        _timer = 0f;
-
-        // 공격 시작 시 방향 고정
+        if (_enemy.IsAttacking) return;
         Vector2 fixedDir = _enemy.GetVector2();
-
-        _coroutineRunner.StartCoroutine(SpreadFire(fixedDir));
+        _enemy.StartCoroutine(SpreadFire(fixedDir));
     }
 
     private IEnumerator SpreadFire(Vector2 fixedDir)
     {
         _enemy.IsAttacking = true;
+        _enemy.AttackWarn();
+
+        yield return new WaitForSeconds(_enemy.stats.durationWarning);
+
+        if (!_enemy)
+            yield break;
 
         float elapsed = 0f;
 

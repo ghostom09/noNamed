@@ -19,13 +19,17 @@ public class MechaDashAttack : IAttack
     public void Attack()
     {
         if (!_enemy.CanAttackSpeed() || _isDashing) return;
- 
-        _enemy.ResetAttackTimer();
+        
         _coroutineRunner.StartCoroutine(Dash());
     }
  
     private IEnumerator Dash()
     {
+        _enemy.IsAttacking = true;
+        _enemy.AttackWarn();
+        yield return new WaitForSeconds(_enemy.stats.durationWarning);
+        if (!_enemy)
+            yield break;
         _isDashing = true;
         Vector2 dashDir = _enemy.GetVector2();
         float elapsed = 0f;
@@ -37,7 +41,9 @@ public class MechaDashAttack : IAttack
             yield return null;
         }
  
+        _enemy.ResetAttackTimer();
         _enemy.rb.linearVelocity = Vector2.zero;
         _isDashing = false;
+        _enemy.IsAttacking = false;
     }
 }

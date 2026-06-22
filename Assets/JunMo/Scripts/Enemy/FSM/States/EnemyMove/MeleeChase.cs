@@ -11,7 +11,17 @@ public class MeleeChase : IChase
 
     public void Chase()
     {
-        Vector2 toPlayer = _enemy.GetVector2().normalized;
+        Vector2 toPlayer = _enemy.GetVector2();
+
+        Vector2 toPlayerRaw = _enemy.GetVectorNotNormalized();
+        float distance = toPlayerRaw.magnitude;
+
+        if (distance <= 1f)
+        {
+            _enemy.rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
         float baseAngle = Mathf.Atan2(toPlayer.y, toPlayer.x);
 
         float zigzagSpeed = 5f;

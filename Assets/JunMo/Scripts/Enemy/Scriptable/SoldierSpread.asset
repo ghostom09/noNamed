@@ -21,3 +21,4 @@ MonoBehaviour:
   kitingRange: 3
   chaseType: 2
   attackType: 4
+  durationWarning: 0.5
