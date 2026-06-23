@@ -224,6 +224,7 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
     public static void IntegrateScene()
     {
         EnsureRewardIntegration();
+        EnsureInitialStatUiHidden();
         EnsureMutationPickupGuards();
         EnsurePlayerIntegration();
         EnsureEnemyIntegration();
@@ -288,6 +289,24 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
         rewardSystem = rewardSystemObject.AddComponent<RoomClearMutationRewardSystem>();
     }
 
+    private static void EnsureInitialStatUiHidden()
+    {
+        if (RoomClearMutationRewardSystem.IsStatRewardActive)
+            return;
+
+        CharacterStatUpgradeUI[] statUis =
+            Object.FindObjectsByType<CharacterStatUpgradeUI>(FindObjectsInactive.Include);
+
+        foreach (CharacterStatUpgradeUI statUi in statUis)
+        {
+            if (statUi == null)
+                continue;
+
+            SetPrivateField(statUi, "showOnStart", false);
+            statUi.Hide();
+        }
+    }
+
     private static void EnsureMutationPickupGuards()
     {
         MutationPickup[] pickups = Object.FindObjectsByType<MutationPickup>(FindObjectsInactive.Include, FindObjectsSortMode.None);
@@ -343,6 +362,18 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
     {
         T component = target.GetComponent<T>();
         return component != null ? component : target.AddComponent<T>();
+    }
+
+    private static void SetPrivateField(object target, string fieldName, object value)
+    {
+        if (target == null)
+            return;
+
+        FieldInfo field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+        if (field == null)
+            return;
+
+        field.SetValue(target, value);
     }
 
     private static bool TagExists(string tagName)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -34,6 +35,13 @@ public sealed class RoomClearMutationRewardSystem : MonoBehaviour
     private bool rewardInProgress;
     private RewardUiKind pendingRewardKind;
     private Action pendingRewardCompleted;
+    private bool waitingForMutationUiToClose;
+    private static FieldInfo mutationPanelField;
+
+    public static bool IsStatRewardActive =>
+        instance != null &&
+        instance.rewardInProgress &&
+        instance.pendingRewardKind == RewardUiKind.StatUpgrade;
 
     private void Awake()
     {
@@ -53,6 +61,19 @@ public sealed class RoomClearMutationRewardSystem : MonoBehaviour
             ClearPendingReward();
             EndPause();
             instance = null;
+        }
+    }
+
+    private void Update()
+    {
+        if (!rewardInProgress || pendingRewardKind != RewardUiKind.Mutation || !waitingForMutationUiToClose)
+        {
+            return;
+        }
+
+        if (!IsMutationUiOpen())
+        {
+            HandleMutationRewardCompleted();
         }
     }
 
@@ -146,9 +167,8 @@ public sealed class RoomClearMutationRewardSystem : MonoBehaviour
         rewardInProgress = true;
         pendingRewardKind = RewardUiKind.Mutation;
         pendingRewardCompleted = onRewardCompleted;
+        waitingForMutationUiToClose = true;
 
-        ui.SelectionCompleted -= HandleMutationRewardCompleted;
-        ui.SelectionCompleted += HandleMutationRewardCompleted;
         ui.Show(mutation);
 
         BeginPause();
@@ -170,8 +190,8 @@ public sealed class RoomClearMutationRewardSystem : MonoBehaviour
         pendingRewardKind = RewardUiKind.StatUpgrade;
         pendingRewardCompleted = onRewardCompleted;
 
-        ui.UpgradeConfirmed -= HandleStatRewardCompleted;
-        ui.UpgradeConfirmed += HandleStatRewardCompleted;
+        ui.StatUpgradeConfirmed -= HandleStatRewardCompleted;
+        ui.StatUpgradeConfirmed += HandleStatRewardCompleted;
         ui.Show();
 
         return true;
@@ -180,8 +200,50 @@ public sealed class RoomClearMutationRewardSystem : MonoBehaviour
     private void GrantStatRewardPoint()
     {
         PlayerStatManager statManager = FindAnyObjectByType<PlayerStatManager>(FindObjectsInactive.Include);
-        if (statManager != null)
-            statManager.AddAvailablePoints(statRewardPoints);
+        if (statManager == null)
+            return;
+
+        if (TryInvokeAddAvailablePoints(statManager, statRewardPoints))
+            return;
+
+        AddAvailablePointsByReflection(statManager, statRewardPoints);
+    }
+
+    private static bool TryInvokeAddAvailablePoints(PlayerStatManager statManager, int amount)
+    {
+        MethodInfo addAvailablePoints = typeof(PlayerStatManager)
+            .GetMethod("AddAvailablePoints", BindingFlags.Instance | BindingFlags.Public);
+
+        if (addAvailablePoints == null)
+            return false;
+
+        addAvailablePoints.Invoke(statManager, new object[] { amount });
+        return true;
+    }
+
+    private static void AddAvailablePointsByReflection(PlayerStatManager statManager, int amount)
+    {
+        int safeAmount = Mathf.Max(0, amount);
+        if (safeAmount <= 0)
+            return;
+
+        FieldInfo availablePointsField = typeof(PlayerStatManager)
+            .GetField("<AvailablePoints>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        if (availablePointsField == null)
+        {
+            Debug.LogWarning("[RoomClearMutationRewardSystem] PlayerStatManager.AvailablePoints could not be granted.");
+            return;
+        }
+
+        int nextPoints = Mathf.Max(0, statManager.AvailablePoints + safeAmount);
+        availablePointsField.SetValue(statManager, nextPoints);
+
+        FieldInfo pointsChangedField = typeof(PlayerStatManager)
+            .GetField("OnPointsChanged", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        if (pointsChangedField?.GetValue(statManager) is Action<int> pointsChanged)
+            pointsChanged.Invoke(nextPoints);
     }
 
     private void HandleMutationRewardCompleted()
@@ -192,14 +254,14 @@ public sealed class RoomClearMutationRewardSystem : MonoBehaviour
         MutationSelectUI ui = MutationSelectUI.Instance;
         if (ui != null)
         {
-            ui.SelectionCompleted -= HandleMutationRewardCompleted;
             ui.Hide();
         }
 
+        waitingForMutationUiToClose = false;
         CompletePendingReward();
     }
 
-    private void HandleStatRewardCompleted()
+    private void HandleStatRewardCompleted(string statName, int count)
     {
         if (pendingRewardKind != RewardUiKind.StatUpgrade)
             return;
@@ -207,7 +269,7 @@ public sealed class RoomClearMutationRewardSystem : MonoBehaviour
         CharacterStatUpgradeUI ui = FindAnyObjectByType<CharacterStatUpgradeUI>(FindObjectsInactive.Include);
         if (ui != null)
         {
-            ui.UpgradeConfirmed -= HandleStatRewardCompleted;
+            ui.StatUpgradeConfirmed -= HandleStatRewardCompleted;
             ui.Hide();
         }
 
@@ -224,16 +286,29 @@ public sealed class RoomClearMutationRewardSystem : MonoBehaviour
 
     private void ClearPendingReward()
     {
-        if (pendingRewardKind == RewardUiKind.Mutation && MutationSelectUI.Instance != null)
-            MutationSelectUI.Instance.SelectionCompleted -= HandleMutationRewardCompleted;
-
         CharacterStatUpgradeUI statUi = FindAnyObjectByType<CharacterStatUpgradeUI>(FindObjectsInactive.Include);
         if (statUi != null)
-            statUi.UpgradeConfirmed -= HandleStatRewardCompleted;
+            statUi.StatUpgradeConfirmed -= HandleStatRewardCompleted;
 
         rewardInProgress = false;
         pendingRewardKind = RewardUiKind.None;
         pendingRewardCompleted = null;
+        waitingForMutationUiToClose = false;
+    }
+
+    private static bool IsMutationUiOpen()
+    {
+        MutationSelectUI ui = MutationSelectUI.Instance;
+        if (ui == null)
+        {
+            return false;
+        }
+
+        mutationPanelField ??= typeof(MutationSelectUI)
+            .GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        GameObject panel = mutationPanelField?.GetValue(ui) as GameObject;
+        return panel != null ? panel.activeInHierarchy : ui.gameObject.activeInHierarchy;
     }
 
     private static string GetRoomRewardKey(RoomNode room)
