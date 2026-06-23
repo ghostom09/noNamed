@@ -49,6 +49,11 @@ public class SkillB : ProjectileSkill
         FireBullet(firePoint.position, direction);
     }
 
+    public override void OnUnequip()
+    {
+        _fired = false;
+    }
+
     private void PlayMuzzleFlash(Vector2 direction)
     {
         if (_muzzleFlash == null) return;

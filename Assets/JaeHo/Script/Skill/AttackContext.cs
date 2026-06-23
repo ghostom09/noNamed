@@ -82,6 +82,12 @@ public readonly struct AttackContext
             CriticalChance, CriticalMultiplier);
     }
 
+    public AttackContext WithBaseDamage(float baseDamage)
+    {
+        return new AttackContext(SourceSkill, Attacker, Mutations, RangeType, ShapeType, Origin,
+            Direction, Mathf.Max(0f, baseDamage), Tags, TargetLayer, CriticalChance, CriticalMultiplier);
+    }
+
     public AttackContext WithShape(AttackShapeType shapeType)
     {
         return new AttackContext(SourceSkill, Attacker, Mutations, RangeType, shapeType, Origin,

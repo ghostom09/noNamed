@@ -10,28 +10,34 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
     private Coroutine _poisonCoroutine;
     private Coroutine _slowCoroutine;
     private float _currentHp;
-    private float _speedMultiplier = 1f;
+    private float _baseMoveSpeed;
+    private bool _hasMoveSpeedSnapshot;
+    private bool _hasTakenDamage;
 
     public float CurrentHp => _currentHp;
     public bool IsDead { get; private set; }
 
     private void Awake()
     {
-        if (enemy == null)
-            enemy = GetComponent<Enemy>();
-
-        if (targetRigidbody == null)
-            targetRigidbody = GetComponent<Rigidbody2D>();
+        BindReferences();
+        InitializeHitPointsIfNeeded();
     }
 
     private void Start()
     {
-        _currentHp = enemy != null && enemy.stats != null ? enemy.stats.maxHealth : 1f;
-        IsDead = false;
+        BindReferences();
+        if (!_hasTakenDamage)
+            InitializeHitPointsFromCurrentStats();
+        else
+            InitializeHitPointsIfNeeded();
+
+        CaptureMoveSpeedIfNeeded();
     }
 
     private void OnEnable()
     {
+        BindReferences();
+
         if (enemy != null)
             enemy.OnDead += HandleEnemyDead;
     }
@@ -40,24 +46,21 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
     {
         if (enemy != null)
             enemy.OnDead -= HandleEnemyDead;
-    }
 
-    private void LateUpdate()
-    {
-        if (targetRigidbody == null || Mathf.Approximately(_speedMultiplier, 1f)) return;
-
-        targetRigidbody.linearVelocity *= _speedMultiplier;
+        RestoreMoveSpeed();
     }
 
     public void TakeDamage(float amount)
     {
         if (IsDead) return;
 
+        InitializeHitPointsIfNeeded();
+        _hasTakenDamage = true;
+
         float hpBefore = _currentHp;
         _currentHp = Mathf.Max(0f, _currentHp - Mathf.Max(0f, amount));
 
-        Debug.Log(
-            $"[Enemy Hit] {gameObject.name} damage:{amount:0.##} hp:{hpBefore:0.##}->{_currentHp:0.##}");
+        Debug.Log($"[Enemy Hit] {gameObject.name} damage:{amount:0.##} hp:{hpBefore:0.##}->{_currentHp:0.##}");
 
         if (_currentHp <= 0f)
         {
@@ -108,9 +111,14 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
 
     private IEnumerator SlowRoutine(float multiplier, float duration)
     {
-        _speedMultiplier = multiplier;
+        CaptureMoveSpeedIfNeeded();
+
+        if (enemy != null && enemy.stats != null)
+            enemy.stats.moveSpeed = _baseMoveSpeed * multiplier;
+
         yield return new WaitForSeconds(Mathf.Max(0f, duration));
-        _speedMultiplier = 1f;
+
+        RestoreMoveSpeed();
         _slowCoroutine = null;
     }
 
@@ -137,8 +145,13 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
         if (targetRigidbody != null)
             targetRigidbody.linearVelocity = Vector2.zero;
 
-        if (enemy != null && enemy.DieState != null)
-            enemy.ChangeState(enemy.DieState);
+        if (enemy != null)
+        {
+            if (enemy.DieState != null)
+                enemy.ChangeState(enemy.DieState);
+            else
+                enemy.RaiseDeadEvent();
+        }
 
         enabled = false;
     }
@@ -147,5 +160,47 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
     {
         if (deadEnemy == enemy)
             IsDead = true;
+    }
+
+    private void BindReferences()
+    {
+        if (enemy == null)
+            enemy = GetComponent<Enemy>();
+
+        if (targetRigidbody == null)
+            targetRigidbody = GetComponent<Rigidbody2D>();
+    }
+
+    private void InitializeHitPointsIfNeeded()
+    {
+        if (_currentHp > 0f)
+            return;
+
+        InitializeHitPointsFromCurrentStats();
+    }
+
+    private void InitializeHitPointsFromCurrentStats()
+    {
+        _currentHp = enemy != null && enemy.stats != null
+            ? Mathf.Max(1f, enemy.stats.maxHealth)
+            : 1f;
+        IsDead = false;
+    }
+
+    private void CaptureMoveSpeedIfNeeded()
+    {
+        if (_hasMoveSpeedSnapshot || enemy == null || enemy.stats == null)
+            return;
+
+        _baseMoveSpeed = enemy.stats.moveSpeed;
+        _hasMoveSpeedSnapshot = true;
+    }
+
+    private void RestoreMoveSpeed()
+    {
+        if (!_hasMoveSpeedSnapshot || enemy == null || enemy.stats == null)
+            return;
+
+        enemy.stats.moveSpeed = _baseMoveSpeed;
     }
 }

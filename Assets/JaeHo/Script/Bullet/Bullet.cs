@@ -226,10 +226,13 @@ public class Bullet : MonoBehaviour
             return;
         }
 
-        _pierced.Add(col);
+        bool hasPierce = HasPierce();
+        if (hasPierce)
+            _pierced.Add(col);
+
         ApplyHit(col, col.ClosestPoint(transform.position), -_direction);
 
-        if (!HasPierce())
+        if (!hasPierce)
         {
             if (HasRicochet())
                 RicochetFrom(col);
@@ -350,12 +353,17 @@ public class Bullet : MonoBehaviour
             _ => false
         };
 
+        float damage = ResolveExplosionDamage(grade);
         if (TryGetMutationData(MutationType.Explosion, SkillTag.Explosive,
                 MutationTargetScope.Common, out var gradeData))
+        {
             shouldExplode = MutationEffectResolver.ShouldTrigger(gradeData, hitResult);
+            if (gradeData.BonusDamage > 0f)
+                damage = gradeData.BonusDamage;
+        }
 
         if (shouldExplode)
-            Explode(ResolveExplosionDamage(grade));
+            Explode(damage, hitResult);
     }
 
     private void TryApplySlow(AttackHitResult hitResult, Collider2D col)
@@ -438,15 +446,28 @@ public class Bullet : MonoBehaviour
     }
 
     // 폭발
-    private void Explode(float explosionDamage)
+    private void Explode(float explosionDamage, AttackHitResult sourceHit)
     {
         int hitsCount = Physics2D.OverlapCircle(
-            transform.position, explosionRadius, _explosionFilter, _explosionOverlapBuffer);
+            sourceHit.HitPoint, explosionRadius, _explosionFilter, _explosionOverlapBuffer);
 
         for (int i = 0; i < hitsCount; i++)
         {
-            if (CombatComponentUtility.TryGet(_explosionOverlapBuffer[i], out IDamageable d))
-                d.TakeDamage(explosionDamage);
+            Collider2D target = _explosionOverlapBuffer[i];
+            if (target == null || target == sourceHit.TargetCollider)
+                continue;
+
+            Vector2 hitPoint = target.ClosestPoint(sourceHit.HitPoint);
+            Vector2 hitNormal = ((Vector2)target.bounds.center - sourceHit.HitPoint).normalized;
+            if (hitNormal.sqrMagnitude <= 0.0001f)
+                hitNormal = sourceHit.Context.Direction;
+
+            AttackContext explosionContext = sourceHit.Context
+                .WithShape(AttackShapeType.Bullet)
+                .WithOriginAndDirection(sourceHit.HitPoint, hitNormal)
+                .WithBaseDamage(explosionDamage);
+
+            AttackDamageResolver.TryApplyDamage(explosionContext, target, hitPoint, hitNormal, out _);
         }
     }
 

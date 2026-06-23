@@ -2121,7 +2121,7 @@ MonoBehaviour:
   highlightPadding: {x: 10, y: 10}
   highlightColor: {r: 1, g: 0.78, b: 0.12, a: 0.95}
   allowClickSelection: 1
-  allowScrollSelection: 1
+  allowScrollSelection: 0
   autoBindRuntimeSkillSwitcher: 1
   tooltipOffset: {x: 0, y: 120}
   tooltipSize: {x: 280, y: 180}
@@ -3393,8 +3393,8 @@ MonoBehaviour:
   boss: {fileID: 0}
   bossNameOverride: 
   autoFindBoss: 1
-  hideWhenNoBoss: 0
-  hideWhenBossDead: 0
+  hideWhenNoBoss: 1
+  hideWhenBossDead: 1
   showHpNumbers: 0
   refreshInterval: 0.05
   panelRoot: {fileID: 1414418335}
@@ -3630,6 +3630,26 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 3774528430154238141, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: dashTime
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3774528430154238141, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: dashSpeed
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 3774528430154238141, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: acceleration
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 3774528430154238141, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: dashCoolTime
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3774528430154238141, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: deceleration
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 4449645202974008344, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
       propertyPath: m_SortingOrder
       value: 20
@@ -3638,6 +3658,10 @@ PrefabInstance:
       propertyPath: firePoint
       value: 
       objectReference: {fileID: 612237814}
+    - target: {fileID: 5428777015387837351, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: initialAvailablePoints
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 6123872552592524966, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
       propertyPath: skillSwitcher
       value: 
@@ -3871,6 +3895,17 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 64671b3b1b0f45c88b267e560105cfad, type: 2}
   - {fileID: 11400000, guid: 7c5cb81db79c46f59c2190a0be6a38f3, type: 2}
   skills: []
+--- !u!114 &612237831 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5428777015387837351, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+  m_PrefabInstance: {fileID: 612237813}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 612237826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6374f853977d22d40861a53472132075, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStatManager
 --- !u!1 &641792816
 GameObject:
   m_ObjectHideFlags: 0
@@ -6683,7 +6718,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1174708370
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6728,7 +6763,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb8ef5f0a1e84cc6908dcd3a1c3af901, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStatUpgradeUI
-  playerStatManager: {fileID: 0}
+  playerStatManager: {fileID: 612237831}
   autoFindPlayerStatManager: 1
   useFallbackPreviewValues: 1
   availablePoints: 5
@@ -6764,6 +6799,9 @@ MonoBehaviour:
     valueText: {fileID: 206618714}
     plusButton: {fileID: 1555156998}
   showOnStart: 1
+  confirmOnStatClick: 0
+  hideOnConfirm: 1
+  hideOnCancel: 1
   refreshContinuously: 1
   refreshInterval: 0.25
 --- !u!114 &1174708372
@@ -10765,6 +10803,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   target: {fileID: 612237816}
+  warning: {fileID: 0}
+  grade: 0
+  eliteBorder: {fileID: 0}
   stats: {fileID: 11400000, guid: d4b8a1d0a7c54974a861d5b18b3c7a42, type: 2}
   rb: {fileID: 0}
 --- !u!114 &1920686483
@@ -10827,9 +10868,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyPrefabController
   attackPrefabs:
   - attackType: 0
+    prefab: {fileID: 3877398648368966767, guid: 796207ea1e7e31a40a57c05f926cdfa9, type: 3}
+  - attackType: 1
+    prefab: {fileID: 8369875659358248895, guid: 0957b4ca3c76afd4ebeca902ac2db332, type: 3}
+  - attackType: 2
+    prefab: {fileID: 5362415724858426291, guid: 9eb47449ae56a5443ac47f109657aa37, type: 3}
+  - attackType: 3
+    prefab: {fileID: 3092186574268475802, guid: 525d4a7df5080714e83d360027cf21d5, type: 3}
+  - attackType: 4
+    prefab: {fileID: 3092186574268475802, guid: 4533dc6c25ea0334496ca1fd11e76f7d, type: 3}
+  - attackType: 5
     prefab: {fileID: 3092186574268475802, guid: 4533dc6c25ea0334496ca1fd11e76f7d, type: 3}
   - attackType: 6
     prefab: {fileID: 3092186574268475802, guid: 4533dc6c25ea0334496ca1fd11e76f7d, type: 3}
+  - attackType: 7
+    prefab: {fileID: 3092186574268475802, guid: 4533dc6c25ea0334496ca1fd11e76f7d, type: 3}
+  - attackType: 8
+    prefab: {fileID: 3092186574268475802, guid: 4533dc6c25ea0334496ca1fd11e76f7d, type: 3}
+  - attackType: 9
+    prefab: {fileID: 3092186574268475802, guid: 666dfab873d836a4c9e2e2e5080a0f29, type: 3}
 --- !u!1 &1922421768
 GameObject:
   m_ObjectHideFlags: 0

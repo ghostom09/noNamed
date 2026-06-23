@@ -270,8 +270,17 @@ public abstract class MeleeSkill : SkillBase
         foreach (var hit in hits)
         {
             if (hit == null || hit == originalTarget) continue;
-            if (CombatComponentUtility.TryGet(hit, out IDamageable damageable))
-                damageable.TakeDamage(damage);
+
+            Vector2 secondaryHitPoint = hit.ClosestPoint(hitResult.HitPoint);
+            Vector2 hitNormal = ((Vector2)hit.bounds.center - hitResult.HitPoint).normalized;
+            if (hitNormal.sqrMagnitude <= 0.0001f)
+                hitNormal = context.Direction;
+
+            AttackContext explosionContext = context
+                .WithOriginAndDirection(hitResult.HitPoint, hitNormal)
+                .WithBaseDamage(damage);
+
+            AttackDamageResolver.TryApplyDamage(explosionContext, hit, secondaryHitPoint, hitNormal, out _);
         }
     }
 

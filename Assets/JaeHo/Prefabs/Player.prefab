@@ -94,6 +94,7 @@ GameObject:
   - component: {fileID: 665501010771001001}
   - component: {fileID: 665501010771001002}
   - component: {fileID: 665501010771001003}
+  - component: {fileID: 665501010771001004}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -415,6 +416,34 @@ MonoBehaviour:
   pointsPerLevel: 3
   bonusPointsPerLevel: 2
   pointBonusMultiple: 5
+--- !u!114 &665501010771001004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2376096167461283000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43a6cb2a35a24967ab2200646feefb28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkillMutationLoadoutBinder
+  autoFindSkillsInChildren: 1
+  addMissingLoadouts: 1
+  defaultDefinitions:
+  - {fileID: 11400000, guid: 90f78f88c3c64894a35af5034818c001, type: 2}
+  - {fileID: 11400000, guid: af7ea58ef44f420eb910f31ad2e0768a, type: 2}
+  - {fileID: 11400000, guid: 368ef4ac832349c8ac73199e852b96a2, type: 2}
+  - {fileID: 11400000, guid: 5e48f016b9274bd4964e5a9ffc3c9c04, type: 2}
+  - {fileID: 11400000, guid: 6df3f673a5514bb4989a42b4895e79ce, type: 2}
+  - {fileID: 11400000, guid: 14e0733a5b8d47b2b9bf90db23387c8f, type: 2}
+  - {fileID: 11400000, guid: cdc42bc2899d43f6924225799fb0854f, type: 2}
+  - {fileID: 11400000, guid: e470096b383e4c49b242c3d5b17e3569, type: 2}
+  - {fileID: 11400000, guid: 3abf08974a964c859790cf47deab6f5a, type: 2}
+  - {fileID: 11400000, guid: 02d3bb8ef9e84d399b960074fcd72495, type: 2}
+  - {fileID: 11400000, guid: 64671b3b1b0f45c88b267e560105cfad, type: 2}
+  - {fileID: 11400000, guid: 7c5cb81db79c46f59c2190a0be6a38f3, type: 2}
+  skills: []
 --- !u!114 &665501010771001001
 MonoBehaviour:
   m_ObjectHideFlags: 0

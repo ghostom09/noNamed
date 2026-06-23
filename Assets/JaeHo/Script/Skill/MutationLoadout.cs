@@ -14,6 +14,7 @@ public sealed class MutationLoadout : MonoBehaviour
     private readonly Dictionary<MutationType, MutationStack> _stackMap = new();
 
     public event Action<MutationType, int, MutationGrade> MutationChanged;
+    public bool HasDefinitions => definitions != null && definitions.Length > 0;
 
     private void Awake()
     {
@@ -51,6 +52,20 @@ public sealed class MutationLoadout : MonoBehaviour
 
         return TryGetDefinition(mutationType, out var definition) &&
                definition.TryGetGradeData(GetStackCount(mutationType), out gradeData);
+    }
+
+    public bool TryGetRequiredStacks(MutationType mutationType, MutationGrade grade, out int requiredStacks)
+    {
+        requiredStacks = 0;
+
+        if (!TryGetDefinition(mutationType, out var definition) ||
+            !definition.TryGetGradeData(grade, out var gradeData))
+        {
+            return false;
+        }
+
+        requiredStacks = gradeData.RequiredStacks;
+        return true;
     }
 
     public void SetDefinitions(MutationDefinition[] newDefinitions)

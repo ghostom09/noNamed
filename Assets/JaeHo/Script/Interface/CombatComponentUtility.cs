@@ -7,6 +7,14 @@ public static class CombatComponentUtility
         component = null;
         if (collider == null) return false;
 
+        if (typeof(T) == typeof(IDamageable) &&
+            collider.CompareTag("Player") &&
+            collider.GetComponentInParent<PlayerHealth>() is PlayerHealth playerHealth)
+        {
+            component = playerHealth as T;
+            return component != null;
+        }
+
         if (collider.TryGetComponent(out component))
             return true;
 

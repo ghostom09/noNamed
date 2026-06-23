@@ -14,6 +14,12 @@ public abstract class ProjectileSkill : SkillBase
     [Header("--- Laser Settings ---")]
     [SerializeField, Min(1)] private int maxLaserHits = 32;
     [SerializeField] private LayerMask laserObstacleLayer;
+    [SerializeField, Min(0f)] private float laserExplosionRadius = 3f;
+    [SerializeField, Range(0f, 1f)] private float laserSlowMultiplier = 0.5f;
+    [SerializeField, Min(0f)] private float laserSlowDuration = 2f;
+    [SerializeField, Min(0f)] private float laserPoisonDamagePerTick = 5f;
+    [SerializeField, Min(0f)] private float laserPoisonDuration = 3f;
+    [SerializeField, Min(0f)] private float laserPoisonTickInterval = 1f;
 
     private RaycastHit2D[] _laserHitBuffer;
     private ContactFilter2D _laserFilter;
@@ -120,8 +126,11 @@ public abstract class ProjectileSkill : SkillBase
                 continue;
 
             ApplyLaserFollowUp(hitResult, hit.collider);
+            ApplyLaserExplosion(hitResult, hit.collider);
             ApplyLaserStun(hitResult, hit.collider);
             ApplyLaserBind(hitResult, hit.collider);
+            ApplyLaserSlow(hitResult, hit.collider);
+            ApplyLaserPoison(hitResult, hit.collider);
         }
     }
 
@@ -169,6 +178,109 @@ public abstract class ProjectileSkill : SkillBase
             bindable.ApplyBind(duration, damagePerTick, tickInterval);
     }
 
+    private void ApplyLaserExplosion(AttackHitResult hitResult, Collider2D originalTarget)
+    {
+        MutationGrade grade = MutationEffectResolver.GetGrade(
+            hitResult.Context, MutationType.Explosion, SkillTag.Explosive, MutationTargetScope.Common);
+        if (grade == MutationGrade.None) return;
+
+        bool shouldExplode = grade switch
+        {
+            MutationGrade.Safe => hitResult.IsCritical,
+            MutationGrade.Caution => hitResult.IsCritical,
+            MutationGrade.Danger => hitResult.IsCritical || hitResult.KilledByHit,
+            MutationGrade.Quarantine => true,
+            _ => false
+        };
+
+        float damage = ResolveExplosionDamage(grade);
+        if (MutationEffectResolver.TryGetGradeData(hitResult.Context, MutationType.Explosion,
+                SkillTag.Explosive, MutationTargetScope.Common, out var gradeData))
+        {
+            shouldExplode = MutationEffectResolver.ShouldTrigger(gradeData, hitResult);
+            if (gradeData.BonusDamage > 0f)
+                damage = gradeData.BonusDamage;
+        }
+
+        if (!shouldExplode) return;
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(
+            hitResult.HitPoint, laserExplosionRadius, hitResult.Context.TargetLayer);
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider2D target = hits[i];
+            if (target == null || target == originalTarget)
+                continue;
+
+            Vector2 secondaryHitPoint = target.ClosestPoint(hitResult.HitPoint);
+            Vector2 hitNormal = ((Vector2)target.bounds.center - hitResult.HitPoint).normalized;
+            if (hitNormal.sqrMagnitude <= 0.0001f)
+                hitNormal = hitResult.Context.Direction;
+
+            AttackContext explosionContext = hitResult.Context
+                .WithOriginAndDirection(hitResult.HitPoint, hitNormal)
+                .WithBaseDamage(damage);
+
+            AttackDamageResolver.TryApplyDamage(explosionContext, target, secondaryHitPoint, hitNormal, out _);
+        }
+    }
+
+    private void ApplyLaserSlow(AttackHitResult hitResult, Collider2D collider)
+    {
+        MutationGrade grade = MutationEffectResolver.GetGrade(
+            hitResult.Context, MutationType.Slow, SkillTag.Slow, MutationTargetScope.Common);
+        if (grade == MutationGrade.None) return;
+        if (!CombatComponentUtility.TryGet(collider, out ISlowable slowable)) return;
+
+        float duration = ResolveSlowDuration(grade, laserSlowDuration);
+        if (MutationEffectResolver.TryGetGradeData(hitResult.Context, MutationType.Slow,
+                SkillTag.Slow, MutationTargetScope.Common, out var gradeData))
+        {
+            if (!MutationEffectResolver.ShouldTrigger(gradeData, hitResult)) return;
+            if (gradeData.Duration > 0f)
+                duration = gradeData.Duration;
+        }
+
+        slowable.ApplySlow(laserSlowMultiplier, duration);
+    }
+
+    private void ApplyLaserPoison(AttackHitResult hitResult, Collider2D collider)
+    {
+        MutationGrade grade = MutationEffectResolver.GetGrade(
+            hitResult.Context, MutationType.Poison, SkillTag.Poison, MutationTargetScope.Common);
+        if (grade == MutationGrade.None) return;
+        if (!CombatComponentUtility.TryGet(collider, out IPoisonable poisonable)) return;
+
+        bool shouldPoison = grade switch
+        {
+            MutationGrade.Safe => hitResult.IsCritical,
+            MutationGrade.Caution => hitResult.IsCritical,
+            MutationGrade.Danger => hitResult.IsCritical || hitResult.KilledByHit,
+            MutationGrade.Quarantine => hitResult.IsCritical || hitResult.KilledByHit,
+            _ => false
+        };
+
+        float damagePerTick = ResolvePoisonDamagePerTick(grade, laserPoisonDamagePerTick);
+        float duration = ResolvePoisonDuration(grade, laserPoisonDuration);
+        float tickInterval = laserPoisonTickInterval;
+
+        if (MutationEffectResolver.TryGetGradeData(hitResult.Context, MutationType.Poison,
+                SkillTag.Poison, MutationTargetScope.Common, out var gradeData))
+        {
+            shouldPoison = MutationEffectResolver.ShouldTrigger(gradeData, hitResult);
+            if (gradeData.BonusDamage > 0f)
+                damagePerTick = gradeData.BonusDamage;
+            if (gradeData.Duration > 0f)
+                duration = gradeData.Duration;
+            if (gradeData.TickInterval > 0f)
+                tickInterval = gradeData.TickInterval;
+        }
+
+        if (shouldPoison)
+            poisonable.ApplyPoison(damagePerTick, duration, tickInterval);
+    }
+
     private static int ResolveSpreadCount(AttackContext context, MutationGrade grade)
     {
         if (MutationEffectResolver.TryGetGradeData(context, MutationType.Spread, SkillTag.Spread,
@@ -199,6 +311,47 @@ public abstract class ProjectileSkill : SkillBase
             MutationGrade.Quarantine => 1f,
             _ => 1f
         };
+    }
+
+    private static float ResolveExplosionDamage(MutationGrade grade)
+    {
+        return grade switch
+        {
+            MutationGrade.Safe => 6f,
+            MutationGrade.Caution => 8f,
+            MutationGrade.Danger => 8f,
+            MutationGrade.Quarantine => 8f,
+            _ => 0f
+        };
+    }
+
+    private static float ResolveSlowDuration(MutationGrade grade, float fallbackDuration)
+    {
+        return grade switch
+        {
+            MutationGrade.Safe => 1.5f,
+            MutationGrade.Caution => 2f,
+            MutationGrade.Danger => 3f,
+            MutationGrade.Quarantine => 3f,
+            _ => fallbackDuration
+        };
+    }
+
+    private static float ResolvePoisonDuration(MutationGrade grade, float fallbackDuration)
+    {
+        return grade switch
+        {
+            MutationGrade.Safe => 3f,
+            MutationGrade.Caution => 5f,
+            MutationGrade.Danger => 5f,
+            MutationGrade.Quarantine => 5f,
+            _ => fallbackDuration
+        };
+    }
+
+    private static float ResolvePoisonDamagePerTick(MutationGrade grade, float fallbackDamage)
+    {
+        return grade == MutationGrade.None ? fallbackDamage : 2f;
     }
 
     private static Vector2 Rotate(Vector2 direction, float degrees)

@@ -92,10 +92,10 @@ public static class MutationEffectResolver
         AttackContext context = hitResult.Context;
         duration = 0f;
 
-        MutationGrade grade = GetGrade(context, MutationType.Stun, SkillTag.None, MutationTargetScope.Common);
+        MutationGrade grade = GetGrade(context, MutationType.Stun, SkillTag.Stun, MutationTargetScope.Common);
         if (grade == MutationGrade.None) return false;
 
-        if (TryGetGradeData(context, MutationType.Stun, SkillTag.None,
+        if (TryGetGradeData(context, MutationType.Stun, SkillTag.Stun,
                 MutationTargetScope.Common, out var gradeData))
         {
             if (!ShouldTrigger(gradeData, hitResult)) return false;
@@ -119,10 +119,10 @@ public static class MutationEffectResolver
         damagePerTick = 0f;
         tickInterval = 0f;
 
-        MutationGrade grade = GetGrade(context, MutationType.Bind, SkillTag.None, MutationTargetScope.Common);
+        MutationGrade grade = GetGrade(context, MutationType.Bind, SkillTag.Bind, MutationTargetScope.Common);
         if (grade == MutationGrade.None) return false;
 
-        if (TryGetGradeData(context, MutationType.Bind, SkillTag.None,
+        if (TryGetGradeData(context, MutationType.Bind, SkillTag.Bind,
                 MutationTargetScope.Common, out var gradeData))
         {
             if (!ShouldTrigger(gradeData, hitResult)) return false;
@@ -154,10 +154,10 @@ public static class MutationEffectResolver
         extraTargetDamage = 0f;
         stunOnCollision = false;
 
-        MutationGrade grade = GetGrade(context, MutationType.Knockback, SkillTag.None, MutationTargetScope.MeleeOnly);
+        MutationGrade grade = GetGrade(context, MutationType.Knockback, SkillTag.Knockback, MutationTargetScope.MeleeOnly);
         if (grade == MutationGrade.None) return false;
 
-        if (TryGetGradeData(context, MutationType.Knockback, SkillTag.None,
+        if (TryGetGradeData(context, MutationType.Knockback, SkillTag.Knockback,
                 MutationTargetScope.MeleeOnly, out var gradeData))
         {
             if (!ShouldTrigger(gradeData, hitResult)) return false;
@@ -216,14 +216,14 @@ public static class MutationEffectResolver
         reflect = false;
         reflectedDamageMultiplier = 0f;
 
-        MutationGrade grade = GetGrade(context, MutationType.ProjectileAbsorb, SkillTag.None,
+        MutationGrade grade = GetGrade(context, MutationType.ProjectileAbsorb, SkillTag.ProjectileAbsorb,
             MutationTargetScope.MeleeOnly);
         if (grade == MutationGrade.None) return false;
 
         reflect = grade >= MutationGrade.Danger;
         reflectedDamageMultiplier = grade >= MutationGrade.Quarantine ? 1.3f : 1f;
 
-        if (TryGetGradeData(context, MutationType.ProjectileAbsorb, SkillTag.None,
+        if (TryGetGradeData(context, MutationType.ProjectileAbsorb, SkillTag.ProjectileAbsorb,
                 MutationTargetScope.MeleeOnly, out var gradeData))
         {
             reflect = gradeData.Grade >= MutationGrade.Danger;

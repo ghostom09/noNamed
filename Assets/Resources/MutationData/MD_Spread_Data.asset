@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 654affa4efbcd29469e6bccf157b6176, type: 3}
+  m_Name: MD_Spread_Data
+  m_EditorClassIdentifier: Assembly-CSharp::MutationData
+  mutationName: Spread
+  mutationType: 2
+  grade: 1
+  stackAmount: 1
+  targetScope: 1
+  targetConditionText: "Projectile skills only."
+  descriptionText: "Fires additional projectiles in a spread pattern."
+  currentEffectText: "Adds one Spread stack to the selected projectile skill."
+  evolutionText: "Higher stacks increase projectile count and damage tuning."

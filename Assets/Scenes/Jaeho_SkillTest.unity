@@ -308,8 +308,8 @@ MonoBehaviour:
   boss: {fileID: 1608904340}
   bossNameOverride: 
   autoFindBoss: 1
-  hideWhenNoBoss: 0
-  hideWhenBossDead: 0
+  hideWhenNoBoss: 1
+  hideWhenBossDead: 1
   showHpNumbers: 0
   refreshInterval: 0.05
   panelRoot: {fileID: 931905799}
@@ -3414,6 +3414,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 2376096167461283000, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: m_TagString
+      value: Player
+      objectReference: {fileID: 0}
     - target: {fileID: 3774528430154238141, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
       propertyPath: dashTime
       value: 0.1
@@ -3426,9 +3430,21 @@ PrefabInstance:
       propertyPath: acceleration
       value: 25
       objectReference: {fileID: 0}
+    - target: {fileID: 3774528430154238141, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: dashCoolTime
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3774528430154238141, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: deceleration
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 4449645202974008344, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
       propertyPath: m_SortingOrder
       value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 5428777015387837351, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+      propertyPath: initialAvailablePoints
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 6123872552592524966, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
       propertyPath: skillSwitcher
@@ -3641,6 +3657,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkillMutationLoadoutBinder
   autoFindSkillsInChildren: 1
   addMissingLoadouts: 1
+  defaultDefinitions:
+  - {fileID: 11400000, guid: 90f78f88c3c64894a35af5034818c001, type: 2}
+  - {fileID: 11400000, guid: af7ea58ef44f420eb910f31ad2e0768a, type: 2}
+  - {fileID: 11400000, guid: 368ef4ac832349c8ac73199e852b96a2, type: 2}
+  - {fileID: 11400000, guid: 5e48f016b9274bd4964e5a9ffc3c9c04, type: 2}
+  - {fileID: 11400000, guid: 6df3f673a5514bb4989a42b4895e79ce, type: 2}
+  - {fileID: 11400000, guid: 14e0733a5b8d47b2b9bf90db23387c8f, type: 2}
+  - {fileID: 11400000, guid: cdc42bc2899d43f6924225799fb0854f, type: 2}
+  - {fileID: 11400000, guid: e470096b383e4c49b242c3d5b17e3569, type: 2}
+  - {fileID: 11400000, guid: 3abf08974a964c859790cf47deab6f5a, type: 2}
+  - {fileID: 11400000, guid: 02d3bb8ef9e84d399b960074fcd72495, type: 2}
+  - {fileID: 11400000, guid: 64671b3b1b0f45c88b267e560105cfad, type: 2}
+  - {fileID: 11400000, guid: 7c5cb81db79c46f59c2190a0be6a38f3, type: 2}
   skills: []
 --- !u!114 &612237832
 MonoBehaviour:
@@ -3655,11 +3684,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillTagDebugController
   skillSwitcher: {fileID: 612237818}
-  targetTags: 64
-  targetMutation: 0
-  stackStep: 1
-  useTagMappingForMutation: 1
-  addMissingLoadout: 1
+  targetTags: 8192
+--- !u!114 &612237833 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5428777015387837351, guid: e4ce74e09f9f444449e9fbd6af126441, type: 3}
+  m_PrefabInstance: {fileID: 612237813}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 612237823}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6374f853977d22d40861a53472132075, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStatManager
 --- !u!1 &650713165
 GameObject:
   m_ObjectHideFlags: 0
@@ -5977,13 +6013,19 @@ MonoBehaviour:
   slamCooldown: 4
   waveCooldown: 5
   pillarCooldown: 6
+  tileSize: 1
   slamRange: 6
   beamLength: 12
   beamDPS: 25
   waveDamage: 35
   waveKnockback: 18
+  waveWidth: 4
+  waveSpeed: 5
+  waveMaxRange: 25
+  pillarRadius: 1.5
   pillarDamage: 45
   bindDuration: 2.5
+  floodSize: {x: 100, y: 100}
   crossBeamData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
   groundSlamData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
   waveBlastData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
@@ -7247,7 +7289,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1187297727
 RectTransform:
   m_ObjectHideFlags: 0
@@ -7292,7 +7334,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb8ef5f0a1e84cc6908dcd3a1c3af901, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStatUpgradeUI
-  playerStatManager: {fileID: 0}
+  playerStatManager: {fileID: 612237833}
   autoFindPlayerStatManager: 1
   useFallbackPreviewValues: 1
   availablePoints: 5
@@ -7328,6 +7370,9 @@ MonoBehaviour:
     valueText: {fileID: 1807698874}
     plusButton: {fileID: 148012350}
   showOnStart: 1
+  confirmOnStatClick: 0
+  hideOnConfirm: 1
+  hideOnCancel: 1
   refreshContinuously: 1
   refreshInterval: 0.25
 --- !u!114 &1187297729
@@ -9915,7 +9960,7 @@ MonoBehaviour:
   highlightPadding: {x: 10, y: 10}
   highlightColor: {r: 1, g: 0.78, b: 0.12, a: 0.95}
   allowClickSelection: 1
-  allowScrollSelection: 1
+  allowScrollSelection: 0
   autoBindRuntimeSkillSwitcher: 1
   tooltipOffset: {x: 0, y: 120}
   tooltipSize: {x: 280, y: 180}
@@ -10040,7 +10085,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1608904339}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 096d334d0ba54b3ca1812fb9cf2b493c, type: 3}
   m_Name: 
