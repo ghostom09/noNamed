@@ -27,6 +27,7 @@ namespace BossSystem.Boss.FireBoss
         private float damagePerSec;
         private float duration;
         private float tickInterval;
+        private float telegraphDelay;
         private BossAttackData attackData;
 
         private enum Phase { Idle, Telegraph, Attack }
@@ -36,6 +37,7 @@ namespace BossSystem.Boss.FireBoss
         public FlameBreathNode(BossBlackboard bb, FireBossController boss,
             float closeRange = 5f, float fanAngle = 90f,
             float damagePerSec = 30f, float duration = 2.5f,
+            float telegraphDelay = 0.3f,
             BossAttackData data = null) : base(bb)
         {
             this.boss         = boss;
@@ -44,6 +46,7 @@ namespace BossSystem.Boss.FireBoss
             this.damagePerSec = damagePerSec;
             this.duration     = duration;
             this.tickInterval = 0.2f;
+            this.telegraphDelay = telegraphDelay;
             this.attackData   = data;
         }
 
@@ -69,7 +72,8 @@ namespace BossSystem.Boss.FireBoss
                         radius: closeRange,
                         direction: dir2D,
                         followBoss: true,
-                        onComplete: OnTelegraphDone);
+                        onComplete: OnTelegraphDone,
+                        duration: telegraphDelay);
 
                     return NodeState.Running;
 
@@ -120,7 +124,7 @@ namespace BossSystem.Boss.FireBoss
                                         new Vector2(toPlayer.x, toPlayer.y));
             if (angle <= fanAngle * 0.5f && toPlayer.magnitude <= closeRange)
             {
-                // player.GetComponent<PlayerHealth>()?.TakeDamage(damagePerSec * tickInterval);
+                FireBossController.ApplyDamageToPlayer(player.gameObject, damagePerSec * tickInterval);
             }
         }
     }
@@ -191,6 +195,10 @@ namespace BossSystem.Boss.FireBoss
                     if (shotsFired >= shotCount)
                     {
                         boss.SetExecutingPattern(false);
+
+                        if (blackboard.IsPhase2)
+                            boss.SpawnGasCloud(boss.transform.position, spreadAngle);
+
                         phase = Phase.Idle;
                         return NodeState.Success;
                     }
@@ -233,17 +241,20 @@ namespace BossSystem.Boss.FireBoss
         private float ringInterval;
         private float expandSpeed;
         private float maxRadius;
+        private float ringWidth;
+        private float telegraphDelay;
         private float damage;
         private BossAttackData attackData;
 
-        private enum Phase { Idle, Telegraph, Attack }
+        private enum Phase { Idle, Telegraph, Attack, WaitNextTelegraph }
         private Phase phase        = Phase.Idle;
         private int   ringsSpawned = 0;
         private float nextRingTime = 0f;
 
         public ExpandingFireRingNode(BossBlackboard bb, FireBossController boss,
-            int ringCount = 3, float ringInterval = 0.8f,
+            int ringCount = 3, float ringInterval = 0.3f,
             float expandSpeed = 6f, float maxRadius = 12f, float damage = 40f,
+            float ringWidth = 1.5f, float telegraphDelay = 0.5f,
             BossAttackData data = null) : base(bb)
         {
             this.boss         = boss;
@@ -251,6 +262,8 @@ namespace BossSystem.Boss.FireBoss
             this.ringInterval = ringInterval;
             this.expandSpeed  = expandSpeed;
             this.maxRadius    = maxRadius;
+            this.ringWidth    = ringWidth;
+            this.telegraphDelay = telegraphDelay;
             this.damage       = damage;
             this.attackData   = data;
         }
@@ -263,10 +276,11 @@ namespace BossSystem.Boss.FireBoss
                     if (boss.IsExecutingPattern) return NodeState.Failure;
 
                     phase = Phase.Telegraph;
+                    ringsSpawned = 0;
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
 
-                    boss.SpawnFireRingTelegraphs(attackData, maxRadius, onComplete: OnTelegraphDone);
+                    SpawnCurrentTelegraph();
 
                     return NodeState.Running;
 
@@ -274,27 +288,32 @@ namespace BossSystem.Boss.FireBoss
                     return NodeState.Running;
 
                 case Phase.Attack:
-                    if (Time.time >= nextRingTime && ringsSpawned < ringCount)
+                    SpawnCurrentRing();
+                    ringsSpawned++;
+                    nextRingTime = Time.time + ringInterval;
+
+                    if (ringsSpawned >= ringCount)
                     {
-                        boss.SpawnFireRing(boss.transform.position, expandSpeed,
-                                           maxRadius, damage, ringsSpawned * 0.05f,
-                                           blackboard.IsPhase2,
-                                           useCenterPrefab: ringsSpawned == 0);
-                        ringsSpawned++;
-                        nextRingTime = Time.time + ringInterval;
+                        if (Time.time >= nextRingTime)
+                            return FinishPattern();
+
+                        phase = Phase.WaitNextTelegraph;
+                        return NodeState.Running;
                     }
 
-                    if (ringsSpawned >= ringCount &&
-                        Time.time >= nextRingTime + maxRadius / expandSpeed)
-                    {
-                        boss.SetExecutingPattern(false);
+                    phase = Phase.WaitNextTelegraph;
+                    return NodeState.Running;
 
-                        if (blackboard.IsPhase2)
-                            boss.SpawnGasCloud(boss.transform.position, 360f);
+                case Phase.WaitNextTelegraph:
+                    if (Time.time < nextRingTime)
+                        return NodeState.Running;
 
-                        phase = Phase.Idle;
-                        return NodeState.Success;
-                    }
+                    if (ringsSpawned >= ringCount)
+                        return FinishPattern();
+
+                    phase = Phase.Telegraph;
+                    boss.SetTelegraphing(true);
+                    SpawnCurrentTelegraph();
                     return NodeState.Running;
             }
             boss.ForceReleasePattern();
@@ -304,10 +323,52 @@ namespace BossSystem.Boss.FireBoss
 
         private void OnTelegraphDone()
         {
-            phase        = Phase.Attack;
-            ringsSpawned = 0;
-            nextRingTime = Time.time;
+            phase = Phase.Attack;
             boss.SetTelegraphing(false);
+        }
+
+        private void SpawnCurrentTelegraph()
+        {
+            GetCurrentRingRadii(out float innerRadius, out float outerRadius, out bool isCenterAttack);
+            boss.SpawnFireRingTelegraph(attackData, innerRadius, outerRadius, isCenterAttack,
+                onComplete: OnTelegraphDone, duration: telegraphDelay);
+        }
+
+        private void SpawnCurrentRing()
+        {
+            GetCurrentRingRadii(out float innerRadius, out float outerRadius, out bool isCenterAttack);
+            boss.SpawnFireRing(boss.transform.position, expandSpeed,
+                               outerRadius, damage, 0f,
+                               blackboard.IsPhase2,
+                               useCenterPrefab: isCenterAttack,
+                               innerRadius: innerRadius);
+        }
+
+        private void GetCurrentRingRadii(out float innerRadius, out float outerRadius, out bool isCenterAttack)
+        {
+            float centerRadius = boss.GetFireRingCenterRadius();
+            innerRadius = 0f;
+            outerRadius = centerRadius;
+            isCenterAttack = ringsSpawned == 0;
+
+            if (!isCenterAttack)
+            {
+                innerRadius = centerRadius + ringWidth * (ringsSpawned - 1);
+                outerRadius = ringsSpawned == ringCount - 1
+                    ? maxRadius
+                    : centerRadius + ringWidth * ringsSpawned;
+            }
+        }
+
+        private NodeState FinishPattern()
+        {
+            boss.SetExecutingPattern(false);
+
+            if (blackboard.IsPhase2)
+                boss.SpawnGasCloud(boss.transform.position, 360f);
+
+            phase = Phase.Idle;
+            return NodeState.Success;
         }
     }
 

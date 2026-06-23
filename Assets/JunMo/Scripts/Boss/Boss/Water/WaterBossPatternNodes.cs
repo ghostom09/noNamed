@@ -220,7 +220,8 @@ namespace BossSystem.Boss.WaterBoss
                         boss.transform.position,
                         new Vector2(fireDir.x, fireDir.y),
                         length: maxRange, width: waveWidth,
-                        data: attackData, onComplete: OnTelegraphDone);
+                        data: attackData, onComplete: OnTelegraphDone,
+                        anchorAtStart: true);
 
                     return NodeState.Running;
 

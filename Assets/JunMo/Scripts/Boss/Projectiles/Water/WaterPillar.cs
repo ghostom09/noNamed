@@ -41,8 +41,7 @@ namespace BossSystem.Boss.WaterBoss
             var hits = Physics2D.OverlapCircleAll(transform.position, radius);
             foreach (var hit in hits)
             {
-                if (!hit.CompareTag("Player")) continue;
-                hit.GetComponent<PlayerHealth>()?.TakeDamage(damage);
+                if (!WaterBossController.ApplyDamageToPlayer(hit.gameObject, damage)) continue;
                 hit.GetComponent<PlayerMovement>()?.ApplyBind(bindDuration);
             }
 

@@ -229,7 +229,8 @@ namespace BossSystem.Boss
             float width,
             BossAttackData data,
             System.Action onComplete = null,
-            float duration = -1f)
+            float duration = -1f,
+            bool anchorAtStart = false)
         {
             return telegraphMaker.SpawnLine(
                 lineTelegraphPrefab != null ? lineTelegraphPrefab : circleTelegraphPrefab,
@@ -239,7 +240,8 @@ namespace BossSystem.Boss
                 width,
                 data,
                 onComplete,
-                duration);
+                duration,
+                anchorAtStart);
         }
 
         protected GameObject GetTelegraphPrefab(TelegraphShape shape)

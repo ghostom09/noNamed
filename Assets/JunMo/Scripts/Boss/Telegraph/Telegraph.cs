@@ -47,6 +47,15 @@ public class Telegraph : MonoBehaviour
         _activeCoroutine = StartCoroutine(ChargeTelegraph());
     }
 
+    public void SetLineSize(float width, float length)
+    {
+        transform.localScale = new Vector3(width, length, 1f);
+
+        SetSpriteDrawMode(GetComponent<SpriteRenderer>());
+        if (timeTelegraph != null)
+            SetSpriteDrawMode(timeTelegraph.GetComponent<SpriteRenderer>());
+    }
+
     public void Cancel()
     {
         if (_activeCoroutine != null)
@@ -118,6 +127,17 @@ public class Telegraph : MonoBehaviour
         if (_sr != null)
             _sr.enabled = false;
 
-        timeTelegraph.localScale = Vector3.zero;
+        if (timeTelegraph != null)
+            timeTelegraph.localScale = Vector3.zero;
+
+        Destroy(gameObject);
+    }
+
+    private static void SetSpriteDrawMode(SpriteRenderer sprite)
+    {
+        if (sprite == null)
+            return;
+
+        sprite.drawMode = SpriteDrawMode.Simple;
     }
 }

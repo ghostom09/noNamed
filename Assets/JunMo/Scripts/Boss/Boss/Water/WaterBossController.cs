@@ -3,6 +3,7 @@ using BossSystem.BehaviorTree;
 using BossSystem.Boss;
 using BossSystem.Boss.FireBoss;
 using BossSystem.Scripable;
+using System.Collections.Generic;
 
 namespace BossSystem.Boss.WaterBoss
 {
@@ -23,7 +24,7 @@ namespace BossSystem.Boss.WaterBoss
         [SerializeField] private float waveKnockback = 18f;
         [SerializeField] private float waveWidth     = 4f;
         [SerializeField] private float waveSpeed     = 5f;
-        [SerializeField] private float waveMaxRange  = 25f;
+        [SerializeField] private float waveMaxRange  = 12f;
         [SerializeField] private float pillarRadius  = 1.5f;
         [SerializeField] private float pillarDamage  = 45f;
         [SerializeField] private float bindDuration  = 2.5f;
@@ -36,8 +37,10 @@ namespace BossSystem.Boss.WaterBoss
         [SerializeField] private BossAttackData pillarBindData;
 
         [Header("Cross Beam")]
-        [SerializeField] private WaterBeamSegment[] beamSegments;
+        [SerializeField] private GameObject         waterBeamPrefab;
         [SerializeField] private Transform          beamPivot;
+        [SerializeField] private LayerMask          beamBlockerMask = ~0;
+        [SerializeField] private float              beamRaycastPadding = 0.05f;
 
         [Header("Prefabs")]
         [SerializeField] private GameObject waterWavePrefab;
@@ -51,6 +54,13 @@ namespace BossSystem.Boss.WaterBoss
 
         private bool       floodActive   = false;
         private GameObject floodInstance = null;
+        private readonly List<ActiveBeam> activeBeamInstances = new List<ActiveBeam>();
+
+        private class ActiveBeam
+        {
+            public GameObject GameObject;
+            public WaterBeamSegment Segment;
+        }
 
         protected override bool ShouldChasePlayer => false;
 
@@ -103,19 +113,117 @@ namespace BossSystem.Boss.WaterBoss
 
         public void ActivateCrossBeam(bool on, float dps)
         {
-            if (beamSegments == null) return;
-            foreach (var seg in beamSegments)
+            ClearCrossBeam();
+
+            if (!on)
+                return;
+
+            if (waterBeamPrefab == null)
             {
-                if (seg == null) continue;
-                seg.gameObject.SetActive(on);
-                if (on) seg.Initialize(dps, beamLength * tileSize);
+                Debug.LogWarning("[WaterBoss] Water beam prefab is not assigned.");
+                return;
             }
+
+            EnsureBeamPivot();
+            beamPivot.position = transform.position;
+            beamPivot.rotation = Quaternion.identity;
+
+            SpawnBeamSegment(0f, dps);
+            SpawnBeamSegment(90f, dps);
+            SpawnBeamSegment(180f, dps);
+            SpawnBeamSegment(270f, dps);
+            UpdateActiveBeamLengths();
         }
 
         public void SetBeamRotation(float angle)
         {
+            EnsureBeamPivot();
             if (beamPivot != null)
+            {
                 beamPivot.rotation = Quaternion.Euler(0f, 0f, angle);
+                UpdateActiveBeamLengths();
+            }
+        }
+
+        private void EnsureBeamPivot()
+        {
+            if (beamPivot != null)
+                return;
+
+            var pivot = new GameObject("WaterBeamPivot");
+            pivot.transform.SetParent(transform);
+            pivot.transform.localPosition = Vector3.zero;
+            beamPivot = pivot.transform;
+        }
+
+        private void SpawnBeamSegment(float angle, float dps)
+        {
+            var go = Instantiate(waterBeamPrefab, beamPivot);
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+            go.transform.localScale = Vector3.one;
+            go.SetActive(true);
+
+            var segment = go.GetComponent<WaterBeamSegment>();
+            segment?.Initialize(dps, GetBeamLength(go.transform.up));
+
+            activeBeamInstances.Add(new ActiveBeam
+            {
+                GameObject = go,
+                Segment = segment
+            });
+        }
+
+        private void UpdateActiveBeamLengths()
+        {
+            foreach (var beam in activeBeamInstances)
+            {
+                if (beam?.GameObject == null || beam.Segment == null)
+                    continue;
+
+                beam.Segment.SetLength(GetBeamLength(beam.GameObject.transform.up));
+            }
+        }
+
+        private float GetBeamLength(Vector2 direction)
+        {
+            float maxLength = beamLength * tileSize;
+            Vector2 dir = direction.sqrMagnitude > 0f ? direction.normalized : Vector2.up;
+            Vector2 origin = transform.position;
+            Vector2 rayOrigin = origin + dir * beamRaycastPadding;
+
+            var hits = Physics2D.RaycastAll(rayOrigin, dir, maxLength, beamBlockerMask);
+            float bestDistance = maxLength;
+
+            foreach (var hit in hits)
+            {
+                if (hit.collider == null || hit.collider.isTrigger)
+                    continue;
+
+                if (hit.collider.GetComponent<WaterBeamSegment>() != null)
+                    continue;
+
+                if (hit.collider.transform == transform || hit.collider.transform.IsChildOf(transform))
+                    continue;
+
+                if (hit.collider.CompareTag("Player"))
+                    continue;
+
+                bestDistance = Mathf.Min(bestDistance, Mathf.Max(0f, hit.distance + beamRaycastPadding));
+            }
+
+            return bestDistance;
+        }
+
+        private void ClearCrossBeam()
+        {
+            for (int i = activeBeamInstances.Count - 1; i >= 0; i--)
+            {
+                if (activeBeamInstances[i]?.GameObject != null)
+                    Destroy(activeBeamInstances[i].GameObject);
+            }
+
+            activeBeamInstances.Clear();
         }
 
         public void SpawnCrossBeamTelegraphs(float length, BossAttackData data, System.Action onComplete)
@@ -123,13 +231,15 @@ namespace BossSystem.Boss.WaterBoss
             Vector2[] directions = { Vector2.right, Vector2.up, Vector2.left, Vector2.down };
             for (int i = 0; i < directions.Length; i++)
             {
+                float beamRange = GetBeamLength(directions[i]);
                 SpawnLineTelegraph(
                     transform.position,
                     directions[i],
-                    length,
+                    beamRange,
                     tileSize,
                     data,
-                    i == 0 ? onComplete : null);
+                    i == 0 ? onComplete : null,
+                    anchorAtStart: true);
             }
         }
 
@@ -138,8 +248,7 @@ namespace BossSystem.Boss.WaterBoss
             var hits = Physics2D.OverlapCircleAll(transform.position, range);
             foreach (var hit in hits)
             {
-                if (!hit.CompareTag("Player")) continue;
-                hit.GetComponent<PlayerHealth>()?.TakeDamage(damage);
+                if (!ApplyDamageToPlayer(hit.gameObject, damage)) continue;
                 var hitRb = hit.GetComponent<Rigidbody2D>();
                 if (hitRb != null)
                 {
@@ -189,6 +298,17 @@ namespace BossSystem.Boss.WaterBoss
             ActivateCrossBeam(false, 0f);
             if (floodInstance != null) Destroy(floodInstance);
             base.OnDie();
+        }
+
+        public static bool ApplyDamageToPlayer(GameObject target, float damage)
+        {
+            if (target == null) return false;
+
+            var health = target.GetComponent<PlayerHealth>();
+            if (health == null) return false;
+
+            health.TakeDamage(damage);
+            return true;
         }
     }
 }

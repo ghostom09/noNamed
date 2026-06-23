@@ -68,9 +68,11 @@ namespace BossSystem.Boss.WaterBoss
         private void OnTriggerEnter2D(Collider2D other)
         {
             if (!other.CompareTag("Player") || hitTargets.Contains(other)) return;
-            hitTargets.Add(other);
 
-            other.GetComponent<PlayerHealth>()?.TakeDamage(damage);
+            if (!WaterBossController.ApplyDamageToPlayer(other.gameObject, damage))
+                return;
+
+            hitTargets.Add(other);
 
             var rb = other.GetComponent<Rigidbody2D>();
             if (rb != null)
