@@ -31,12 +31,12 @@ public class PlayerMove : MonoBehaviour
     private void Move()
     {
         Vector2 targetVelocity = moveDirection * _statManager.MoveSpeed;
-        
+
         float currentAccelRate = (moveDirection.sqrMagnitude > 0.01f) ? acceleration : deceleration;
-        
+
         float newX = Mathf.MoveTowards(_rb.linearVelocity.x, targetVelocity.x, currentAccelRate * Time.fixedDeltaTime);
         float newY = Mathf.MoveTowards(_rb.linearVelocity.y, targetVelocity.y, currentAccelRate * Time.fixedDeltaTime);
-        
+
         _rb.linearVelocity = new Vector2(newX, newY);
     }
 
