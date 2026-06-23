@@ -21,9 +21,11 @@ public class HpBarView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     private TextMeshProUGUI statText;
     private CanvasGroup statTextCanvasGroup;
     private ScriptableObject playerStat;
+    private PlayerStatManager statManager;
     private int level = 1;
 
     [SerializeField] private bool autoBindRuntimeHealth = true;
+    [SerializeField] private bool autoBindPlayerStats = true;
     [Header("HP Border")]
     [SerializeField] private Color hpBorderColor = new(0.08f, 0.08f, 0.08f, 1f);
     [SerializeField] private Vector2 hpBorderPadding = new(6f, 6f);
@@ -56,6 +58,7 @@ public class HpBarView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     private void Start()
     {
         EnsureRuntimeHealthBinder();
+        EnsureStatPanelBinder();
     }
 
     private void Update()
@@ -138,9 +141,22 @@ public class HpBarView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     {
         BindStatPanelReferences();
 
-        if (statText != null)
+        if (statText == null)
         {
-            statText.text = playerStat == null ? string.Empty : BuildStatText();
+            return;
+        }
+
+        if (playerStat != null)
+        {
+            statText.text = BuildStatText();
+        }
+        else if (statManager != null)
+        {
+            statText.text = BuildStatTextFromManager(statManager);
+        }
+        else
+        {
+            statText.text = string.Empty;
         }
     }
 
@@ -148,7 +164,6 @@ public class HpBarView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     {
         object bonus = GetLevelBonus();
 
-        float health = GetStatValue("health") + GetBonusValue(bonus, "health");
         float meleeDamage = GetStatValue("meleeDamage") + GetBonusValue(bonus, "meleeDamage");
         float rangedDamage = GetStatValue("rangedDamage") + GetBonusValue(bonus, "rangedDamage");
         float criticalProbability = GetStatValue("criticalProbability") + GetBonusValue(bonus, "criticalProbability");
@@ -158,14 +173,33 @@ public class HpBarView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
 
         return $"{playerStat.name}\n" +
                $"LV    {level}\n" +
-               $"HP    {health:0.#}\n" +
-               $"MELEE {meleeDamage:0.#}\n" +
                $"RANGE {rangedDamage:0.#}\n" +
-               $"CRIT  {criticalProbability:0.#}%\n" +
-               $"MOVE  {moveSpeed:0.##}\n" +
+               $"MELEE {meleeDamage:0.#}\n" +
                $"ASPD  {attackSpeed:0.##}\n" +
+               $"MOVE  {moveSpeed:0.##}\n" +
+               $"CRIT  {criticalProbability:0.#}%\n" +
                $"AREA  {skillArea:0.##}";
     }
+
+    public void RefreshFromManager(PlayerStatManager manager)
+    {
+        statManager = manager;
+        BindStatPanelReferences();
+        RefreshStatText();
+    }
+
+    private static string BuildStatTextFromManager(PlayerStatManager m)
+    {
+        return $"Player\n" +
+               $"LV    {m.Level}\n" +
+               $"RANGE {m.RangedDamage:0.#}\n" +
+               $"MELEE {m.MeleeDamage:0.#}\n" +
+               $"ASPD  {m.AttackSpeed:0.##}\n" +
+               $"MOVE  {m.MoveSpeed:0.##}\n" +
+               $"CRIT  {m.CriticalProbability:0.#}%\n" +
+               $"AREA  {m.SkillArea:0.##}";
+    }
+
 
     private object GetLevelBonus()
     {
@@ -281,10 +315,21 @@ public class HpBarView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
             return;
         }
 
-        if (SkillMutationLoadoutBinder.FindFirstComponentByTypeName("Health") != null)
+        if (SkillMutationLoadoutBinder.FindFirstComponentByTypeName("PlayerHealth") != null ||
+            SkillMutationLoadoutBinder.FindFirstComponentByTypeName("Health") != null)
         {
             gameObject.AddComponent<HpBarHealthBinder>();
         }
+    }
+
+    private void EnsureStatPanelBinder()
+    {
+        if (!autoBindPlayerStats || GetComponent<StatPanelBinder>() != null)
+        {
+            return;
+        }
+
+        gameObject.AddComponent<StatPanelBinder>();
     }
 
     private void ApplyHpBorder()

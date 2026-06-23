@@ -3962,9 +3962,11 @@ GameObject:
   m_Component:
   - component: {fileID: 1920241570}
   - component: {fileID: 1920241573}
+  - component: {fileID: 1920241576}
   - component: {fileID: 1920241572}
-  - component: {fileID: 1920241571}
+  - component: {fileID: 1920241575}
   - component: {fileID: 1920241574}
+  - component: {fileID: 1920241571}
   m_Layer: 0
   m_Name: MutationTestPlayer
   m_TagString: Player
@@ -4118,10 +4120,44 @@ MonoBehaviour:
   m_GameObject: {fileID: 1920241569}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ce1230db3ee930f4fbd4ad1d075df3f4, type: 3}
+  m_Script: {fileID: 11500000, guid: fb906f6219d7a73499216e2c5bb1c00e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MutationTestPlayerController
-  moveSpeed: 5
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMove
+  acceleration: 25
+  deceleration: 25
+  dashSpeed: 40
+  dashTime: 0.1
+  dashCoolTime: 1.5
+  moveDirection: {x: 0, y: 0}
+--- !u!114 &1920241575
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1920241569}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6374f853977d22d40861a53472132075, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStatManager
+  playerStat: {fileID: 11400000, guid: 8cf85ea9451a1ba4399c2022c138b9ad, type: 2}
+  pointsPerLevel: 3
+  bonusPointsPerLevel: 2
+  pointBonusMultiple: 5
+--- !u!114 &1920241576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1920241569}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0dd6321072d9352438f410d5f5743ac6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInputReader
+  _statPanel: {fileID: 0}
 --- !u!1 &1945273197
 GameObject:
   m_ObjectHideFlags: 0

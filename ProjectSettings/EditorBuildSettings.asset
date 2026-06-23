@@ -6,7 +6,13 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/ChaeWoon/scene/StartScene.unity
+    guid: f4695d3992fc30542b6000664a6db8c2
+  - enabled: 1
+    path: Assets/ChaeWoon/scene/IntegratedTest.unity
+    guid: 2d66047778642e94db948064baa0dab8
+  - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
   m_configObjects:
-    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 003425a5231ff224f839e3d2c7678ce4, type: 3}
