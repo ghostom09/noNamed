@@ -178,6 +178,9 @@ public class Bullet : MonoBehaviour
     // 일반 충돌 (Bounce용)
     private void OnCollisionEnter2D(Collision2D col)
     {
+        if (ShouldIgnoreCollider(col.collider))
+            return;
+
         if (CombatComponentUtility.TryGet(col.collider, out IDamageable _))
         {
             ContactPoint2D contact = col.GetContact(0);
@@ -219,6 +222,7 @@ public class Bullet : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D col)
     {
         if (_pierced.Contains(col)) return;
+        if (ShouldIgnoreCollider(col)) return;
 
         if (!CombatComponentUtility.TryGet(col, out IDamageable _))
         {
@@ -454,7 +458,7 @@ public class Bullet : MonoBehaviour
         for (int i = 0; i < hitsCount; i++)
         {
             Collider2D target = _explosionOverlapBuffer[i];
-            if (target == null || target == sourceHit.TargetCollider)
+            if (target == null || target == sourceHit.TargetCollider || ShouldIgnoreCollider(target))
                 continue;
 
             Vector2 hitPoint = target.ClosestPoint(sourceHit.HitPoint);
@@ -469,6 +473,48 @@ public class Bullet : MonoBehaviour
 
             AttackDamageResolver.TryApplyDamage(explosionContext, target, hitPoint, hitNormal, out _);
         }
+    }
+
+    private bool ShouldIgnoreCollider(Collider2D col)
+    {
+        if (col == null)
+            return true;
+
+        if (_context.Attacker != null &&
+            (col.gameObject == _context.Attacker || col.transform.IsChildOf(_context.Attacker.transform)))
+        {
+            return true;
+        }
+
+        if (IsWorldHitTarget(col))
+            return false;
+
+        if (!CombatComponentUtility.TryGet(col, out IDamageable damageable))
+            return false;
+
+        return !IsInTargetLayer(col.gameObject) && !IsDamageableInTargetLayer(damageable);
+    }
+
+    private bool IsInTargetLayer(GameObject target)
+    {
+        if (target == null)
+            return false;
+
+        if (_context.TargetLayer.value == 0)
+            return true;
+
+        return (_context.TargetLayer.value & (1 << target.layer)) != 0;
+    }
+
+    private bool IsDamageableInTargetLayer(IDamageable damageable)
+    {
+        if (_context.TargetLayer.value == 0)
+            return true;
+
+        if (damageable is Component component)
+            return IsInTargetLayer(component.gameObject);
+
+        return false;
     }
 
     private void ReturnToPool()
