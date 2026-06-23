@@ -107,4 +107,3 @@ MonoBehaviour:
   radius: 4
   lifetime: 12
   explosionDamage: 80
-  explosionRadius: 6

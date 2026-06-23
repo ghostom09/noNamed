@@ -8,6 +8,7 @@ namespace BossSystem.Boss.WaterBoss
     //  WaterBossController의 beamPivot 자식으로 배치:
     //    세그먼트 0°, 90°, 180°, 270° 각도로 배치 → + 형태
     // ═══════════════════════════════════════════════════════════════
+    [RequireComponent(typeof(BoxCollider2D))]
     public class WaterBeamSegment : MonoBehaviour
     {
         private float dps;
@@ -20,21 +21,22 @@ namespace BossSystem.Boss.WaterBoss
             SetLength(length);
         }
 
-        private void SetLength(float length)
+        public void SetLength(float length)
         {
-            float fullLength = length * 2f;
-            transform.localScale = Vector3.one;
+            transform.localScale = new Vector3(1f, length, 1f);
             var col = GetComponent<BoxCollider2D>();
-            if (col != null)
-            {
-                col.isTrigger = true;
-                col.size = new Vector2(col.size.x, fullLength);
-                col.offset = new Vector2(col.offset.x, 0f);
-            }
+            if (col == null)
+                col = gameObject.AddComponent<BoxCollider2D>();
+
+            col.isTrigger = true;
+            col.size = new Vector2(1f, 1f);
+            col.offset = new Vector2(0f, 0.5f);
 
             var sprite = GetComponent<SpriteRenderer>();
-            if (sprite != null)
-                sprite.size = new Vector2(sprite.size.x, fullLength);
+            if (sprite == null)
+                return;
+
+            sprite.drawMode = SpriteDrawMode.Simple;
         }
 
         private void OnTriggerStay2D(Collider2D other)
@@ -42,7 +44,7 @@ namespace BossSystem.Boss.WaterBoss
             if (!other.CompareTag("Player")) return;
             if (Time.time - lastTick < tickInterval) return;
             lastTick = Time.time;
-            other.GetComponent<PlayerHealth>()?.TakeDamage(dps * tickInterval);
+            WaterBossController.ApplyDamageToPlayer(other.gameObject, dps * tickInterval);
         }
     }
 }

@@ -27,15 +27,18 @@ public class TelegraphMaker
         float width,
         BossAttackData data,
         System.Action onComplete = null,
-        float duration = -1f)
+        float duration = -1f,
+        bool anchorAtStart = false)
     {
         Vector2 dir = direction.sqrMagnitude > 0f ? direction.normalized : Vector2.right;
-        Vector2 center = (Vector2)startPosition + dir * (length * 0.5f);
+        Vector2 position = anchorAtStart
+            ? (Vector2)startPosition
+            : (Vector2)startPosition + dir * (length * 0.5f);
         float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
 
         Telegraph telegraph = SpawnBase(
             telegraphPrefab,
-            new Vector3(center.x, center.y, startPosition.z),
+            new Vector3(position.x, position.y, startPosition.z),
             Quaternion.Euler(0f, 0f, angle),
             data,
             onComplete,
@@ -43,7 +46,7 @@ public class TelegraphMaker
             duration);
 
         if (telegraph != null)
-            telegraph.transform.localScale = new Vector3(width, length, 1f);
+            telegraph.SetLineSize(width, length);
 
         return telegraph;
     }

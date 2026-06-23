@@ -3,26 +3,24 @@ using UnityEngine;
 
 namespace BossSystem.Boss.FireBoss
 {
-    /// <summary>
-    /// 불의 고리 (SpriteRenderer 버전)
-    /// </summary>
     public class FireRing : MonoBehaviour
     {
-        private float expandSpeed;
+        private float innerRadius;
         private float maxRadius;
         private float damage;
         private bool isGasTrigger;
         private bool isSolidCircle;
         private FireBossController boss;
 
-        private float currentRadius = 0f;
         private float startTime;
+        private float destroyTime;
         private bool started = false;
+        private bool gasTriggered = false;
 
-        // 링의 충돌 판정 두께
-        private float thickness = 0.8f;
+        private const float AttackDuration = 0.25f;
 
         private SpriteRenderer spriteRenderer;
+        private LineRenderer ringRenderer;
 
         private readonly HashSet<Collider2D> hitTargets = new();
 
@@ -39,6 +37,7 @@ namespace BossSystem.Boss.FireBoss
 
         public void Initialize(
             float spd,
+            float innerR,
             float maxR,
             float dmg,
             float delay,
@@ -46,21 +45,21 @@ namespace BossSystem.Boss.FireBoss
             FireBossController bossRef,
             bool solidCircle = false)
         {
-            expandSpeed = spd;
-            maxRadius = maxR;
+            innerRadius = Mathf.Max(0f, innerR);
+            maxRadius = Mathf.Max(innerRadius, maxR);
             damage = dmg;
             isGasTrigger = gasTrigger;
             isSolidCircle = solidCircle;
             boss = bossRef;
 
             startTime = Time.time + delay;
+            destroyTime = startTime + AttackDuration;
 
-            currentRadius = 0f;
             started = false;
-
+            gasTriggered = false;
             hitTargets.Clear();
 
-            transform.localScale = Vector3.zero;
+            transform.localScale = Vector3.one;
 
             if (spriteRenderer != null)
                 spriteRenderer.enabled = false;
@@ -74,47 +73,43 @@ namespace BossSystem.Boss.FireBoss
                     return;
 
                 started = true;
-
-                if (spriteRenderer != null)
-                    spriteRenderer.enabled = true;
+                UpdateVisual();
             }
-
-            currentRadius += expandSpeed * Time.deltaTime;
-            currentRadius = Mathf.Min(currentRadius, maxRadius);
-
-            UpdateVisual();
 
             CheckRingOverlap();
 
-            if (currentRadius >= maxRadius)
+            if (!gasTriggered && isGasTrigger && boss != null)
             {
-                if (isGasTrigger && boss != null)
-                    boss.TriggerGasExplosion(transform.position, currentRadius);
-
-                Destroy(gameObject);
+                gasTriggered = true;
+                TriggerGasExplosionInArea();
             }
+
+            if (Time.time >= destroyTime)
+                Destroy(gameObject);
         }
 
         private void UpdateVisual()
         {
-            // 기본 스프라이트가 지름 1 유닛이라고 가정
-            float diameter = currentRadius * 2f;
+            if (spriteRenderer != null)
+                spriteRenderer.enabled = false;
 
-            transform.localScale = new Vector3(
-                diameter,
-                diameter,
-                1f
-            );
+            if (ringRenderer == null)
+                ringRenderer = gameObject.AddComponent<LineRenderer>();
+
+            FireBossController.SetupRingLine(
+                ringRenderer,
+                isSolidCircle ? 0f : innerRadius,
+                maxRadius,
+                new Color(1f, 0.4f, 0f, 0.85f),
+                4);
         }
 
         private void CheckRingOverlap()
         {
             Vector2 center = transform.position;
+            float minRadius = isSolidCircle ? 0f : innerRadius;
 
-            float outerRadius = isSolidCircle ? currentRadius : currentRadius + thickness * 0.5f;
-            float innerRadius = Mathf.Max(0f, currentRadius - thickness * 0.5f);
-
-            Collider2D[] hits = Physics2D.OverlapCircleAll(center, outerRadius);
+            Collider2D[] hits = Physics2D.OverlapCircleAll(center, maxRadius);
 
             foreach (Collider2D hit in hits)
             {
@@ -127,22 +122,39 @@ namespace BossSystem.Boss.FireBoss
                 if (!hit.CompareTag("Player"))
                     continue;
 
-                float dist = Vector2.Distance(
-                    center,
-                    hit.transform.position
-                );
+                float dist = Vector2.Distance(center, hit.transform.position);
 
-                if (!isSolidCircle && dist < innerRadius)
+                if (!isSolidCircle && dist < minRadius)
                     continue;
 
-                if (dist > outerRadius)
+                if (dist > maxRadius)
+                    continue;
+
+                if (!FireBossController.ApplyDamageToPlayer(hit.gameObject, damage))
                     continue;
 
                 hitTargets.Add(hit);
+            }
+        }
 
-                PlayerHealth health = hit.GetComponent<PlayerHealth>();
-                if (health != null)
-                    health.TakeDamage(damage);
+        private void TriggerGasExplosionInArea()
+        {
+            Vector2 center = transform.position;
+            float minRadius = isSolidCircle ? 0f : innerRadius;
+
+            foreach (GasCloud gas in boss.ActiveGasClouds)
+            {
+                if (gas == null || !gas.IsSpread)
+                    continue;
+
+                float dist = Vector2.Distance(center, gas.transform.position);
+                if (dist + gas.Radius < minRadius)
+                    continue;
+
+                if (dist > maxRadius + gas.Radius)
+                    continue;
+
+                gas.Explode();
             }
         }
     }
