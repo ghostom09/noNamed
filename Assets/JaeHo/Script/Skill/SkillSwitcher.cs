@@ -101,8 +101,7 @@ public class SkillSwitcher : MonoBehaviour
         _currentSkill = skills[_currentIndex];
         _currentSkill.gameObject.SetActive(true);
         _currentSkill.OnEquip();
-
-        Debug.Log($"Switched skill: {_currentSkill.name}");
+        
     }
 
     private bool HasAnySkill()

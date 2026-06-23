@@ -109,6 +109,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable, IHitPointStatus
     private void ApplyStatMaxHp(bool fillHp)
     {
         if (health == null || statManager == null) return;
+        if (!statManager.RefreshStats()) return;
 
         health.SetMaxHp(statManager.Health, fillHp);
     }

@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.Reflection;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -13,6 +15,11 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
     private float _baseMoveSpeed;
     private bool _hasMoveSpeedSnapshot;
     private bool _hasTakenDamage;
+    private bool _notifiedDeath;
+
+    private static readonly FieldInfo EnemyOnDeadField = typeof(Enemy).GetField(
+        "OnDead",
+        BindingFlags.Instance | BindingFlags.NonPublic);
 
     public float CurrentHp => _currentHp;
     public bool IsDead { get; private set; }
@@ -64,7 +71,6 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
 
         if (_currentHp <= 0f)
         {
-            Debug.Log($"[Enemy Dead] {gameObject.name}");
             Die();
         }
     }
@@ -147,19 +153,35 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
 
         if (enemy != null)
         {
+            NotifyEnemyDead();
+
             if (enemy.DieState != null)
                 enemy.ChangeState(enemy.DieState);
             else
-                enemy.RaiseDeadEvent();
+                Destroy(enemy.gameObject, 1f);
         }
 
         enabled = false;
     }
 
+    private void NotifyEnemyDead()
+    {
+        if (_notifiedDeath || enemy == null)
+            return;
+
+        _notifiedDeath = true;
+
+        if (EnemyOnDeadField?.GetValue(enemy) is Action<Enemy> onDead)
+            onDead.Invoke(enemy);
+    }
+
     private void HandleEnemyDead(Enemy deadEnemy)
     {
         if (deadEnemy == enemy)
+        {
             IsDead = true;
+            _notifiedDeath = true;
+        }
     }
 
     private void BindReferences()
