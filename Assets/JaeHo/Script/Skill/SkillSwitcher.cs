@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class SkillSwitcher : MonoBehaviour
+public class SkillSwitcher : MonoBehaviour, IAttackLockable
 {
     [SerializeField] private SkillBase[] skills;
 
@@ -10,8 +10,11 @@ public class SkillSwitcher : MonoBehaviour
     private bool _attackHeld;
     private bool _attackPressed;
     private bool _attackReleased;
+    private float _attackLockedUntil;
 
     public SkillBase CurrentSkill => _currentSkill;
+    public bool CanAttack => !IsAttackLocked;
+    public bool IsAttackLocked => Time.time < _attackLockedUntil;
 
     private void Awake()
     {
@@ -37,7 +40,11 @@ public class SkillSwitcher : MonoBehaviour
         if (scroll > 0f) SwitchWeapon(-1);
         else if (scroll < 0f) SwitchWeapon(1);
 
-        _currentSkill?.OnAttack(new SkillInputState(_attackHeld, _attackPressed, _attackReleased));
+        SkillInputState input = CanAttack
+            ? new SkillInputState(_attackHeld, _attackPressed, _attackReleased)
+            : SkillInputState.None;
+
+        _currentSkill?.OnAttack(input);
 
         _attackPressed = false;
         _attackReleased = false;
@@ -61,6 +68,18 @@ public class SkillSwitcher : MonoBehaviour
     public void ReleaseAttack()
     {
         SetAttackHeld(false);
+    }
+
+    public void ApplyAttackLock(float duration)
+    {
+        if (duration <= 0f) return;
+
+        _attackLockedUntil = Mathf.Max(_attackLockedUntil, Time.time + duration);
+    }
+
+    public void ClearAttackLock()
+    {
+        _attackLockedUntil = 0f;
     }
 
     public void SwitchNext()
@@ -142,6 +161,12 @@ public class SkillSwitcher : MonoBehaviour
         _attackHeld = false;
         _attackPressed = false;
         _attackReleased = false;
+    }
+
+    private void OnDisable()
+    {
+        ClearAttackLock();
+        ClearAttackState();
     }
 
     private static int Mod(int value, int length)
