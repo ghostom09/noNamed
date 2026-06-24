@@ -1,4 +1,5 @@
 using BossSystem.Boss;
+using BossSystem.Boss.FleshBoss;
 using System.Reflection;
 using TMPro;
 using UnityEngine;
@@ -229,10 +230,12 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
     private const string CombatHudPrefabPath = "Assets/ChaeWoon/Prefabs/UI/CombatHUDView.prefab";
     private const string BossHpBarPrefabPath = "Assets/ChaeWoon/Prefabs/UI/BossHpBarView.prefab";
     private const string StatUpgradePrefabPath = "Assets/ChaeWoon/Prefabs/UI/CharacterStatUpgradeUI.prefab";
+    private const float FleshChunkScanInterval = 0.1f;
 
     private static RoomClearMutationRewardSystem rewardSystem;
 
     private float _nextScanTime;
+    private float _nextFleshChunkScanTime;
 
     public static void IntegrateScene()
     {
@@ -240,6 +243,7 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
         EnsurePlayerIntegration();
         EnsureEnemyIntegration();
         EnsureBossIntegration();
+        EnsureFleshChunkIntegration();
         EnsureRuntimeUi();
         EnsureInitialStatUiHidden();
         EnsureMutationPickupGuards();
@@ -247,6 +251,12 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
 
     private void Update()
     {
+        if (Time.unscaledTime >= _nextFleshChunkScanTime)
+        {
+            _nextFleshChunkScanTime = Time.unscaledTime + FleshChunkScanInterval;
+            EnsureFleshChunkIntegration();
+        }
+
         if (Time.unscaledTime < _nextScanTime) return;
 
         _nextScanTime = Time.unscaledTime + 1f;
@@ -349,6 +359,18 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
             if (boss == null) continue;
             EnsureLayer(boss.gameObject, "Enemy");
             EnsureComponent<JunMoBossCombatAdapter>(boss.gameObject);
+        }
+    }
+
+    private static void EnsureFleshChunkIntegration()
+    {
+        FleshChunk[] chunks = Object.FindObjectsByType<FleshChunk>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (FleshChunk chunk in chunks)
+        {
+            if (chunk == null || chunk.IsDead) continue;
+            EnsureLayer(chunk.gameObject, "Enemy");
+            EnsureChildColliderLayers(chunk.gameObject, "Enemy");
+            EnsureComponent<JunMoFleshChunkCombatAdapter>(chunk.gameObject);
         }
     }
 
@@ -638,6 +660,26 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
             return;
 
         target.layer = layer;
+    }
+
+    private static void EnsureChildColliderLayers(GameObject target, string layerName)
+    {
+        if (target == null)
+            return;
+
+        int layer = LayerMask.NameToLayer(layerName);
+        if (layer < 0)
+            return;
+
+        Collider2D[] colliders = target.GetComponentsInChildren<Collider2D>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider2D targetCollider = colliders[i];
+            if (targetCollider == null)
+                continue;
+
+            targetCollider.gameObject.layer = layer;
+        }
     }
 
     private static void SetPrivateField(object target, string fieldName, object value)
