@@ -30,7 +30,22 @@ namespace BossSystem.Boss
         protected Rigidbody2D    rb;
 
         public float CurrentHP => currentHP;
+        public float MaxHP     => maxHP;
         public bool  IsDead    => currentHP <= 0f;
+
+        // ── 체력/생존 이벤트 (UI 연결용, 리플렉션 대체) ───────────
+        /// <summary>체력이 바뀔 때마다 (현재 HP, 최대 HP) 전달.</summary>
+        public event System.Action<float, float> HealthChanged;
+
+        /// <summary>보스가 활성/비활성될 때 알림 — UI가 탐색 없이 추적.</summary>
+        public static event System.Action<BossBase> BossSpawned;
+        public static event System.Action<BossBase> BossDespawned;
+
+        private static readonly System.Collections.Generic.List<BossBase> ActiveBossList = new();
+        /// <summary>현재 씬에서 활성화된 보스 목록 (UI가 즉시 현재 보스를 찾는 용도).</summary>
+        public static System.Collections.Generic.IReadOnlyList<BossBase> ActiveBosses => ActiveBossList;
+
+        protected void RaiseHealthChanged() => HealthChanged?.Invoke(currentHP, maxHP);
 
         // ── 패턴 실행 플래그 ──────────────────────────────────────
         public bool IsExecutingPattern { get; private set; } = false;
@@ -111,6 +126,20 @@ namespace BossSystem.Boss
                 ChasePlayer();
         }
 
+        protected virtual void OnEnable()
+        {
+            if (!ActiveBossList.Contains(this))
+                ActiveBossList.Add(this);
+
+            BossSpawned?.Invoke(this);
+        }
+
+        protected virtual void OnDisable()
+        {
+            ActiveBossList.Remove(this);
+            BossDespawned?.Invoke(this);
+        }
+
         protected virtual void Update()
         {
             if (IsDead) return;
@@ -165,6 +194,7 @@ namespace BossSystem.Boss
             if (IsDead) return;
             currentHP = Mathf.Max(0f, currentHP - damage);
             blackboard.CurrentHP = currentHP;    // ← 즉시 동기화 추가
+            RaiseHealthChanged();
             if (currentHP <= 0f) { OnDeath?.Invoke(); OnDie(); }
         }
 

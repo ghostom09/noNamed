@@ -234,6 +234,7 @@ namespace BossSystem.Boss.FleshBoss
         {
             currentHP = Mathf.Min(maxHP, currentHP + amount);
             blackboard.CurrentHP = currentHP;
+            RaiseHealthChanged();
             Debug.Log($"[FleshBoss] 체력 회복 +{amount:F0}");
         }
 

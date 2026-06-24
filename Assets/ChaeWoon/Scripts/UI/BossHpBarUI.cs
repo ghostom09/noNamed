@@ -1,10 +1,14 @@
 using System;
-using System.Reflection;
 using System.Text;
+using BossSystem.Boss;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// 보스 HP UI 를 JunMo 의 BossBase 와 이벤트 기반으로 연결한다.
+// - BossBase.HealthChanged 로 체력 표시 갱신 (폴링/리플렉션 없음)
+// - BossBase.OnDeath 로 사망 처리
+// - BossBase.BossSpawned/BossDespawned (static) 로 현재 보스를 자동 추적
 [DisallowMultipleComponent]
 public class BossHpBarUI : MonoBehaviour
 {
@@ -13,13 +17,12 @@ public class BossHpBarUI : MonoBehaviour
     private const string FillName = "BossHpFill";
     private const string HpTextName = "BossHpText";
 
-    [SerializeField] private Component boss;
+    [SerializeField] private BossBase boss;
     [SerializeField] private string bossNameOverride;
     [SerializeField] private bool autoFindBoss = true;
     [SerializeField] private bool hideWhenNoBoss = true;
     [SerializeField] private bool hideWhenBossDead = true;
     [SerializeField] private bool showHpNumbers;
-    [SerializeField, Min(0f)] private float refreshInterval = 0.05f;
 
     [Header("Prefab References")]
     [SerializeField] private RectTransform panelRoot;
@@ -27,9 +30,10 @@ public class BossHpBarUI : MonoBehaviour
     [SerializeField] private Image hpFillImage;
     [SerializeField] private TextMeshProUGUI hpText;
 
-    private float nextRefreshTime;
-    private float nextFindTime;
     private bool warnedMissingReferences;
+
+    /// <summary>살아있는 보스를 표시 중인지. 통합 부트스트랩이 중복 배선을 막는 데 사용.</summary>
+    public bool HasLiveBoss => boss != null && !boss.IsDead;
 
     private void Awake()
     {
@@ -40,52 +44,107 @@ public class BossHpBarUI : MonoBehaviour
     private void OnEnable()
     {
         BindReferences();
-        FindBossIfNeeded(true);
-        Refresh(true);
+
+        BossBase.BossSpawned += HandleBossSpawned;
+        BossBase.BossDespawned += HandleBossDespawned;
+
+        if (boss == null && autoFindBoss)
+            boss = FindLiveBoss();
+
+        BossBase target = boss;
+        boss = null;          // Attach 가 구독을 정상적으로 걸도록 초기화
+        Attach(target);
     }
 
-    private void Update()
+    private void OnDisable()
     {
-        FindBossIfNeeded(false);
-        Refresh(false);
+        BossBase.BossSpawned -= HandleBossSpawned;
+        BossBase.BossDespawned -= HandleBossDespawned;
+        Unsubscribe(boss);
     }
 
-    public void SetBoss(Component targetBoss)
+    public void SetBoss(BossBase targetBoss)
     {
-        boss = targetBoss;
-        Refresh(true);
+        Attach(targetBoss);
     }
 
     public void SetBossName(string displayName)
     {
         bossNameOverride = displayName;
-        Refresh(true);
+        RefreshName();
     }
 
-    private void FindBossIfNeeded(bool force)
+    // ── 이벤트 핸들러 ─────────────────────────────────────────
+
+    private void HandleBossSpawned(BossBase spawned)
     {
-        if (!autoFindBoss || boss != null)
-        {
+        if (!autoFindBoss || spawned == null)
             return;
-        }
 
-        if (!force && Time.unscaledTime < nextFindTime)
-        {
-            return;
-        }
-
-        nextFindTime = Time.unscaledTime + 0.5f;
-        boss = FindActiveBoss();
+        // 표시 중인 보스가 없거나 죽었으면 새로 등장한 보스로 교체.
+        if (boss == null || boss.IsDead)
+            Attach(spawned);
     }
 
-    private void Refresh(bool force)
+    private void HandleBossDespawned(BossBase despawned)
     {
-        if (!force && refreshInterval > 0f && Time.unscaledTime < nextRefreshTime)
-        {
+        if (despawned != boss)
             return;
+
+        Unsubscribe(boss);
+        boss = null;
+        Attach(autoFindBoss ? FindLiveBoss() : null);
+    }
+
+    private void HandleHealthChanged(float currentHp, float maxHp)
+    {
+        if (!HasRequiredReferences())
+            return;
+
+        SetVisible(true);
+        RefreshHp(currentHp, maxHp);
+    }
+
+    private void HandleBossDeath()
+    {
+        if (hideWhenBossDead)
+            SetVisible(false);
+    }
+
+    // ── 구독/표시 ─────────────────────────────────────────────
+
+    private void Attach(BossBase target)
+    {
+        if (boss != target)
+        {
+            Unsubscribe(boss);
+            boss = target;
+            Subscribe(boss);
         }
 
-        nextRefreshTime = Time.unscaledTime + Mathf.Max(0f, refreshInterval);
+        Refresh();
+    }
+
+    private void Subscribe(BossBase target)
+    {
+        if (target == null)
+            return;
+
+        target.HealthChanged += HandleHealthChanged;
+        target.OnDeath += HandleBossDeath;
+    }
+
+    private void Unsubscribe(BossBase target)
+    {
+        if (target == null)
+            return;
+
+        target.HealthChanged -= HandleHealthChanged;
+        target.OnDeath -= HandleBossDeath;
+    }
+
+    private void Refresh()
+    {
         BindReferences();
 
         if (!HasRequiredReferences())
@@ -96,43 +155,40 @@ public class BossHpBarUI : MonoBehaviour
 
         if (boss == null)
         {
-            SetName("Boss");
-            SetHp(1f, 1f);
             SetVisible(!hideWhenNoBoss);
+            if (!hideWhenNoBoss)
+            {
+                RefreshName();
+                RefreshHp(1f, 1f);
+            }
+
             return;
         }
 
-        if (ReadIsDead(boss))
+        if (boss.IsDead && hideWhenBossDead)
         {
-            SetVisible(!hideWhenBossDead);
-            if (hideWhenBossDead)
-            {
-                return;
-            }
+            SetVisible(false);
+            return;
         }
-
-        float maxHp = Mathf.Max(1f, ReadMaxHp(boss));
-        float currentHp = Mathf.Clamp(ReadCurrentHp(boss, maxHp), 0f, maxHp);
 
         SetVisible(true);
-        SetName(GetDisplayName(boss));
-        SetHp(currentHp, maxHp);
+        RefreshName();
+        RefreshHp(boss.CurrentHP, boss.MaxHP);
     }
 
-    private void SetName(string displayName)
+    private void RefreshName()
     {
         if (bossNameText != null)
-        {
-            bossNameText.text = string.IsNullOrWhiteSpace(displayName) ? "Boss" : displayName;
-        }
+            bossNameText.text = GetDisplayName();
     }
 
-    private void SetHp(float currentHp, float maxHp)
+    private void RefreshHp(float currentHp, float maxHp)
     {
+        maxHp = Mathf.Max(1f, maxHp);
+        currentHp = Mathf.Clamp(currentHp, 0f, maxHp);
+
         if (hpFillImage != null)
-        {
-            hpFillImage.fillAmount = maxHp <= 0f ? 0f : Mathf.Clamp01(currentHp / maxHp);
-        }
+            hpFillImage.fillAmount = Mathf.Clamp01(currentHp / maxHp);
 
         if (hpText != null)
         {
@@ -144,37 +200,37 @@ public class BossHpBarUI : MonoBehaviour
     private void SetVisible(bool visible)
     {
         if (panelRoot != null && panelRoot.gameObject.activeSelf != visible)
-        {
             panelRoot.gameObject.SetActive(visible);
+    }
+
+    private static BossBase FindLiveBoss()
+    {
+        var bosses = BossBase.ActiveBosses;
+        for (int i = 0; i < bosses.Count; i++)
+        {
+            if (bosses[i] != null && !bosses[i].IsDead)
+                return bosses[i];
         }
+
+        return null;
     }
 
     private void BindReferences()
     {
         if (panelRoot == null)
-        {
             panelRoot = FindDescendant<RectTransform>(PanelName);
-        }
 
         if (bossNameText == null)
-        {
             bossNameText = FindDescendant<TextMeshProUGUI>(NameTextName);
-        }
 
         if (hpFillImage == null)
-        {
             hpFillImage = FindDescendant<Image>(FillName);
-        }
 
         if (hpText == null)
-        {
             hpText = FindDescendant<TextMeshProUGUI>(HpTextName);
-        }
 
         if (hpText != null)
-        {
             hpText.gameObject.SetActive(showHpNumbers);
-        }
     }
 
     private bool HasRequiredReferences()
@@ -185,9 +241,7 @@ public class BossHpBarUI : MonoBehaviour
     private void WarnMissingReferences()
     {
         if (warnedMissingReferences)
-        {
             return;
-        }
 
         warnedMissingReferences = true;
         Debug.LogWarning("[BossHpBarUI] Boss HP prefab references are missing.", this);
@@ -200,230 +254,33 @@ public class BossHpBarUI : MonoBehaviour
         for (int i = 0; i < components.Length; i++)
         {
             if (components[i] != null && components[i].name == childName)
-            {
                 return components[i];
-            }
         }
 
         return null;
     }
 
-    private static Component FindActiveBoss()
-    {
-        MonoBehaviour[] behaviours = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude);
-
-        for (int i = 0; i < behaviours.Length; i++)
-        {
-            MonoBehaviour behaviour = behaviours[i];
-
-            if (behaviour == null || !IsOrInherits(behaviour.GetType(), "BossBase"))
-            {
-                continue;
-            }
-
-            if (!ReadIsDead(behaviour))
-            {
-                return behaviour;
-            }
-        }
-
-        return null;
-    }
-
-    private string GetDisplayName(Component target)
+    private string GetDisplayName()
     {
         if (!string.IsNullOrWhiteSpace(bossNameOverride))
-        {
             return bossNameOverride;
-        }
 
-        string rawName = target == null ? string.Empty : target.gameObject.name;
-        rawName = rawName.Replace("(Clone)", string.Empty).Trim();
+        if (boss == null)
+            return "Boss";
+
+        string rawName = boss.gameObject.name.Replace("(Clone)", string.Empty).Trim();
 
         if (string.IsNullOrWhiteSpace(rawName) || rawName.Equals("Boss", StringComparison.OrdinalIgnoreCase))
-        {
-            rawName = target == null ? "Boss" : target.GetType().Name;
-        }
+            rawName = boss.GetType().Name;
 
         rawName = StripSuffix(rawName, "Controller");
         return SplitPascalCase(rawName);
     }
 
-    private static float ReadCurrentHp(Component target, float fallback)
-    {
-        return TryReadFloat(target, new[] { "CurrentHP", "CurrentHp", "CurrentHealth" },
-            new[] { "currentHP", "currentHp", "currentHealth", "hp" }, out float value)
-            ? value
-            : fallback;
-    }
-
-    private static float ReadMaxHp(Component target)
-    {
-        return TryReadFloat(target, new[] { "MaxHP", "MaxHp", "MaxHealth" },
-            new[] { "maxHP", "maxHp", "maxHealth" }, out float value)
-            ? value
-            : 1f;
-    }
-
-    private static bool ReadIsDead(Component target)
-    {
-        if (TryReadBool(target, new[] { "IsDead" }, new[] { "isDead", "_isDead" }, out bool value))
-        {
-            return value;
-        }
-
-        return target == null;
-    }
-
-    private static bool TryReadFloat(Component target, string[] propertyNames, string[] fieldNames, out float value)
-    {
-        value = 0f;
-
-        if (target == null)
-        {
-            return false;
-        }
-
-        Type type = target.GetType();
-
-        for (int i = 0; i < propertyNames.Length; i++)
-        {
-            PropertyInfo property = FindProperty(type, propertyNames[i]);
-            if (property != null && TryConvertFloat(property.GetValue(target), out value))
-            {
-                return true;
-            }
-        }
-
-        for (int i = 0; i < fieldNames.Length; i++)
-        {
-            FieldInfo field = FindField(type, fieldNames[i]);
-            if (field != null && TryConvertFloat(field.GetValue(target), out value))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool TryReadBool(Component target, string[] propertyNames, string[] fieldNames, out bool value)
-    {
-        value = false;
-
-        if (target == null)
-        {
-            return false;
-        }
-
-        Type type = target.GetType();
-
-        for (int i = 0; i < propertyNames.Length; i++)
-        {
-            PropertyInfo property = FindProperty(type, propertyNames[i]);
-            if (property != null && property.GetValue(target) is bool propertyValue)
-            {
-                value = propertyValue;
-                return true;
-            }
-        }
-
-        for (int i = 0; i < fieldNames.Length; i++)
-        {
-            FieldInfo field = FindField(type, fieldNames[i]);
-            if (field != null && field.GetValue(target) is bool fieldValue)
-            {
-                value = fieldValue;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool TryConvertFloat(object rawValue, out float value)
-    {
-        value = 0f;
-
-        if (rawValue == null)
-        {
-            return false;
-        }
-
-        try
-        {
-            value = Convert.ToSingle(rawValue);
-            return true;
-        }
-        catch (InvalidCastException)
-        {
-            return false;
-        }
-        catch (FormatException)
-        {
-            return false;
-        }
-    }
-
-    private static PropertyInfo FindProperty(Type type, string propertyName)
-    {
-        while (type != null)
-        {
-            PropertyInfo property = type.GetProperty(
-                propertyName,
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-
-            if (property != null)
-            {
-                return property;
-            }
-
-            type = type.BaseType;
-        }
-
-        return null;
-    }
-
-    private static FieldInfo FindField(Type type, string fieldName)
-    {
-        while (type != null)
-        {
-            FieldInfo field = type.GetField(
-                fieldName,
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-
-            if (field != null)
-            {
-                return field;
-            }
-
-            type = type.BaseType;
-        }
-
-        return null;
-    }
-
-    private static bool IsOrInherits(Type type, string typeName)
-    {
-        while (type != null)
-        {
-            if (type.Name == typeName)
-            {
-                return true;
-            }
-
-            type = type.BaseType;
-        }
-
-        return false;
-    }
-
     private static string StripSuffix(string value, string suffix)
     {
         if (value.EndsWith(suffix, StringComparison.Ordinal))
-        {
             return value.Substring(0, value.Length - suffix.Length);
-        }
 
         return value;
     }
@@ -431,9 +288,7 @@ public class BossHpBarUI : MonoBehaviour
     private static string SplitPascalCase(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-        {
             return "Boss";
-        }
 
         StringBuilder builder = new();
 
@@ -448,9 +303,7 @@ public class BossHpBarUI : MonoBehaviour
             }
 
             if (i > 0 && char.IsUpper(current) && NeedsWordBreak(value, i))
-            {
                 AppendSpaceIfNeeded(builder);
-            }
 
             builder.Append(current);
         }
@@ -463,9 +316,7 @@ public class BossHpBarUI : MonoBehaviour
         char previous = value[index - 1];
 
         if (char.IsLower(previous) || char.IsDigit(previous))
-        {
             return true;
-        }
 
         return index + 1 < value.Length && char.IsLower(value[index + 1]);
     }
@@ -473,8 +324,6 @@ public class BossHpBarUI : MonoBehaviour
     private static void AppendSpaceIfNeeded(StringBuilder builder)
     {
         if (builder.Length > 0 && builder[^1] != ' ')
-        {
             builder.Append(' ');
-        }
     }
 }

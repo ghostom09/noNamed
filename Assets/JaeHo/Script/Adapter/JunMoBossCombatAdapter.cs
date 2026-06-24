@@ -39,25 +39,10 @@ public class JunMoBossCombatAdapter : MonoBehaviour, IDamageable, IHitPointStatu
 
         float hpBefore = boss.CurrentHP;
         boss.TakeDamage(Mathf.Max(0f, amount));
-        SyncBossHpUi();
+        // HP UI 갱신은 BossBase.HealthChanged 이벤트로 자동 전파됨 (수동 푸시 제거).
 
         Debug.Log(
             $"[Boss Hit] {gameObject.name} damage:{amount:0.##} hp:{hpBefore:0.##}->{boss.CurrentHP:0.##}");
-    }
-
-    private void SyncBossHpUi()
-    {
-        if (boss == null)
-            return;
-
-        BossHpBarUI[] bossHpBars = FindObjectsByType<BossHpBarUI>(FindObjectsInactive.Include);
-        for (int i = 0; i < bossHpBars.Length; i++)
-        {
-            if (bossHpBars[i] == null)
-                continue;
-
-            bossHpBars[i].SetBossHp(boss, boss.CurrentHP, boss.MaxHP);
-        }
     }
 
     public void ApplySlow(float multiplier, float duration)
