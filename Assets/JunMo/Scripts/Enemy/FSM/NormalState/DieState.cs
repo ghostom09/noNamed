@@ -13,6 +13,8 @@ public class DieState : IState
 
     public void Enter()
     {
+        _enemy.Animation?.Play(EnemyAnimationType.Die);
+
         if (_enemy.TryStartChaseBeforeExplosion())
             return;
 

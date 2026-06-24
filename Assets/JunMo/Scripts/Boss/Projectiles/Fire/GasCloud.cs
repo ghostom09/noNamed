@@ -42,6 +42,13 @@ namespace BossSystem.Boss.FireBoss
             explosionTileSize = Mathf.Max(0.01f, tileSize);
             transform.localScale = Vector3.one * (FlyingRadius * 2f);
 
+            var spriteRenderer = GetComponent<SpriteRenderer>();
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.enabled = true;
+                spriteRenderer.sortingOrder = 5;
+            }
+
             circleCollider = GetComponent<CircleCollider2D>();
             if (circleCollider == null)
                 circleCollider = gameObject.AddComponent<CircleCollider2D>();

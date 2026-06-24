@@ -11,6 +11,7 @@ public class AttackState : IState
 
     public void Enter()
     {
+        _enemy.Animation?.Play(EnemyAnimationType.Idle);
         _enemy.Attack.Attack();
     }
 
@@ -23,6 +24,7 @@ public class AttackState : IState
 
         if (_enemy.CanAttackRange() && _enemy.CanAttackSpeed())
         {
+            _enemy.Animation?.Play(EnemyAnimationType.Idle);
             _enemy.Attack.Attack();
             return;
         }

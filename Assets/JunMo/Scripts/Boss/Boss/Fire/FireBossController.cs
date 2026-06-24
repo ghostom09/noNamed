@@ -261,19 +261,38 @@ namespace BossSystem.Boss.FireBoss
 
         public void SpawnGasCloud(Vector3 center, float spreadAngle)
         {
-            if (gasCloudPrefab == null || !blackboard.IsPhase2) return;
+            if (gasCloudPrefab == null)
+            {
+                Debug.LogWarning("[FireBoss] Gas cloud prefab is not assigned.");
+                return;
+            }
+
+            if (!blackboard.IsPhase2)
+            {
+                Debug.Log("[FireBoss] Gas cloud skipped because boss is not in phase 2.");
+                return;
+            }
+
             Vector3 direction = blackboard.PlayerTransform != null
                 ? (blackboard.PlayerTransform.position - center).normalized
                 : transform.up;
 
             var go  = Instantiate(gasCloudPrefab, center, Quaternion.identity);
             var gas = go.GetComponent<GasCloud>();
+            if (gas == null)
+            {
+                Debug.LogWarning("[FireBoss] Gas cloud prefab does not have GasCloud component.");
+                Destroy(go);
+                return;
+            }
+
             if (gas != null)
             {
                 gas.Initialize(this, direction, gasSpeed, gasTravelDistance,
                     GetPlayerLength() * gasPlayerScale, gasExplosionTileSize);
                 activeGasClouds.Add(gas);
                 gas.OnExpired += () => activeGasClouds.Remove(gas);
+                Debug.Log($"[FireBoss] Gas cloud fired. center={center}, direction={direction}, speed={gasSpeed}, distance={gasTravelDistance}");
             }
         }
 
@@ -282,6 +301,7 @@ namespace BossSystem.Boss.FireBoss
             for (int i = activeGasClouds.Count - 1; i >= 0; i--)
             {
                 if (activeGasClouds[i] == null) { activeGasClouds.RemoveAt(i); continue; }
+                if (!activeGasClouds[i].IsSpread) continue;
                 float dist = Vector2.Distance(activeGasClouds[i].transform.position, position);
                 if (dist <= radius + activeGasClouds[i].Radius)
                     activeGasClouds[i].Explode();

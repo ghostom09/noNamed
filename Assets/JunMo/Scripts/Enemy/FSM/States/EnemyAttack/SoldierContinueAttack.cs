@@ -27,8 +27,10 @@ public class SoldierContinueAttack : IAttack
         _enemy.IsAttacking = true;
         _enemy.AttackWarn();
         yield return new WaitForSeconds(_enemy.stats.durationWarning);
-        if (_enemy)
+        if (!_enemy)
             yield break;
+
+        _enemy.Animation?.Play(EnemyAnimationType.Attack);
 
         for (int i = 0; i < 10; i++)
         {

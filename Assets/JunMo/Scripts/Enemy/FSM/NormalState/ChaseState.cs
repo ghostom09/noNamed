@@ -12,7 +12,7 @@ public class ChaseState : IState
 
     public void Enter()
     {
-        
+        _enemy.Animation?.Play(EnemyAnimationType.Walk);
     }
 
     public void Update()
