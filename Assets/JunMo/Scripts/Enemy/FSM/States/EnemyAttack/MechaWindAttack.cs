@@ -62,7 +62,11 @@ public class MechaWindAttack : IAttack
     
             if (angle <= SwingAngle * 0.5f)
             {
-                Debug.Log("[Meka2] 부채꼴 공격 히트");
+                if (target.gameObject.TryGetComponent<IDamageable>(out var damageable))
+                {
+                    damageable.TakeDamage(_enemy.stats.damage);
+                    Debug.Log($"데미지 적용 {_enemy.stats.damage}");
+                }
                 break;
             }
         }

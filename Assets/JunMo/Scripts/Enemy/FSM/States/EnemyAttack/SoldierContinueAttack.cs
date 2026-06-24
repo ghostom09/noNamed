@@ -32,21 +32,16 @@ public class SoldierContinueAttack : IAttack
 
         _enemy.Animation?.Play(EnemyAnimationType.Attack);
 
-        for (int i = 0; i < 10; i++)
-        {
-            float angle = Mathf.Atan2(_enemy.GetVector2().y, _enemy.GetVector2().x) * Mathf.Rad2Deg;
+        float angle = Mathf.Atan2(_enemy.GetVector2().y, _enemy.GetVector2().x) * Mathf.Rad2Deg;
 
-            var bullet = Object.Instantiate(
-                _bulletPrefab,
-                _enemy.transform.position,
-                Quaternion.Euler(0, 0, angle));
+        var bullet = Object.Instantiate(
+            _bulletPrefab,
+            _enemy.transform.position,
+            Quaternion.Euler(0, 0, angle));
 
-            bullet.GetComponent<BulletBase>()?.Init(
-                _enemy.stats.damage,
-                _enemy.GetVector2());
-
-            yield return new WaitForSeconds(0.2f);
-        }
+        bullet.GetComponent<BulletBase>()?.Init(
+            _enemy.stats.damage,
+            _enemy.GetVector2());
 
         _enemy.IsAttacking = false;
         _enemy.ResetAttackTimer();
