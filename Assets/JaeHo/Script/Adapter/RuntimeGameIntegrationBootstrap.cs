@@ -347,6 +347,14 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
         foreach (BossBase boss in bosses)
         {
             if (boss == null) continue;
+
+            // 보스는 적이 아니다. 씬에 잘못 붙은 적 어댑터가 IDamageable 로 먼저 잡히면
+            // 플레이어 공격이 보스(BossBase.TakeDamage)로 전달되지 않아 HP/HP바가 갱신되지 않는다.
+            // (예: Flesh 보스에 Enemy 없는 JunMoEnemyCombatAdapter 가 붙어 데미지를 가로채던 문제)
+            JunMoEnemyCombatAdapter strayEnemyAdapter = boss.GetComponent<JunMoEnemyCombatAdapter>();
+            if (strayEnemyAdapter != null)
+                Object.Destroy(strayEnemyAdapter);
+
             EnsureComponent<JunMoBossCombatAdapter>(boss.gameObject);
         }
     }

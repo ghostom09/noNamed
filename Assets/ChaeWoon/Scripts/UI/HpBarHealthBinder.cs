@@ -1,28 +1,25 @@
-using System;
-using System.Reflection;
 using UnityEngine;
 
+// 플레이어 체력 UI 를 JaeHo 의 PlayerHealth 와 이벤트 기반으로 연결한다.
+//
+// 주의: FireBoss 팀이 같은 이름의 PlayerHealth(BossSystem.Boss.FireBoss.PlayerHealth)
+// 프록시를 PlayerTeamCompatibilityBridge 로 플레이어에 추가한다. 예전엔 타입 "이름"
+// 문자열로 탐색해서 FindObjectsByType 순서에 따라 프록시를 잡는 경우가 있었고, 그때는
+// 최대 HP 가 fallback(100)으로 뜨고 OnDamaged 이벤트가 없어 UI 가 안 줄었다.
+// → 전역 PlayerHealth "타입" 으로만 바인딩해서 프록시와 절대 혼동되지 않게 한다.
+[DisallowMultipleComponent]
 public class HpBarHealthBinder : MonoBehaviour
 {
     [SerializeField] private HpBarView hpBarView;
-    [SerializeField] private Component health;
-    [SerializeField] private float fallbackMaxHp = 100f;
-
-    private Action<float, float> hpChangedHandler;
+    [SerializeField] private PlayerHealth health;
 
     private void Awake()
     {
-        hpChangedHandler = HandleHpChanged;
         BindReferences();
     }
 
     private void OnEnable()
     {
-        if (hpChangedHandler == null)
-        {
-            hpChangedHandler = HandleHpChanged;
-        }
-
         BindReferences();
         Subscribe();
         Refresh();
@@ -33,7 +30,7 @@ public class HpBarHealthBinder : MonoBehaviour
         Unsubscribe();
     }
 
-    public void SetHealth(Component targetHealth)
+    public void SetHealth(PlayerHealth targetHealth)
     {
         if (health == targetHealth)
         {
@@ -48,34 +45,24 @@ public class HpBarHealthBinder : MonoBehaviour
 
     private void Subscribe()
     {
-        AddHealthEventHandler("OnDamaged");
-        AddHealthEventHandler("OnHealed");
+        if (health == null)
+        {
+            return;
+        }
+
+        health.OnDamaged += HandleHpChanged;
+        health.OnHealed += HandleHpChanged;
     }
 
     private void Unsubscribe()
     {
-        RemoveHealthEventHandler("OnDamaged");
-        RemoveHealthEventHandler("OnHealed");
-    }
-
-    private void AddHealthEventHandler(string eventName)
-    {
-        EventInfo eventInfo = health == null ? null : health.GetType().GetEvent(eventName);
-
-        if (eventInfo != null && hpChangedHandler != null)
+        if (health == null)
         {
-            eventInfo.AddEventHandler(health, hpChangedHandler);
+            return;
         }
-    }
 
-    private void RemoveHealthEventHandler(string eventName)
-    {
-        EventInfo eventInfo = health == null ? null : health.GetType().GetEvent(eventName);
-
-        if (eventInfo != null && hpChangedHandler != null)
-        {
-            eventInfo.RemoveEventHandler(health, hpChangedHandler);
-        }
+        health.OnDamaged -= HandleHpChanged;
+        health.OnHealed -= HandleHpChanged;
     }
 
     private void HandleHpChanged(float currentHp, float maxHp)
@@ -93,59 +80,7 @@ public class HpBarHealthBinder : MonoBehaviour
             return;
         }
 
-        hpBarView.SetHp(ResolveCurrentHp(), ResolveMaxHp());
-    }
-
-    private float ResolveCurrentHp()
-    {
-        if (TryReadFloatProperty("CurrentHp", out float value))
-        {
-            return value;
-        }
-
-        return ResolveMaxHp();
-    }
-
-    private float ResolveMaxHp()
-    {
-        // PlayerHealth exposes MaxHp only as a public property (it has no private 'maxHp'
-        // field, it delegates to an inner Health). Raw Health has both. Read the property
-        // first so the player's max HP is correct instead of falling back to 100.
-        if (TryReadFloatProperty("MaxHp", out float maxFromProperty) && maxFromProperty > 0f)
-        {
-            return maxFromProperty;
-        }
-
-        FieldInfo maxHpField = health == null
-            ? null
-            : health.GetType().GetField("maxHp", BindingFlags.Instance | BindingFlags.NonPublic);
-
-        if (maxHpField != null && maxHpField.GetValue(health) is float value && value > 0f)
-        {
-            return value;
-        }
-
-        return Mathf.Max(1f, fallbackMaxHp);
-    }
-
-    private bool TryReadFloatProperty(string propertyName, out float value)
-    {
-        value = 0f;
-
-        if (health == null)
-        {
-            return false;
-        }
-
-        PropertyInfo property = health.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
-
-        if (property != null && property.GetValue(health) is float result)
-        {
-            value = result;
-            return true;
-        }
-
-        return false;
+        hpBarView.SetHp(health.CurrentHp, health.MaxHp);
     }
 
     private void BindReferences()
@@ -162,75 +97,8 @@ public class HpBarHealthBinder : MonoBehaviour
 
         if (health == null)
         {
-            health = FindPlayerHealth();
+            // 전역 PlayerHealth 타입만 매칭 — FireBoss 프록시(동명 클래스)는 다른 타입이라 제외됨.
+            health = FindAnyObjectByType<PlayerHealth>(FindObjectsInactive.Exclude);
         }
-    }
-
-    // Components that identify the player object. The HP bar must bind to the player's
-    // Health, not to one of the many enemy/boss Health components in a combat scene.
-    private static readonly string[] PlayerMarkerTypeNames =
-    {
-        "PlayerMove",
-        "PlayerStatManager",
-        "PlayerInputReader",
-        "SkillSwitcher",
-        "SkillMutationLoadoutBinder"
-    };
-
-    private static Component FindPlayerHealth()
-    {
-        MonoBehaviour[] behaviours = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude);
-        Component fallback = null;
-        Component playerCandidate = null;
-
-        for (int i = 0; i < behaviours.Length; i++)
-        {
-            MonoBehaviour current = behaviours[i];
-
-            if (current == null || !IsHealthType(current.GetType().Name))
-            {
-                continue;
-            }
-
-            // First Health-like component seen, used only if nothing better turns up.
-            fallback ??= current;
-
-            if (!IsUnderPlayerMarker(current))
-            {
-                continue;
-            }
-
-            // Prefer the player's own component; PlayerHealth (the wrapper that fires the
-            // correct events) wins over a raw Health on the same object/hierarchy.
-            if (playerCandidate == null || PrefersHealth(current, playerCandidate))
-            {
-                playerCandidate = current;
-            }
-        }
-
-        return playerCandidate ?? fallback;
-    }
-
-    private static bool IsHealthType(string typeName)
-    {
-        return typeName == "PlayerHealth" || typeName == "Health";
-    }
-
-    private static bool IsUnderPlayerMarker(Component component)
-    {
-        for (int i = 0; i < PlayerMarkerTypeNames.Length; i++)
-        {
-            if (SkillMutationLoadoutBinder.HasComponentInParentByTypeName(component, PlayerMarkerTypeNames[i]))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool PrefersHealth(Component candidate, Component current)
-    {
-        return candidate.GetType().Name == "PlayerHealth" && current.GetType().Name != "PlayerHealth";
     }
 }
