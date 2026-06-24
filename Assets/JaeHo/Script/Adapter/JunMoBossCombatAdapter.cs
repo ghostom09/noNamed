@@ -56,7 +56,7 @@ public class JunMoBossCombatAdapter : MonoBehaviour, IDamageable, IHitPointStatu
             if (bossHpBars[i] == null)
                 continue;
 
-            bossHpBars[i].SetBossHp(boss, boss.CurrentHP, boss.MaxHP);
+            bossHpBars[i].SetBoss(boss);
         }
     }
 
