@@ -13,6 +13,6 @@ public class SilenceBullet : BulletBase
     protected override void OnHitPlayer(Collider2D other)
     {
         // other.GetComponent<PlayerSkillController>()?.ApplySilence(silenceDuration);
-        Debug.Log($"[SilenceBullet] Skill silence {silenceDuration} sec");
+        // Debug.Log($"[SilenceBullet] Skill silence {silenceDuration} sec");
     }
 }

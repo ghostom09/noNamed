@@ -284,10 +284,7 @@ namespace BossSystem.Boss.FleshBoss
 
         private static bool ApplyDamageToPlayer(GameObject target, float damage)
         {
-            var health = target.GetComponent<BossSystem.Boss.FireBoss.PlayerHealth>();
-            if (health == null) return false;
-            health.TakeDamage(damage);
-            return true;
+            return BossDamageUtility.TryDamagePlayer(target, damage);
         }
         
         public float GetColliderHalfHeight()

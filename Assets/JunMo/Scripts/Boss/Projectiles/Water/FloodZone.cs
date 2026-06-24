@@ -5,7 +5,7 @@ namespace BossSystem.Boss.WaterBoss
     [RequireComponent(typeof(BoxCollider2D))]
     public class FloodZone : MonoBehaviour
     {
-        [SerializeField] private float slowMultiplier = 0.5f;
+        [SerializeField] private float slowMultiplier = 0.15f;
         [SerializeField] private float tickInterval   = 0.25f;
         private float lastTick = 0f;
 
@@ -38,13 +38,23 @@ namespace BossSystem.Boss.WaterBoss
             if (!other.CompareTag("Player")) return;
             if (Time.time - lastTick < tickInterval) return;
             lastTick = Time.time;
+
+            var playerMove = other.GetComponentInParent<PlayerMove>();
+            if (playerMove != null)
+            {
+                playerMove.SetExternalMoveSpeedMultiplier(slowMultiplier);
+                return;
+            }
+
             other.GetComponent<PlayerMovement>()?.ApplySlow(slowMultiplier, tickInterval + 0.1f);
         }
 
         private void OnTriggerExit2D(Collider2D other)
         {
-            if (other.CompareTag("Player"))
-                other.GetComponent<PlayerMovement>()?.RemoveSlow();
+            if (!other.CompareTag("Player")) return;
+
+            other.GetComponentInParent<PlayerMove>()?.SetExternalMoveSpeedMultiplier(1f);
+            other.GetComponent<PlayerMovement>()?.RemoveSlow();
         }
     }
 }
