@@ -29,10 +29,10 @@ public class BulletBase : MonoBehaviour
 
     protected virtual void OnHitPlayer(Collider2D other)
     {
-        // if (other.gameObject.TryGetComponent<IDamageable>(out var damageable))
-        // {
-        //     damageable.TakeDamage(damage);
-        //     Debug.Log($"데미지 적용 {damage}");
-        // }
+        if (other.gameObject.TryGetComponent<IDamageable>(out var damageable))
+        {
+            damageable.TakeDamage(damage);
+            Debug.Log($"데미지 적용 {damage}");
+        }
     }
 }

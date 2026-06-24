@@ -8,6 +8,7 @@ public sealed class PlayerTeamCompatibilityBridge : MonoBehaviour, ISlowable, IB
 {
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private Rigidbody2D targetRigidbody;
+    [SerializeField] private PlayerMove playerMove;
 
     private BossSystem.Boss.FireBoss.PlayerHealth _fireBossHealth;
     private PlayerMovement _waterBossMovement;
@@ -77,6 +78,9 @@ public sealed class PlayerTeamCompatibilityBridge : MonoBehaviour, ISlowable, IB
 
         if (targetRigidbody == null)
             targetRigidbody = GetComponent<Rigidbody2D>();
+
+        if (playerMove == null)
+            playerMove = GetComponent<PlayerMove>();
     }
 
     private void EnsureTeamProxyComponents()
@@ -141,12 +145,8 @@ public sealed class PlayerTeamCompatibilityBridge : MonoBehaviour, ISlowable, IB
         if (Time.time >= _slowEndTime)
             _slowMultiplier = 1f;
 
-        if (targetRigidbody == null) return;
-
         float multiplier = MovementMultiplier;
-        if (Mathf.Approximately(multiplier, 1f)) return;
-
-        targetRigidbody.linearVelocity *= multiplier;
+        playerMove?.SetExternalMoveSpeedMultiplier(multiplier);
     }
 }
 

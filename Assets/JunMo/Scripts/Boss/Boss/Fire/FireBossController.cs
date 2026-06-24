@@ -278,6 +278,7 @@ namespace BossSystem.Boss.FireBoss
                 : transform.up;
 
             var go  = Instantiate(gasCloudPrefab, center, Quaternion.identity);
+            go.SetActive(true);
             var gas = go.GetComponent<GasCloud>();
             if (gas == null)
             {
@@ -326,13 +327,7 @@ namespace BossSystem.Boss.FireBoss
 
         public static bool ApplyDamageToPlayer(GameObject target, float damage)
         {
-            if (target == null) return false;
-
-            var health = target.GetComponent<PlayerHealth>();
-            if (health == null) return false;
-
-            health.TakeDamage(damage);
-            return true;
+            return BossDamageUtility.TryDamagePlayer(target, damage);
         }
     }
 }

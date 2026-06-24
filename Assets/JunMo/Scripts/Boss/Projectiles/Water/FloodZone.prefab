@@ -104,5 +104,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2c6e4ec54ab43f589f40775aa5e37c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossSystem.Boss.WaterBoss.FloodZone
-  slowMultiplier: 0.5
+  slowMultiplier: 0.15
   tickInterval: 0.25

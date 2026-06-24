@@ -302,13 +302,7 @@ namespace BossSystem.Boss.WaterBoss
 
         public static bool ApplyDamageToPlayer(GameObject target, float damage)
         {
-            if (target == null) return false;
-
-            var health = target.GetComponent<PlayerHealth>();
-            if (health == null) return false;
-
-            health.TakeDamage(damage);
-            return true;
+            return BossDamageUtility.TryDamagePlayer(target, damage);
         }
     }
 }

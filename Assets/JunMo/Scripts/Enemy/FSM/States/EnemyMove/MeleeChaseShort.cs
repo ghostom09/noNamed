@@ -11,7 +11,6 @@ public class MeleeChaseShort : IChase
 
     public void Chase()
     {
-        Debug.Log("<color=red>Fatal Error:</color> 9150");
         Vector2 toPlayer = _enemy.GetVector2();
         
         Vector2 toPlayerRaw = _enemy.GetVectorNotNormalized();
