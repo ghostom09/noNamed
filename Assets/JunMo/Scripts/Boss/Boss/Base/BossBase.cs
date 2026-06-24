@@ -28,6 +28,7 @@ namespace BossSystem.Boss
         protected BossBlackboard blackboard;
         protected BTNode         behaviorTree;
         protected Rigidbody2D    rb;
+        protected BossAnimation  bossAnimation;
 
         public float CurrentHP => currentHP;
         public bool  IsDead    => currentHP <= 0f;
@@ -62,6 +63,7 @@ namespace BossSystem.Boss
 
             currentHP = maxHP;
             rb        = GetComponent<Rigidbody2D>();
+            bossAnimation = GetComponent<BossAnimation>();
 
             if (rb != null)
             {
@@ -88,6 +90,7 @@ namespace BossSystem.Boss
 
             blackboard.PlayerTransform = player;
             behaviorTree = BuildBehaviorTree();
+            PlayAnimation(BossAnimationType.Idle);
         }
 
         // ── 매 프레임 ─────────────────────────────────────────────
@@ -138,7 +141,14 @@ namespace BossSystem.Boss
         {
             IsExecutingPattern = value;
             if (value)
+            {
                 patternStartTime = Time.time;
+                PlayAnimation(BossAnimationType.Attack, true);
+            }
+            else if (!IsTelegraphing)
+            {
+                PlayAnimation(BossAnimationType.Idle);
+            }
         }
 
         /// <summary>텔레그래프 진행 중 이동 정지.</summary>
@@ -146,7 +156,10 @@ namespace BossSystem.Boss
         {
             IsTelegraphing = value;
             if (value && rb != null)
+            {
                 rb.linearVelocity = Vector2.zero;
+                PlayAnimation(BossAnimationType.Idle);
+            }
         }
 
         /// <summary>
@@ -158,6 +171,8 @@ namespace BossSystem.Boss
             IsExecutingPattern = false;
             IsTelegraphing     = false;
             if (rb != null) rb.linearVelocity = Vector2.zero;
+            if (!IsDead)
+                PlayAnimation(BossAnimationType.Idle);
         }
 
         public virtual void TakeDamage(float damage)
@@ -172,11 +187,17 @@ namespace BossSystem.Boss
         {
             ForceReleasePattern();
             Debug.Log($"[{gameObject.name}] 사망");
+            PlayAnimation(BossAnimationType.Die, true);
             Destroy(gameObject, 1f);
         }
 
         // ── 이동 ──────────────────────────────────────────────────
         public Transform GetPlayer() => player;
+
+        public void PlayAnimation(BossAnimationType animationType, bool restart = false)
+        {
+            bossAnimation?.Play(animationType, restart);
+        }
 
         public Telegraph SpawnTelegraph(
             BossAttackData data,
@@ -271,7 +292,13 @@ namespace BossSystem.Boss
         protected void ChasePlayer()
         {
             if (!ShouldChasePlayer || player == null || rb == null) return;
-            if (blackboard.DistanceToPlayer <= ChaseStoppingDistance) return;
+            if (blackboard.DistanceToPlayer <= ChaseStoppingDistance)
+            {
+                PlayAnimation(BossAnimationType.Idle);
+                return;
+            }
+
+            PlayAnimation(BossAnimationType.Walk);
             MoveToward(player.position, ChaseSpeed);
         }
 

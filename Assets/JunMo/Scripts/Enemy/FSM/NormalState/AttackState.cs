@@ -22,6 +22,13 @@ public class AttackState : IState
         if (_enemy.IsAttacking)
             return;
 
+        if (_enemy.Animation != null &&
+            _enemy.Animation.IsPlaying(EnemyAnimationType.Attack) &&
+            !_enemy.Animation.IsFinished(EnemyAnimationType.Attack))
+        {
+            return;
+        }
+
         if (_enemy.CanAttackRange() && _enemy.CanAttackSpeed())
         {
             _enemy.Animation?.Play(EnemyAnimationType.Idle);

@@ -43,6 +43,9 @@ public class Enemy : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         Animation = GetComponent<EnemyAnimation>();
+        if (Animation == null)
+            Animation = gameObject.AddComponent<EnemyAnimation>();
+
         target = GameObject.Find("Player").transform;
         // OnDead?.Invoke(this);
     }

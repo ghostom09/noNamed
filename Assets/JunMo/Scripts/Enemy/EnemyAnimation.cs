@@ -35,6 +35,24 @@ public class EnemyAnimation : MonoBehaviour
             return;
         }
 
-        animator.Play(_stateHashes[animationType]);
+        animator.Play(_stateHashes[animationType], 0, 0f);
+    }
+
+    public bool IsPlaying(EnemyAnimationType animationType)
+    {
+        if (animator == null)
+            return false;
+
+        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+        return stateInfo.shortNameHash == _stateHashes[animationType];
+    }
+
+    public bool IsFinished(EnemyAnimationType animationType)
+    {
+        if (!IsPlaying(animationType))
+            return true;
+
+        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+        return !stateInfo.loop && stateInfo.normalizedTime >= 1f;
     }
 }
