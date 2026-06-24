@@ -130,18 +130,14 @@ namespace BossSystem.Boss.FleshBoss
         {
             if (!isCharging) return;
             ApplyDamageToPlayer(col.gameObject, chargeDamage);
-            
-            // if (col.gameObject.TryGetComponent<IDamageable>(out var damageable))
-            // {
-            //     damageable.TakeDamage(chargeDamage);
-            //     Debug.Log($"[FleshBoss] 돌진 충돌 데미지 {chargeDamage} 적용 -> {col.gameObject.name}");
-            // }
         }
 
         public void SpawnFleshProjectile(Vector3 position, Vector3 direction,
                                          float force, int bounces, bool isLarge = false,
                                          float sizeScale = 1f,
-                                         float maxTravelRange = 0f)
+                                         float maxTravelRange = 0f,
+                                         float lifetime = 12f,
+                                         bool stopAtMaxRange = false)
         {
             var prefab = (isLarge && fleshChunkLargePrefab != null)
                          ? fleshChunkLargePrefab : fleshChunkPrefab;
@@ -156,9 +152,10 @@ namespace BossSystem.Boss.FleshBoss
                 chunk.Initialize(this,
                     hp:      isLarge ? 60f : 30f,
                     dmg:     isLarge ? 30f : 15f,
-                    life:    12f,
+                    life:    lifetime,
                     bounces: bounces,
-                    maxRange: maxTravelRange);
+                    maxRange: maxTravelRange,
+                    stopAtMaxRange: stopAtMaxRange);
                 RegisterChunk(chunk);
             }
 
@@ -179,19 +176,24 @@ namespace BossSystem.Boss.FleshBoss
             foreach (var hit in hits)
             {
                 ApplyDamageToPlayer(hit.gameObject, damage);
-                // if (hit.TryGetComponent<IDamageable>(out var damageable))
-                // {
-                //     damageable.TakeDamage(damage);
-                //     Debug.Log($"[FleshBoss] 스매시 데미지 {damage} 적용 -> {hit.gameObject.name}");
-                // }
             }
         }
 
         public void StartAbsorbEffect()
         {
             if (absorbVFXPrefab != null)
+            {
                 absorbVFXInstance = Instantiate(absorbVFXPrefab, transform.position,
                                                 Quaternion.identity, transform);
+
+                var damageZone = absorbVFXInstance.GetComponent<FleshTrailZone>();
+                if (damageZone != null)
+                    damageZone.enabled = false;
+
+                var damageCollider = absorbVFXInstance.GetComponent<Collider2D>();
+                if (damageCollider != null)
+                    damageCollider.enabled = false;
+            }
         }
 
         public void StopAbsorbEffect()
@@ -285,10 +287,7 @@ namespace BossSystem.Boss.FleshBoss
 
         private static bool ApplyDamageToPlayer(GameObject target, float damage)
         {
-            var health = target.GetComponent<BossSystem.Boss.FireBoss.PlayerHealth>();
-            if (health == null) return false;
-            health.TakeDamage(damage);
-            return true;
+            return BossDamageUtility.TryDamagePlayer(target, damage);
         }
         
         public float GetColliderHalfHeight()

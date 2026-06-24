@@ -12,6 +12,7 @@ public class PlayerMove : MonoBehaviour
     
     private bool _isDashing = false;
     private bool _canDash = true;
+    private float _externalMoveSpeedMultiplier = 1f;
     public Vector2 moveDirection;
     private Rigidbody2D _rb;
     private PlayerStatManager _statManager;
@@ -30,7 +31,7 @@ public class PlayerMove : MonoBehaviour
     
     private void Move()
     {
-        Vector2 targetVelocity = moveDirection * _statManager.MoveSpeed;
+        Vector2 targetVelocity = moveDirection * _statManager.MoveSpeed * _externalMoveSpeedMultiplier;
 
         float currentAccelRate = (moveDirection.sqrMagnitude > 0.01f) ? acceleration : deceleration;
 
@@ -47,6 +48,11 @@ public class PlayerMove : MonoBehaviour
         StartCoroutine(DashCoroutine());
     }
 
+    public void SetExternalMoveSpeedMultiplier(float multiplier)
+    {
+        _externalMoveSpeedMultiplier = Mathf.Clamp01(multiplier);
+    }
+
     private IEnumerator DashCoroutine()
     {
         _canDash = false;
@@ -57,7 +63,7 @@ public class PlayerMove : MonoBehaviour
         
         yield return new WaitForSeconds(dashTime);
         _isDashing = false;
-        _rb.linearVelocity = moveDirection * _statManager.MoveSpeed;
+        _rb.linearVelocity = moveDirection * _statManager.MoveSpeed * _externalMoveSpeedMultiplier;
 
         yield return new WaitForSeconds(dashCoolTime - dashTime);
         

@@ -9,6 +9,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private GameObject warning;
     [SerializeField] private EnemyGrade grade = EnemyGrade.Normal;
     [SerializeField] private GameObject eliteBorder;
+    [SerializeField] private float eliteScaleMultiplier = 1.2f;
     private IState _currentState;
     public EnemyAnimation Animation { get; private set; }
     
@@ -25,6 +26,7 @@ public class Enemy : MonoBehaviour
     public IChase Chase;
     
     public EnemyStats stats;
+    public float CurrentHealth { get; private set; }
     
     [HideInInspector]public Rigidbody2D rb;
     private float _attackTime = 0f;
@@ -36,11 +38,15 @@ public class Enemy : MonoBehaviour
     public event Action<Enemy> OnDead;
     public bool IsAttacking { get; set; }
     public bool HasExploded => _hasExploded;
+    public bool IsDead { get; private set; }
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         Animation = GetComponent<EnemyAnimation>();
+        if (Animation == null)
+            Animation = gameObject.AddComponent<EnemyAnimation>();
+
         target = GameObject.Find("Player").transform;
         // OnDead?.Invoke(this);
     }
@@ -55,7 +61,10 @@ public class Enemy : MonoBehaviour
         if (grade == EnemyGrade.Elite)
         {
             EliteEnemyModifier.Apply(stats);
+            transform.localScale *= eliteScaleMultiplier;
         }
+
+        CurrentHealth = stats.maxHealth;
 
         IdleState = new IdleState(this);
         MoveState = new MoveState(this);
@@ -71,6 +80,9 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
+        if (IsDead)
+            return;
+
         _attackTime += Time.deltaTime;
     
         _currentState?.Update();
@@ -78,6 +90,9 @@ public class Enemy : MonoBehaviour
     
     public void ChangeState(IState newState)
     {
+        if (newState == null || (IsDead && newState != DieState))
+            return;
+
         _currentState?.Exit();
 
         _currentState = newState;
@@ -87,7 +102,7 @@ public class Enemy : MonoBehaviour
     
     public bool CanAttackRange()
     {
-        return CanRange(stats.attackRange);
+        return !IsDead && CanRange(stats.attackRange);
     }
 
     public bool CanChaseRange()
@@ -97,7 +112,7 @@ public class Enemy : MonoBehaviour
     
     public bool CanAttackSpeed()
     {
-        return _attackTime >= stats.attackSpeed;
+        return !IsDead && _attackTime >= stats.attackSpeed;
     }
 
     private bool CanRange(float range) // 근접 공격범위 안인가?
@@ -140,6 +155,20 @@ public class Enemy : MonoBehaviour
     public void ResetAttackTimer()
     {
         _attackTime = 0f;
+    }
+
+    public void TakeDamage(float damage)
+    {
+        if (damage <= 0f || CurrentHealth <= 0f)
+            return;
+
+        CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
+
+        if (CurrentHealth <= 0f)
+        {
+            IsDead = true;
+            ChangeState(DieState);
+        }
     }
 
     public void AttackWarn()
@@ -185,11 +214,6 @@ public class Enemy : MonoBehaviour
         _isChasingBeforeExplosion = false;
         Explode();
         rb.linearVelocity = Vector2.zero;
-        Destroy(gameObject, 1f);
-
-        Collider2D enemyCollider = GetComponent<Collider2D>();
-        if (enemyCollider != null)
-            enemyCollider.enabled = false;
     }
 
     public void Explode()
@@ -202,19 +226,26 @@ public class Enemy : MonoBehaviour
         _boom = EnemyPrefabController.Instance.GetPrefab(stats.attackType);
         var boom = Instantiate(_boom, transform.position, Quaternion.identity);
         Destroy(boom, 1f);
+        HideAfterExplosion();
+        Destroy(gameObject, 1f);
 
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
 
         foreach (var hit in hits)
         {
-            if (hit.CompareTag("Player"))
-            {
-                // if (hit.gameObject.TryGetComponent<IDamageable>(out var damageable))
-                // {
-                //     damageable.TakeDamage(stats.damage);
-                //     Debug.Log($"자폭 데미지{stats.damage}");
-                // }
-            }
+            if (!BossDamageUtility.TryDamagePlayer(hit, stats.damage))
+                continue;
+
+            Debug.Log($"[Enemy] 자폭 데미지 {stats.damage}");
         } 
+    }
+
+    private void HideAfterExplosion()
+    {
+        foreach (SpriteRenderer spriteRenderer in GetComponentsInChildren<SpriteRenderer>())
+            spriteRenderer.enabled = false;
+
+        foreach (Collider2D enemyCollider in GetComponentsInChildren<Collider2D>())
+            enemyCollider.enabled = false;
     }
 }

@@ -19,6 +19,15 @@ public static class CombatComponentUtility
             return true;
 
         component = collider.GetComponentInParent<T>();
-        return component != null;
+        if (component != null)
+            return true;
+
+        if (collider.CompareTag("Player") && collider.transform.root != null)
+        {
+            component = collider.transform.root.GetComponentInChildren<T>();
+            return component != null;
+        }
+
+        return false;
     }
 }

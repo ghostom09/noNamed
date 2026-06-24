@@ -183,6 +183,8 @@ namespace BossSystem.Boss.WaterBoss
         private enum Phase { Idle, Telegraph, Fire }
         private Phase   phase   = Phase.Idle;
         private Vector3 fireDir;
+        private float fireAt;
+        private const float PostTelegraphDelay = 0.2f;
 
         public WaveBlastNode(BossBlackboard bb, WaterBossController boss,
             float waveWidth = 8f, float waveSpeed = 14f,
@@ -229,6 +231,9 @@ namespace BossSystem.Boss.WaterBoss
                     return NodeState.Running;
 
                 case Phase.Fire:
+                    if (Time.time < fireAt)
+                        return NodeState.Running;
+
                     boss.SpawnWave(boss.transform.position, fireDir,
                                    waveWidth, waveSpeed, waveDamage, knockbackForce, maxRange);
                     boss.SetExecutingPattern(false);
@@ -243,6 +248,7 @@ namespace BossSystem.Boss.WaterBoss
         private void OnTelegraphDone()
         {
             phase = Phase.Fire;
+            fireAt = Time.time + PostTelegraphDelay;
             boss.SetTelegraphing(false);
         }
     }

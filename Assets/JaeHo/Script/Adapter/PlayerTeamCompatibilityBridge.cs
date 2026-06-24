@@ -8,6 +8,7 @@ public sealed class PlayerTeamCompatibilityBridge : MonoBehaviour, ISlowable, IB
 {
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private Rigidbody2D targetRigidbody;
+    [SerializeField] private PlayerMove playerMove;
 
     private BossSystem.Boss.FireBoss.PlayerHealth _fireBossHealth;
     private PlayerMovement _waterBossMovement;
@@ -18,6 +19,7 @@ public sealed class PlayerTeamCompatibilityBridge : MonoBehaviour, ISlowable, IB
     private float _slowMultiplier = 1f;
     private float _slowEndTime;
     private float _bindEndTime;
+    private bool _appliedMovementEffect;
 
     private bool IsBound => Time.time < _bindEndTime;
     private float MovementMultiplier => IsBound ? 0f : _slowMultiplier;
@@ -77,6 +79,9 @@ public sealed class PlayerTeamCompatibilityBridge : MonoBehaviour, ISlowable, IB
 
         if (targetRigidbody == null)
             targetRigidbody = GetComponent<Rigidbody2D>();
+
+        if (playerMove == null)
+            playerMove = GetComponent<PlayerMove>();
     }
 
     private void EnsureTeamProxyComponents()
@@ -138,15 +143,24 @@ public sealed class PlayerTeamCompatibilityBridge : MonoBehaviour, ISlowable, IB
 
     private void ApplyMovementEffects()
     {
-        if (Time.time >= _slowEndTime)
+        bool hasActiveSlow = Time.time < _slowEndTime;
+        bool hasActiveBind = IsBound;
+
+        if (!hasActiveSlow)
             _slowMultiplier = 1f;
 
-        if (targetRigidbody == null) return;
+        if (hasActiveSlow || hasActiveBind)
+        {
+            playerMove?.SetExternalMoveSpeedMultiplier(MovementMultiplier);
+            _appliedMovementEffect = true;
+            return;
+        }
 
-        float multiplier = MovementMultiplier;
-        if (Mathf.Approximately(multiplier, 1f)) return;
-
-        targetRigidbody.linearVelocity *= multiplier;
+        if (_appliedMovementEffect)
+        {
+            playerMove?.SetExternalMoveSpeedMultiplier(1f);
+            _appliedMovementEffect = false;
+        }
     }
 }
 

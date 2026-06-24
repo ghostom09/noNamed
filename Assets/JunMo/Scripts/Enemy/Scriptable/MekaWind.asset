@@ -18,7 +18,7 @@ MonoBehaviour:
   maxHealth: 1
   attackRange: 3
   chaseRange: 10
-  kitingRange: 0
-  chaseType: 0
+  kitingRange: 0.75
+  chaseType: 2
   attackType: 2
   durationWarning: 1

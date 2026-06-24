@@ -43,6 +43,8 @@ namespace BossSystem.Boss.FleshBoss
         private bool isDead = false;
         private Vector2 spawnPosition;
         private float maxTravelRange = 0f;
+        private bool stopAtMaxTravelRange = false;
+        private bool hasReachedMaxTravelRange = false;
         private bool isTargetedFlight = false;
         private Vector2 flightTargetPos;
         private float flightSpeed = 0f;
@@ -62,7 +64,8 @@ namespace BossSystem.Boss.FleshBoss
         public void Initialize(FleshBossController boss, float hp = 30f, float dmg = 15f,
                                float life = 10f, int bounces = 0,
                                BossAttackData bounceTelegraph = null,
-                               float maxRange = 0f)
+                               float maxRange = 0f,
+                               bool stopAtMaxRange = false)
         {
             owner               = boss;
             chunkHP             = hp;
@@ -76,6 +79,8 @@ namespace BossSystem.Boss.FleshBoss
             rb.gravityScale     = 0f;
             spawnPosition       = rb.position;
             maxTravelRange      = maxRange;
+            stopAtMaxTravelRange = stopAtMaxRange;
+            hasReachedMaxTravelRange = false;
 
             Destroy(gameObject, lifetime);
         }
@@ -101,11 +106,20 @@ namespace BossSystem.Boss.FleshBoss
         {
             if (isDead || rb == null) return;
 
-            if (maxTravelRange > 0f &&
+            if (!hasReachedMaxTravelRange && maxTravelRange > 0f &&
                 Vector2.Distance(spawnPosition, rb.position) >= maxTravelRange)
             {
-                DestroyChunk();
-                return;
+                if (stopAtMaxTravelRange)
+                {
+                    hasReachedMaxTravelRange = true;
+                    rb.linearVelocity = Vector2.zero;
+                    rb.angularVelocity = 0f;
+                }
+                else
+                {
+                    DestroyChunk();
+                    return;
+                }
             }
 
             if (isTargetedFlight)
@@ -189,30 +203,13 @@ namespace BossSystem.Boss.FleshBoss
         // ── 물리 충돌 ────────────────────────────────────────────
         private void OnCollisionEnter2D(Collision2D col)
         {
-            col.gameObject.GetComponent<BossSystem.Boss.FireBoss.PlayerHealth>()?.TakeDamage(touchDamage);
+            BossDamageUtility.TryDamagePlayer(col.collider, touchDamage);
         }
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            other.GetComponent<BossSystem.Boss.FireBoss.PlayerHealth>()?.TakeDamage(touchDamage);
+            BossDamageUtility.TryDamagePlayer(other, touchDamage);
         }
-
-        // private void OnCollisionEnter2D(Collision2D col)
-        // {
-        //     if (col.gameObject.TryGetComponent<IDamageable>(out var damageable))
-        //     {
-        //         damageable.TakeDamage(touchDamage);
-        //     }
-        // }
-
-        // 트리거용 (장판 등)
-        // private void OnTriggerEnter2D(Collider2D other)
-        // {
-        //     if (other.TryGetComponent<IDamageable>(out var damageable))
-        //     {
-        //         damageable.TakeDamage(touchDamage);
-        //     }
-        // }
 
         // ── 튕길 위치 텔레그래프 ──────────────────────────────────
         private void SpawnBounceTelegraph(Vector2 position)
