@@ -378,7 +378,7 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
         }
 
         BossBase activeBoss = FindActiveBoss();
-        if (bossHpBar != null && activeBoss != null && !bossHpBar.HasLiveBoss)
+        if (bossHpBar != null && activeBoss != null)
         {
             bossHpBar.SetBoss(activeBoss);
         }
