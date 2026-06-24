@@ -223,14 +223,10 @@ public class Enemy : MonoBehaviour
 
         foreach (var hit in hits)
         {
-            if (hit.CompareTag("Player"))
-            {
-                // if (hit.gameObject.TryGetComponent<IDamageable>(out var damageable))
-                // {
-                //     damageable.TakeDamage(stats.damage);
-                //     Debug.Log($"자폭 데미지{stats.damage}");
-                // }
-            }
+            if (!BossDamageUtility.TryDamagePlayer(hit, stats.damage))
+                continue;
+
+            Debug.Log($"[Enemy] 자폭 데미지 {stats.damage}");
         } 
     }
 }

@@ -16,7 +16,7 @@ public class MeleeChaseShort : IChase
         Vector2 toPlayerRaw = _enemy.GetVectorNotNormalized();
         float distance = toPlayerRaw.magnitude;
 
-        if (distance <= 1f)
+        if (distance <= 2f)
         {
             _enemy.rb.linearVelocity = Vector2.zero;
             return;

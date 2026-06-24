@@ -32,14 +32,7 @@ namespace BossSystem.Boss.FleshBoss
             if (Time.time - lastTick < tickRate) return;
             lastTick = Time.time;
 
-            other.GetComponent<BossSystem.Boss.FireBoss.PlayerHealth>()
-                ?.TakeDamage(damagePerSecond * tickRate);
-
-            // if (other.TryGetComponent<IDamageable>(out var damageable))
-            // {
-            //     damageable.TakeDamage(damage);
-            //     Debug.Log($"[FleshTrailZone] 장판 데미지 {damage} 적용 -> {other.gameObject.name}");
-            // }
+            BossDamageUtility.TryDamagePlayer(other, damagePerSecond * tickRate);
         }
 
         private System.Collections.IEnumerator FadeOut()

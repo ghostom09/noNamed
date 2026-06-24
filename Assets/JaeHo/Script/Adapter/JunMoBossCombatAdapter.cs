@@ -22,6 +22,13 @@ public class JunMoBossCombatAdapter : MonoBehaviour, IDamageable, IHitPointStatu
 
         if (targetRigidbody == null)
             targetRigidbody = GetComponent<Rigidbody2D>();
+
+        ConfigureBossRigidbody();
+    }
+
+    private void OnEnable()
+    {
+        ConfigureBossRigidbody();
     }
 
     private void LateUpdate()
@@ -92,14 +99,20 @@ public class JunMoBossCombatAdapter : MonoBehaviour, IDamageable, IHitPointStatu
 
     public void ApplyKnockback(Vector2 direction, float impulse, float collisionDamage, float extraTargetDamage, bool stunOnCollision)
     {
-        if (targetRigidbody != null && impulse > 0f)
-            targetRigidbody.AddForce(direction.normalized * impulse, ForceMode2D.Impulse);
-
         if (collisionDamage > 0f)
             TakeDamage(collisionDamage);
+    }
 
-        if (stunOnCollision)
-            ApplyStun(0.5f);
+    private void ConfigureBossRigidbody()
+    {
+        if (targetRigidbody == null)
+            targetRigidbody = GetComponent<Rigidbody2D>();
+
+        if (targetRigidbody == null)
+            return;
+
+        targetRigidbody.mass = 10000f;
+        targetRigidbody.freezeRotation = true;
     }
 
     private IEnumerator SlowRoutine(float multiplier, float duration)
