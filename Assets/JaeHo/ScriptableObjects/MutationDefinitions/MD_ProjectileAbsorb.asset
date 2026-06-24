@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87bb20c3561640b19f3d2f4b2f12c790, type: 3}
+  m_Name: MD_ProjectileAbsorb
+  m_EditorClassIdentifier: 
+  mutationType: 5
+  targetScope: 2
+  grades:
+  - grade: 2
+    requiredStacks: 2
+    triggerType: 1
+    damageMultiplier: 1
+    bonusDamage: 0
+    duration: 0
+    tickInterval: 0
+    count: 0
+    unlimited: 0
+    stackable: 0
+    description: Delete incoming projectiles during melee attacks.
+  - grade: 3
+    requiredStacks: 3
+    triggerType: 1
+    damageMultiplier: 1
+    bonusDamage: 0
+    duration: 0
+    tickInterval: 0
+    count: 0
+    unlimited: 0
+    stackable: 0
+    description: Reflect incoming projectiles during melee attacks.
+  - grade: 4
+    requiredStacks: 4
+    triggerType: 1
+    damageMultiplier: 1.3
+    bonusDamage: 0
+    duration: 0
+    tickInterval: 0
+    count: 0
+    unlimited: 0
+    stackable: 0
+    description: Reflect incoming projectiles at 130 percent damage.

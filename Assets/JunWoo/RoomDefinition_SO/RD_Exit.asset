@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60d10e8563464e26b0288835dd38a695, type: 3}
+  m_Name: RD_Exit
+  m_EditorClassIdentifier: Assembly-CSharp::RoomDefinition
+  type: 7
+  prefab: {fileID: 193220045356802525, guid: 1480533c050aefa4f8fd7e5c7236aac5, type: 3}
+  skin: {fileID: 11400000, guid: 85295b74f72442646b4ec9705941bf18, type: 2}
+  size: {x: 15, y: 15}
+  doorPoints:
+  - id: Left
+    direction: {x: -1, y: 0}
+    localPosition: {x: -3, y: 0}
+  startsCombat: 0
+  locksDoors: 0
+  rewardType: 0
+  wallColliderThickness: 2
+  doorOpeningSize: 4
+  doorLockColliderThickness: 1
