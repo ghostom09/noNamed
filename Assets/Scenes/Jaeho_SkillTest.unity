@@ -310,7 +310,7 @@ MonoBehaviour:
   autoFindBoss: 1
   hideWhenNoBoss: 1
   hideWhenBossDead: 1
-  showHpNumbers: 0
+  showHpNumbers: 1
   refreshInterval: 0.05
   panelRoot: {fileID: 931905799}
   bossNameText: {fileID: 696341722}
@@ -964,7 +964,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!50 &177484190
 Rigidbody2D:
   serializedVersion: 5
@@ -1015,16 +1015,26 @@ MonoBehaviour:
   patternTimeoutSec: 20
   closeRange: 5
   farRange: 8
+  fallbackPlayerLength: 1
   chaseSpeed: 4
   chaseStoppingDistance: 2
   breathDuration: 2.5
   breathDPS: 30
   breathCooldown: 4
+  breathTelegraphDelay: 0.3
   barrageShotCount: 8
   barrageSpread: 30
   barrageCooldown: 5
+  fireballPlayerScale: 0.5
   ringCount: 3
   ringCooldown: 7
+  ringTelegraphDelay: 1
+  ringInterval: 0.3
+  ringPlayerLength: 1.5
+  gasPlayerScale: 2
+  gasTravelDistance: 5
+  gasSpeed: 8
+  gasExplosionTileSize: 1
   flameBreathData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
   fireballBarrageData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
   fireRingData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
@@ -5982,7 +5992,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 990575182}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 000fd58081c441b419b876dd3fe88149, type: 3}
   m_Name: 
@@ -6017,10 +6027,12 @@ MonoBehaviour:
   groundSlamData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
   waveBlastData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
   pillarBindData: {fileID: 11400000, guid: d15ba87a6b2610d4f9fc824404a57e44, type: 2}
-  beamSegments:
-  - {fileID: 2062528401}
-  - {fileID: 1241416556}
+  waterBeamPrefab: {fileID: 0}
   beamPivot: {fileID: 1190354851}
+  beamBlockerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  beamRaycastPadding: 0.05
   waterWavePrefab: {fileID: 9085461787720426981, guid: 63e7e7d1845e71e41b13c981c90ca87a, type: 3}
   waterWaveTelegraph: {fileID: 512201486031211520, guid: 9dcb86175847af84486a95e5014cd594, type: 3}
   waterPillarPrefab: {fileID: 9085461787720426981, guid: 7f0fb89496f9d9c408569ef055687e38, type: 3}
@@ -8005,17 +8017,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6542920476432473899, guid: bcc8b06df81e3e343bcf6012260110b8, type: 3}
   m_PrefabInstance: {fileID: 1241416554}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1241416556 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5920686373066472350, guid: bcc8b06df81e3e343bcf6012260110b8, type: 3}
-  m_PrefabInstance: {fileID: 1241416554}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ab4e09dfbf084081af3a6dfe4689cbcf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossSystem.Boss.WaterBoss.WaterBeamSegment
 --- !u!1 &1243552361
 GameObject:
   m_ObjectHideFlags: 0
@@ -10062,7 +10063,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1608904340
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12812,17 +12813,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6542920476432473899, guid: bcc8b06df81e3e343bcf6012260110b8, type: 3}
   m_PrefabInstance: {fileID: 2062528399}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2062528401 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5920686373066472350, guid: bcc8b06df81e3e343bcf6012260110b8, type: 3}
-  m_PrefabInstance: {fileID: 2062528399}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ab4e09dfbf084081af3a6dfe4689cbcf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossSystem.Boss.WaterBoss.WaterBeamSegment
 --- !u!1 &2114887449
 GameObject:
   m_ObjectHideFlags: 0

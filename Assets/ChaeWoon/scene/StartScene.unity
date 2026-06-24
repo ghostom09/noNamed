@@ -172,7 +172,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuController
   startButton: {fileID: 1066506426}
   quitButton: {fileID: 1436390227}
-  gameSceneName: IntegratedTest
+  gameSceneName: Jaeho_SkillTest
   autoFindButtons: 1
 --- !u!114 &225265726
 MonoBehaviour:

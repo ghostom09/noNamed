@@ -15,7 +15,7 @@ public class MainMenuController : MonoBehaviour
 
     [Header("Settings")]
     [Tooltip("게임 시작 버튼이 로드할 씬 이름")]
-    [SerializeField] private string gameSceneName = "IntegratedTest";
+    [SerializeField] private string gameSceneName = "Jaeho_SkillTest";
 
     [Tooltip("버튼 참조가 비어 있으면 이름으로 자동 탐색한다")]
     [SerializeField] private bool autoFindButtons = true;

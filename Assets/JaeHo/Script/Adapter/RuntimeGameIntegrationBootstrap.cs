@@ -1,10 +1,18 @@
 using BossSystem.Boss;
 using System.Reflection;
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
+#endif
+
+#if UNITY_EDITOR
+using UnityEditor;
 #endif
 
 public static class RuntimeGameIntegrationBootstrap
@@ -217,6 +225,11 @@ public sealed class MutationPickupRuntimeGuard : MonoBehaviour
 
 public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
 {
+    private const string RuntimeCanvasName = "ChaeWoonRuntimeUI";
+    private const string CombatHudPrefabPath = "Assets/ChaeWoon/Prefabs/UI/CombatHUDView.prefab";
+    private const string BossHpBarPrefabPath = "Assets/ChaeWoon/Prefabs/UI/BossHpBarView.prefab";
+    private const string StatUpgradePrefabPath = "Assets/ChaeWoon/Prefabs/UI/CharacterStatUpgradeUI.prefab";
+
     private static RoomClearMutationRewardSystem rewardSystem;
 
     private float _nextScanTime;
@@ -224,11 +237,12 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
     public static void IntegrateScene()
     {
         EnsureRewardIntegration();
-        EnsureInitialStatUiHidden();
-        EnsureMutationPickupGuards();
         EnsurePlayerIntegration();
         EnsureEnemyIntegration();
         EnsureBossIntegration();
+        EnsureRuntimeUi();
+        EnsureInitialStatUiHidden();
+        EnsureMutationPickupGuards();
     }
 
     private void Update()
@@ -335,6 +349,255 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
             if (boss == null) continue;
             EnsureComponent<JunMoBossCombatAdapter>(boss.gameObject);
         }
+    }
+
+    private static void EnsureRuntimeUi()
+    {
+        Canvas canvas = EnsureRuntimeCanvas();
+        if (canvas == null)
+            return;
+
+        EnsureEventSystem();
+        EnsurePrefabUi<HpBarView>("CombatHUDView", CombatHudPrefabPath, canvas.transform);
+        BossHpBarUI bossHpBar = EnsurePrefabUi<BossHpBarUI>("BossHpBarView", BossHpBarPrefabPath, canvas.transform);
+        CharacterStatUpgradeUI statUi = EnsurePrefabUi<CharacterStatUpgradeUI>("CharacterStatUpgradeUI", StatUpgradePrefabPath, canvas.transform);
+        MutationSelectUI mutationSelectUi = EnsureMutationSelectUi(canvas.transform);
+        EnsureMutationDescriptionUi(canvas.transform);
+
+        PlayerStatManager statManager = Object.FindAnyObjectByType<PlayerStatManager>(FindObjectsInactive.Include);
+        if (statUi != null && statManager != null)
+        {
+            statUi.SetPlayerStatManager(statManager);
+        }
+
+        SkillMutationLoadoutBinder loadoutBinder =
+            Object.FindAnyObjectByType<SkillMutationLoadoutBinder>(FindObjectsInactive.Include);
+        if (mutationSelectUi != null && loadoutBinder != null)
+        {
+            SetPrivateField(mutationSelectUi, "mutationLoadoutBinder", loadoutBinder);
+        }
+
+        BossBase activeBoss = FindActiveBoss();
+        if (bossHpBar != null && activeBoss != null && !bossHpBar.HasLiveBoss)
+        {
+            bossHpBar.SetBoss(activeBoss);
+        }
+    }
+
+    private static Canvas EnsureRuntimeCanvas()
+    {
+        Canvas[] canvases = Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            Canvas existingCanvas = canvases[i];
+            if (existingCanvas != null && existingCanvas.isActiveAndEnabled && existingCanvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                return existingCanvas;
+        }
+
+        GameObject canvasObject = new(RuntimeCanvasName);
+        Canvas canvas = canvasObject.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 100;
+
+        CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        canvasObject.AddComponent<GraphicRaycaster>();
+        return canvas;
+    }
+
+    private static void EnsureEventSystem()
+    {
+        if (Object.FindAnyObjectByType<EventSystem>(FindObjectsInactive.Include) != null)
+            return;
+
+        GameObject eventSystemObject = new("EventSystem");
+        eventSystemObject.AddComponent<EventSystem>();
+
+#if ENABLE_INPUT_SYSTEM
+        eventSystemObject.AddComponent<InputSystemUIInputModule>();
+#else
+        eventSystemObject.AddComponent<StandaloneInputModule>();
+#endif
+    }
+
+    private static T EnsurePrefabUi<T>(string instanceName, string prefabPath, Transform parent) where T : Component
+    {
+        T existing = Object.FindAnyObjectByType<T>(FindObjectsInactive.Include);
+        if (existing != null)
+            return existing;
+
+        GameObject instance = InstantiateEditorPrefab(prefabPath, parent);
+        if (instance == null)
+            return null;
+
+        instance.name = instanceName;
+        return instance.GetComponentInChildren<T>(true);
+    }
+
+    private static GameObject InstantiateEditorPrefab(string prefabPath, Transform parent)
+    {
+#if UNITY_EDITOR
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        if (prefab == null)
+            return null;
+
+        GameObject instance = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+        if (instance == null)
+            return null;
+
+        instance.transform.SetParent(parent, false);
+        return instance;
+#else
+        return null;
+#endif
+    }
+
+    private static MutationSelectUI EnsureMutationSelectUi(Transform parent)
+    {
+        MutationSelectUI existing = Object.FindAnyObjectByType<MutationSelectUI>(FindObjectsInactive.Include);
+        if (existing != null)
+            return existing;
+
+        GameObject root = CreateUiObject("MutationSelectUIRoot", parent);
+        root.SetActive(false);
+
+        GameObject panel = CreatePanel("MutationSelectPanel", root.transform, new Vector2(760f, 560f));
+        TextMeshProUGUI titleText = CreateText("TitleText", panel.transform, "변이할 공격을 선택하시오", 34f);
+        RectTransform titleRect = titleText.rectTransform;
+        titleRect.anchorMin = new Vector2(0f, 1f);
+        titleRect.anchorMax = new Vector2(1f, 1f);
+        titleRect.anchoredPosition = new Vector2(0f, -42f);
+        titleRect.sizeDelta = new Vector2(-60f, 56f);
+
+        SkillSelectSlotUI[] slots = new SkillSelectSlotUI[4];
+        for (int i = 0; i < slots.Length; i++)
+        {
+            slots[i] = CreateMutationSlot(panel.transform, i);
+        }
+
+        MutationSelectUI ui = root.AddComponent<MutationSelectUI>();
+        SetPrivateField(ui, "panel", panel);
+        SetPrivateField(ui, "titleText", titleText);
+        SetPrivateField(ui, "skillSlots", slots);
+        SetPrivateField(ui, "hideAfterSelection", true);
+
+        root.SetActive(true);
+        return ui;
+    }
+
+    private static SkillSelectSlotUI CreateMutationSlot(Transform parent, int index)
+    {
+        GameObject slotObject = CreatePanel($"SkillSlot_{index + 1}", parent, new Vector2(330f, 180f));
+        RectTransform slotRect = slotObject.GetComponent<RectTransform>();
+        slotRect.anchorMin = slotRect.anchorMax = new Vector2(index % 2 == 0 ? 0.28f : 0.72f, index < 2 ? 0.62f : 0.26f);
+        slotRect.anchoredPosition = Vector2.zero;
+
+        Button button = slotObject.AddComponent<Button>();
+        TextMeshProUGUI nameText = CreateText("SkillNameText", slotObject.transform, string.Empty, 24f);
+        TextMeshProUGUI descriptionText = CreateText("SkillDescriptionText", slotObject.transform, string.Empty, 18f);
+        TextMeshProUGUI mutationText = CreateText("SkillMutationListText", slotObject.transform, string.Empty, 17f);
+
+        nameText.rectTransform.anchoredPosition = new Vector2(0f, 54f);
+        descriptionText.rectTransform.anchoredPosition = new Vector2(0f, 12f);
+        mutationText.rectTransform.anchoredPosition = new Vector2(0f, -50f);
+
+        SkillSelectSlotUI slot = slotObject.AddComponent<SkillSelectSlotUI>();
+        SetPrivateField(slot, "skillNameText", nameText);
+        SetPrivateField(slot, "skillDescriptionText", descriptionText);
+        SetPrivateField(slot, "mutationListText", mutationText);
+        SetPrivateField(slot, "selectButton", button);
+        return slot;
+    }
+
+    private static MutationDescriptionUI EnsureMutationDescriptionUi(Transform parent)
+    {
+        MutationDescriptionUI existing = Object.FindAnyObjectByType<MutationDescriptionUI>(FindObjectsInactive.Include);
+        if (existing != null)
+            return existing;
+
+        GameObject root = CreateUiObject("MutationDescriptionUIRoot", parent);
+        root.SetActive(false);
+
+        GameObject panel = CreatePanel("MutationDescriptionPanel", root.transform, new Vector2(420f, 220f));
+        RectTransform panelRect = panel.GetComponent<RectTransform>();
+        panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.14f);
+
+        TextMeshProUGUI gradeText = CreateText("GradeText", panel.transform, string.Empty, 20f);
+        TextMeshProUGUI nameText = CreateText("NameText", panel.transform, string.Empty, 26f);
+        TextMeshProUGUI descriptionText = CreateText("DescriptionText", panel.transform, string.Empty, 18f);
+        gradeText.rectTransform.anchoredPosition = new Vector2(0f, 76f);
+        nameText.rectTransform.anchoredPosition = new Vector2(0f, 38f);
+        descriptionText.rectTransform.anchoredPosition = new Vector2(0f, -36f);
+
+        MutationDescriptionUI ui = root.AddComponent<MutationDescriptionUI>();
+        SetPrivateField(ui, "panel", panel);
+        SetPrivateField(ui, "gradeText", gradeText);
+        SetPrivateField(ui, "nameText", nameText);
+        SetPrivateField(ui, "descriptionText", descriptionText);
+
+        root.SetActive(true);
+        return ui;
+    }
+
+    private static GameObject CreateUiObject(string name, Transform parent)
+    {
+        GameObject obj = new(name, typeof(RectTransform));
+        obj.transform.SetParent(parent, false);
+        RectTransform rect = obj.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        return obj;
+    }
+
+    private static GameObject CreatePanel(string name, Transform parent, Vector2 size)
+    {
+        GameObject panel = new(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        panel.transform.SetParent(parent, false);
+        RectTransform rect = panel.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.sizeDelta = size;
+        rect.anchoredPosition = Vector2.zero;
+
+        Image image = panel.GetComponent<Image>();
+        image.color = new Color(0.04f, 0.04f, 0.04f, 0.92f);
+        return panel;
+    }
+
+    private static TextMeshProUGUI CreateText(string name, Transform parent, string text, float fontSize)
+    {
+        GameObject textObject = new(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        textObject.transform.SetParent(parent, false);
+
+        RectTransform rect = textObject.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.sizeDelta = new Vector2(300f, 44f);
+        rect.anchoredPosition = Vector2.zero;
+
+        TextMeshProUGUI label = textObject.GetComponent<TextMeshProUGUI>();
+        label.text = text;
+        label.fontSize = fontSize;
+        label.alignment = TextAlignmentOptions.Center;
+        label.color = Color.white;
+        label.raycastTarget = false;
+        return label;
+    }
+
+    private static BossBase FindActiveBoss()
+    {
+        BossBase[] bosses = Object.FindObjectsByType<BossBase>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        for (int i = 0; i < bosses.Length; i++)
+        {
+            BossBase boss = bosses[i];
+            if (boss != null && boss.gameObject.activeInHierarchy && !boss.IsDead)
+                return boss;
+        }
+
+        return null;
     }
 
     private static GameObject FindPlayerRoot()

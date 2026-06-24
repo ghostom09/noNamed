@@ -39,9 +39,25 @@ public class JunMoBossCombatAdapter : MonoBehaviour, IDamageable, IHitPointStatu
 
         float hpBefore = boss.CurrentHP;
         boss.TakeDamage(Mathf.Max(0f, amount));
+        SyncBossHpUi();
 
         Debug.Log(
             $"[Boss Hit] {gameObject.name} damage:{amount:0.##} hp:{hpBefore:0.##}->{boss.CurrentHP:0.##}");
+    }
+
+    private void SyncBossHpUi()
+    {
+        if (boss == null)
+            return;
+
+        BossHpBarUI[] bossHpBars = FindObjectsByType<BossHpBarUI>(FindObjectsInactive.Include);
+        for (int i = 0; i < bossHpBars.Length; i++)
+        {
+            if (bossHpBars[i] == null)
+                continue;
+
+            bossHpBars[i].SetBossHp(boss, boss.CurrentHP, boss.MaxHP);
+        }
     }
 
     public void ApplySlow(float multiplier, float duration)

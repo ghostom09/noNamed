@@ -1,10 +1,15 @@
 using System;
+using System.Reflection;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Health))]
 public class PlayerHealth : MonoBehaviour, IDamageable, IHitPointStatus
 {
+    private static readonly MethodInfo ApplyStatsMethod = typeof(PlayerStatManager).GetMethod(
+        "ApplyStats",
+        BindingFlags.Instance | BindingFlags.NonPublic);
+
     [SerializeField] private Health health;
     [SerializeField] private PlayerStatManager statManager;
     [SerializeField, Min(0f)] private float invincibleTimeAfterHit = 0.6f;
@@ -109,7 +114,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable, IHitPointStatus
     private void ApplyStatMaxHp(bool fillHp)
     {
         if (health == null || statManager == null) return;
-        if (!statManager.RefreshStats()) return;
+        ApplyStatsMethod?.Invoke(statManager, null);
 
         health.SetMaxHp(statManager.Health, fillHp);
     }
