@@ -9,6 +9,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private GameObject warning;
     [SerializeField] private EnemyGrade grade = EnemyGrade.Normal;
     [SerializeField] private GameObject eliteBorder;
+    [SerializeField] private float eliteScaleMultiplier = 1.2f;
     private IState _currentState;
     public EnemyAnimation Animation { get; private set; }
     
@@ -25,6 +26,7 @@ public class Enemy : MonoBehaviour
     public IChase Chase;
     
     public EnemyStats stats;
+    public float CurrentHealth { get; private set; }
     
     [HideInInspector]public Rigidbody2D rb;
     private float _attackTime = 0f;
@@ -55,7 +57,10 @@ public class Enemy : MonoBehaviour
         if (grade == EnemyGrade.Elite)
         {
             EliteEnemyModifier.Apply(stats);
+            transform.localScale *= eliteScaleMultiplier;
         }
+
+        CurrentHealth = stats.maxHealth;
 
         IdleState = new IdleState(this);
         MoveState = new MoveState(this);
@@ -140,6 +145,17 @@ public class Enemy : MonoBehaviour
     public void ResetAttackTimer()
     {
         _attackTime = 0f;
+    }
+
+    public void TakeDamage(float damage)
+    {
+        if (damage <= 0f || CurrentHealth <= 0f)
+            return;
+
+        CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
+
+        if (CurrentHealth <= 0f)
+            ChangeState(DieState);
     }
 
     public void AttackWarn()
