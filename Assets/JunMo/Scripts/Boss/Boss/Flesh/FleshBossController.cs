@@ -130,12 +130,6 @@ namespace BossSystem.Boss.FleshBoss
         {
             if (!isCharging) return;
             ApplyDamageToPlayer(col.gameObject, chargeDamage);
-            
-            // if (col.gameObject.TryGetComponent<IDamageable>(out var damageable))
-            // {
-            //     damageable.TakeDamage(chargeDamage);
-            //     Debug.Log($"[FleshBoss] 돌진 충돌 데미지 {chargeDamage} 적용 -> {col.gameObject.name}");
-            // }
         }
 
         public void SpawnFleshProjectile(Vector3 position, Vector3 direction,
@@ -182,11 +176,6 @@ namespace BossSystem.Boss.FleshBoss
             foreach (var hit in hits)
             {
                 ApplyDamageToPlayer(hit.gameObject, damage);
-                // if (hit.TryGetComponent<IDamageable>(out var damageable))
-                // {
-                //     damageable.TakeDamage(damage);
-                //     Debug.Log($"[FleshBoss] 스매시 데미지 {damage} 적용 -> {hit.gameObject.name}");
-                // }
             }
         }
 

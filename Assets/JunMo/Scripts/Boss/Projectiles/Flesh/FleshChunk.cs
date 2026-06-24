@@ -203,30 +203,13 @@ namespace BossSystem.Boss.FleshBoss
         // ── 물리 충돌 ────────────────────────────────────────────
         private void OnCollisionEnter2D(Collision2D col)
         {
-            col.gameObject.GetComponent<BossSystem.Boss.FireBoss.PlayerHealth>()?.TakeDamage(touchDamage);
+            BossDamageUtility.TryDamagePlayer(col.collider, touchDamage);
         }
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            other.GetComponent<BossSystem.Boss.FireBoss.PlayerHealth>()?.TakeDamage(touchDamage);
+            BossDamageUtility.TryDamagePlayer(other, touchDamage);
         }
-
-        // private void OnCollisionEnter2D(Collision2D col)
-        // {
-        //     if (col.gameObject.TryGetComponent<IDamageable>(out var damageable))
-        //     {
-        //         damageable.TakeDamage(touchDamage);
-        //     }
-        // }
-
-        // 트리거용 (장판 등)
-        // private void OnTriggerEnter2D(Collider2D other)
-        // {
-        //     if (other.TryGetComponent<IDamageable>(out var damageable))
-        //     {
-        //         damageable.TakeDamage(touchDamage);
-        //     }
-        // }
 
         // ── 튕길 위치 텔레그래프 ──────────────────────────────────
         private void SpawnBounceTelegraph(Vector2 position)
