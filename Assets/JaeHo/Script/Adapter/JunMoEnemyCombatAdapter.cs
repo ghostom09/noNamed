@@ -6,8 +6,11 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStatus, ISlowable, IPoisonable, IStunnable, IBindable, IKnockbackable
 {
+    private const string EnemyLayerName = "Enemy";
+
     [SerializeField] private Enemy enemy;
     [SerializeField] private Rigidbody2D targetRigidbody;
+    [SerializeField] private bool syncColliderLayersToEnemyLayer = true;
 
     private Coroutine _poisonCoroutine;
     private Coroutine _slowCoroutine;
@@ -15,6 +18,7 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
     private float _baseMoveSpeed;
     private bool _hasMoveSpeedSnapshot;
     private bool _hasTakenDamage;
+    private bool _isDead;
     private bool _notifiedDeath;
 
     private static readonly FieldInfo EnemyOnDeadField = typeof(Enemy).GetField(
@@ -22,7 +26,7 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
         BindingFlags.Instance | BindingFlags.NonPublic);
 
     public float CurrentHp => _currentHp;
-    public bool IsDead { get; private set; }
+    public bool IsDead => _isDead;
 
     private void Awake()
     {
@@ -64,14 +68,18 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
         InitializeHitPointsIfNeeded();
         _hasTakenDamage = true;
 
+        float damage = Mathf.Max(0f, amount);
         float hpBefore = _currentHp;
-        _currentHp = Mathf.Max(0f, _currentHp - Mathf.Max(0f, amount));
+        bool damagedJunMoEnemy = TryDamageJunMoEnemy(damage);
+        _currentHp = damagedJunMoEnemy
+            ? Mathf.Max(0f, enemy.CurrentHealth)
+            : Mathf.Max(0f, _currentHp - damage);
 
         Debug.Log($"[Enemy Hit] {gameObject.name} damage:{amount:0.##} hp:{hpBefore:0.##}->{_currentHp:0.##}");
 
         if (_currentHp <= 0f)
         {
-            Die();
+            Die(!damagedJunMoEnemy);
         }
     }
 
@@ -144,9 +152,9 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
         _poisonCoroutine = null;
     }
 
-    private void Die()
+    private void Die(bool changeEnemyState)
     {
-        IsDead = true;
+        _isDead = true;
 
         if (targetRigidbody != null)
             targetRigidbody.linearVelocity = Vector2.zero;
@@ -155,10 +163,13 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
         {
             NotifyEnemyDead();
 
-            if (enemy.DieState != null)
-                enemy.ChangeState(enemy.DieState);
-            else
-                Destroy(enemy.gameObject, 1f);
+            if (changeEnemyState)
+            {
+                if (enemy.DieState != null)
+                    enemy.ChangeState(enemy.DieState);
+                else
+                    Destroy(enemy.gameObject, 1f);
+            }
         }
 
         enabled = false;
@@ -179,7 +190,7 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
     {
         if (deadEnemy == enemy)
         {
-            IsDead = true;
+            _isDead = true;
             _notifiedDeath = true;
         }
     }
@@ -191,6 +202,8 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
 
         if (targetRigidbody == null)
             targetRigidbody = GetComponent<Rigidbody2D>();
+
+        ConfigureHitDetectionLayer();
     }
 
     private void InitializeHitPointsIfNeeded()
@@ -206,7 +219,38 @@ public class JunMoEnemyCombatAdapter : MonoBehaviour, IDamageable, IHitPointStat
         _currentHp = enemy != null && enemy.stats != null
             ? Mathf.Max(1f, enemy.stats.maxHealth)
             : 1f;
-        IsDead = false;
+        _isDead = false;
+    }
+
+    private bool TryDamageJunMoEnemy(float damage)
+    {
+        if (enemy == null || damage <= 0f || enemy.CurrentHealth <= 0f)
+            return false;
+
+        enemy.TakeDamage(damage);
+        return true;
+    }
+
+    private void ConfigureHitDetectionLayer()
+    {
+        if (!syncColliderLayersToEnemyLayer)
+            return;
+
+        int enemyLayer = LayerMask.NameToLayer(EnemyLayerName);
+        if (enemyLayer < 0)
+            return;
+
+        gameObject.layer = enemyLayer;
+
+        Collider2D[] colliders = GetComponentsInChildren<Collider2D>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider2D collider = colliders[i];
+            if (collider == null)
+                continue;
+
+            collider.gameObject.layer = enemyLayer;
+        }
     }
 
     private void CaptureMoveSpeedIfNeeded()

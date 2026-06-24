@@ -347,6 +347,7 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
         foreach (BossBase boss in bosses)
         {
             if (boss == null) continue;
+            EnsureLayer(boss.gameObject, "Enemy");
             EnsureComponent<JunMoBossCombatAdapter>(boss.gameObject);
         }
     }
@@ -625,6 +626,18 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
     {
         T component = target.GetComponent<T>();
         return component != null ? component : target.AddComponent<T>();
+    }
+
+    private static void EnsureLayer(GameObject target, string layerName)
+    {
+        if (target == null)
+            return;
+
+        int layer = LayerMask.NameToLayer(layerName);
+        if (layer < 0)
+            return;
+
+        target.layer = layer;
     }
 
     private static void SetPrivateField(object target, string fieldName, object value)

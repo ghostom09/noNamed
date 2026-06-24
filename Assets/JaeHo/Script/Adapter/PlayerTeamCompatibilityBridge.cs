@@ -19,6 +19,7 @@ public sealed class PlayerTeamCompatibilityBridge : MonoBehaviour, ISlowable, IB
     private float _slowMultiplier = 1f;
     private float _slowEndTime;
     private float _bindEndTime;
+    private bool _appliedMovementEffect;
 
     private bool IsBound => Time.time < _bindEndTime;
     private float MovementMultiplier => IsBound ? 0f : _slowMultiplier;
@@ -142,11 +143,24 @@ public sealed class PlayerTeamCompatibilityBridge : MonoBehaviour, ISlowable, IB
 
     private void ApplyMovementEffects()
     {
-        if (Time.time >= _slowEndTime)
+        bool hasActiveSlow = Time.time < _slowEndTime;
+        bool hasActiveBind = IsBound;
+
+        if (!hasActiveSlow)
             _slowMultiplier = 1f;
 
-        float multiplier = MovementMultiplier;
-        playerMove?.SetExternalMoveSpeedMultiplier(multiplier);
+        if (hasActiveSlow || hasActiveBind)
+        {
+            playerMove?.SetExternalMoveSpeedMultiplier(MovementMultiplier);
+            _appliedMovementEffect = true;
+            return;
+        }
+
+        if (_appliedMovementEffect)
+        {
+            playerMove?.SetExternalMoveSpeedMultiplier(1f);
+            _appliedMovementEffect = false;
+        }
     }
 }
 
