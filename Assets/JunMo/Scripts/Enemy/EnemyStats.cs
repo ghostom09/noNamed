@@ -21,9 +21,17 @@ public enum AttackType
     HighResearcher
 }
 
+public enum EnemyDefaultFacing
+{
+    Right,
+    Left
+}
+
 [CreateAssetMenu(fileName = "EnemyData", menuName = "Enemy/EnemyStats")]
 public class EnemyStats : ScriptableObject
 {
+    [Tooltip("원본 이미지가 기본적으로 바라보는 방향")]
+    public EnemyDefaultFacing defaultFacing = EnemyDefaultFacing.Right;
     [Header("기본 스탯")]
     public float damage;
     public float moveSpeed;

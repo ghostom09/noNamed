@@ -25,6 +25,7 @@ public class SoldierContinueAttack : IAttack
     private IEnumerator Spread()
     {
         _enemy.IsAttacking = true;
+        _enemy.ResetAttackTimer();
         _enemy.AttackWarn();
         yield return new WaitForSeconds(_enemy.stats.durationWarning);
         if (!_enemy)
@@ -44,6 +45,5 @@ public class SoldierContinueAttack : IAttack
             _enemy.GetVector2());
 
         _enemy.IsAttacking = false;
-        _enemy.ResetAttackTimer();
     }
 }

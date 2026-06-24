@@ -34,6 +34,8 @@ public class Enemy : MonoBehaviour
     private bool _hasExploded = false;
     private bool _isChasingBeforeExplosion = false;
     private GameObject _boom;
+    private const float FacingDirectionThreshold = 0.01f;
+    private const float SoldierContinueAttackInterval = 1f;
     
     public event Action<Enemy> OnDead;
     public bool IsAttacking { get; set; }
@@ -86,6 +88,26 @@ public class Enemy : MonoBehaviour
         _attackTime += Time.deltaTime;
     
         _currentState?.Update();
+        UpdateFacingDirection();
+    }
+
+    private void UpdateFacingDirection()
+    {
+        SetFacingDirection(rb.linearVelocity);
+    }
+
+    public void SetFacingDirection(Vector2 direction)
+    {
+        if (stats == null || Mathf.Abs(direction.x) <= FacingDirectionThreshold)
+            return;
+
+        bool isMovingRight = direction.x > 0f;
+        bool defaultFacesRight = stats.defaultFacing == EnemyDefaultFacing.Right;
+        bool shouldFlip = isMovingRight != defaultFacesRight;
+
+        Vector3 localEulerAngles = transform.localEulerAngles;
+        localEulerAngles.y = shouldFlip ? 180f : 0f;
+        transform.localEulerAngles = localEulerAngles;
     }
     
     public void ChangeState(IState newState)
@@ -112,7 +134,14 @@ public class Enemy : MonoBehaviour
     
     public bool CanAttackSpeed()
     {
-        return !IsDead && _attackTime >= stats.attackSpeed;
+        if (IsDead || stats == null)
+            return false;
+
+        float attackInterval = stats.attackType == AttackType.SoldierContinue
+            ? SoldierContinueAttackInterval
+            : stats.attackSpeed;
+
+        return _attackTime >= attackInterval;
     }
 
     private bool CanRange(float range) // 근접 공격범위 안인가?
@@ -202,8 +231,11 @@ public class Enemy : MonoBehaviour
         float timer = 0f;
         while (timer < stats.durationWarning)
         {
+            Vector2 moveDirection = GetVector2();
+            SetFacingDirection(moveDirection);
+
             Vector2 nextPosition = (Vector2)transform.position
-                                   + GetVector2() * (stats.moveSpeed * Time.deltaTime);
+                                   + moveDirection * (stats.moveSpeed * Time.deltaTime);
             rb.MovePosition(nextPosition);
 
             timer += Time.deltaTime;

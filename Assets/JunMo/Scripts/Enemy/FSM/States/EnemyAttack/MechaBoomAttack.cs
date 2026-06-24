@@ -27,8 +27,11 @@ public class MechaBoomAttack : IAttack
             if (!_enemy)
                 yield break;
 
+            Vector2 moveDirection = _enemy.GetVector2();
+            _enemy.SetFacingDirection(moveDirection);
+
             Vector2 nextPosition = (Vector2)_enemy.transform.position
-                                   + _enemy.GetVector2() * (_enemy.stats.moveSpeed * Time.deltaTime);
+                                   + moveDirection * (_enemy.stats.moveSpeed * Time.deltaTime);
             _enemy.rb.MovePosition(nextPosition);
 
             timer += Time.deltaTime;
