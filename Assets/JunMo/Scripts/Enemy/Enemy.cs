@@ -38,6 +38,7 @@ public class Enemy : MonoBehaviour
     public event Action<Enemy> OnDead;
     public bool IsAttacking { get; set; }
     public bool HasExploded => _hasExploded;
+    public bool IsDead { get; private set; }
 
     private void Awake()
     {
@@ -79,6 +80,9 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
+        if (IsDead)
+            return;
+
         _attackTime += Time.deltaTime;
     
         _currentState?.Update();
@@ -86,6 +90,9 @@ public class Enemy : MonoBehaviour
     
     public void ChangeState(IState newState)
     {
+        if (newState == null || (IsDead && newState != DieState))
+            return;
+
         _currentState?.Exit();
 
         _currentState = newState;
@@ -95,7 +102,7 @@ public class Enemy : MonoBehaviour
     
     public bool CanAttackRange()
     {
-        return CanRange(stats.attackRange);
+        return !IsDead && CanRange(stats.attackRange);
     }
 
     public bool CanChaseRange()
@@ -105,7 +112,7 @@ public class Enemy : MonoBehaviour
     
     public bool CanAttackSpeed()
     {
-        return _attackTime >= stats.attackSpeed;
+        return !IsDead && _attackTime >= stats.attackSpeed;
     }
 
     private bool CanRange(float range) // 근접 공격범위 안인가?
@@ -158,7 +165,10 @@ public class Enemy : MonoBehaviour
         CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
 
         if (CurrentHealth <= 0f)
+        {
+            IsDead = true;
             ChangeState(DieState);
+        }
     }
 
     public void AttackWarn()

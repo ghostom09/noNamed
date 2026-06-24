@@ -20,6 +20,8 @@ public class EnemyAnimation : MonoBehaviour
         { EnemyAnimationType.Attack, Animator.StringToHash("Attack") },
         { EnemyAnimationType.Die, Animator.StringToHash("Die") }
     };
+    private EnemyAnimationType? _currentAnimation;
+    private bool _deathLocked;
 
     private void Awake()
     {
@@ -34,6 +36,16 @@ public class EnemyAnimation : MonoBehaviour
             Debug.LogWarning($"{name}: Animator가 연결되어 있지 않습니다.", this);
             return;
         }
+
+        if (_deathLocked && animationType != EnemyAnimationType.Die)
+            return;
+
+        if (_currentAnimation == animationType && animationType != EnemyAnimationType.Attack)
+            return;
+
+        _currentAnimation = animationType;
+        if (animationType == EnemyAnimationType.Die)
+            _deathLocked = true;
 
         animator.Play(_stateHashes[animationType], 0, 0f);
     }
