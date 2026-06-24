@@ -308,7 +308,9 @@ public class FleshScatterNode : BTNode
                                               dir.normalized, force,
                                               bounces: 0, isLarge: false,
                                               sizeScale: 0.75f,
-                                              maxTravelRange: ScatterRange);
+                                              maxTravelRange: ScatterRange,
+                                              lifetime: 10f,
+                                              stopAtMaxRange: true);
 
                     fired++;
                     nextFire = Time.time + fireInterval;
@@ -548,10 +550,11 @@ public class FleshScatterNode : BTNode
         {
             if (!blackboard.IsPhase2)                return NodeState.Failure;
             if (!boss.HasNearbyChunks(absorbRadius)) return NodeState.Failure;
-            if (boss.IsExecutingPattern)             return NodeState.Failure;
 
             if (!isActive)
             {
+                if (boss.IsExecutingPattern) return NodeState.Failure;
+
                 isActive  = true;
                 absorbed  = false;
                 startTime = Time.time;

@@ -43,6 +43,8 @@ namespace BossSystem.Boss.FleshBoss
         private bool isDead = false;
         private Vector2 spawnPosition;
         private float maxTravelRange = 0f;
+        private bool stopAtMaxTravelRange = false;
+        private bool hasReachedMaxTravelRange = false;
         private bool isTargetedFlight = false;
         private Vector2 flightTargetPos;
         private float flightSpeed = 0f;
@@ -62,7 +64,8 @@ namespace BossSystem.Boss.FleshBoss
         public void Initialize(FleshBossController boss, float hp = 30f, float dmg = 15f,
                                float life = 10f, int bounces = 0,
                                BossAttackData bounceTelegraph = null,
-                               float maxRange = 0f)
+                               float maxRange = 0f,
+                               bool stopAtMaxRange = false)
         {
             owner               = boss;
             chunkHP             = hp;
@@ -76,6 +79,8 @@ namespace BossSystem.Boss.FleshBoss
             rb.gravityScale     = 0f;
             spawnPosition       = rb.position;
             maxTravelRange      = maxRange;
+            stopAtMaxTravelRange = stopAtMaxRange;
+            hasReachedMaxTravelRange = false;
 
             Destroy(gameObject, lifetime);
         }
@@ -101,11 +106,20 @@ namespace BossSystem.Boss.FleshBoss
         {
             if (isDead || rb == null) return;
 
-            if (maxTravelRange > 0f &&
+            if (!hasReachedMaxTravelRange && maxTravelRange > 0f &&
                 Vector2.Distance(spawnPosition, rb.position) >= maxTravelRange)
             {
-                DestroyChunk();
-                return;
+                if (stopAtMaxTravelRange)
+                {
+                    hasReachedMaxTravelRange = true;
+                    rb.linearVelocity = Vector2.zero;
+                    rb.angularVelocity = 0f;
+                }
+                else
+                {
+                    DestroyChunk();
+                    return;
+                }
             }
 
             if (isTargetedFlight)

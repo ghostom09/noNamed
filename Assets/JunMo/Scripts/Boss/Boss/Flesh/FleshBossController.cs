@@ -141,7 +141,9 @@ namespace BossSystem.Boss.FleshBoss
         public void SpawnFleshProjectile(Vector3 position, Vector3 direction,
                                          float force, int bounces, bool isLarge = false,
                                          float sizeScale = 1f,
-                                         float maxTravelRange = 0f)
+                                         float maxTravelRange = 0f,
+                                         float lifetime = 12f,
+                                         bool stopAtMaxRange = false)
         {
             var prefab = (isLarge && fleshChunkLargePrefab != null)
                          ? fleshChunkLargePrefab : fleshChunkPrefab;
@@ -156,9 +158,10 @@ namespace BossSystem.Boss.FleshBoss
                 chunk.Initialize(this,
                     hp:      isLarge ? 60f : 30f,
                     dmg:     isLarge ? 30f : 15f,
-                    life:    12f,
+                    life:    lifetime,
                     bounces: bounces,
-                    maxRange: maxTravelRange);
+                    maxRange: maxTravelRange,
+                    stopAtMaxRange: stopAtMaxRange);
                 RegisterChunk(chunk);
             }
 
@@ -190,8 +193,18 @@ namespace BossSystem.Boss.FleshBoss
         public void StartAbsorbEffect()
         {
             if (absorbVFXPrefab != null)
+            {
                 absorbVFXInstance = Instantiate(absorbVFXPrefab, transform.position,
                                                 Quaternion.identity, transform);
+
+                var damageZone = absorbVFXInstance.GetComponent<FleshTrailZone>();
+                if (damageZone != null)
+                    damageZone.enabled = false;
+
+                var damageCollider = absorbVFXInstance.GetComponent<Collider2D>();
+                if (damageCollider != null)
+                    damageCollider.enabled = false;
+            }
         }
 
         public void StopAbsorbEffect()
