@@ -214,11 +214,6 @@ public class Enemy : MonoBehaviour
         _isChasingBeforeExplosion = false;
         Explode();
         rb.linearVelocity = Vector2.zero;
-        Destroy(gameObject, 1f);
-
-        Collider2D enemyCollider = GetComponent<Collider2D>();
-        if (enemyCollider != null)
-            enemyCollider.enabled = false;
     }
 
     public void Explode()
@@ -231,6 +226,8 @@ public class Enemy : MonoBehaviour
         _boom = EnemyPrefabController.Instance.GetPrefab(stats.attackType);
         var boom = Instantiate(_boom, transform.position, Quaternion.identity);
         Destroy(boom, 1f);
+        HideAfterExplosion();
+        Destroy(gameObject, 1f);
 
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
 
@@ -241,5 +238,14 @@ public class Enemy : MonoBehaviour
 
             Debug.Log($"[Enemy] 자폭 데미지 {stats.damage}");
         } 
+    }
+
+    private void HideAfterExplosion()
+    {
+        foreach (SpriteRenderer spriteRenderer in GetComponentsInChildren<SpriteRenderer>())
+            spriteRenderer.enabled = false;
+
+        foreach (Collider2D enemyCollider in GetComponentsInChildren<Collider2D>())
+            enemyCollider.enabled = false;
     }
 }
