@@ -24,8 +24,10 @@ public class ResearcherAttack : IAttack
         _enemy.AttackWarn();
         yield return new WaitForSeconds(_enemy.stats.durationWarning);
         
-        if (_enemy)
+        if (!_enemy)
             yield break;
+
+        _enemy.Animation?.Play(EnemyAnimationType.Attack);
         
         float angle = Mathf.Atan2(_enemy.GetVector2().y, _enemy.GetVector2().x) * Mathf.Rad2Deg;
         var bullet =Object.Instantiate

@@ -11,7 +11,8 @@ public class IdleState : IState
     
     public void Enter()
     {
-        
+        _enemy.rb.linearVelocity = Vector2.zero;
+        _enemy.Animation?.Play(EnemyAnimationType.Idle);
     }
 
     public void Update()

@@ -43,8 +43,12 @@ namespace BossSystem.Boss.FireBoss
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (other.GetComponent<GasCloud>() != null)
+            GasCloud gas = other.GetComponent<GasCloud>();
+            if (gas != null)
             {
+                if (!gas.IsSpread)
+                    return;
+
                 if (isGasTrigger && boss != null)
                     boss.TriggerGasExplosion(transform.position, boss.GetFireballSize() * 0.5f);
 

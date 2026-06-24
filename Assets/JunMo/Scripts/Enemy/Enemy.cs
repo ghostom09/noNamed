@@ -10,6 +10,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private EnemyGrade grade = EnemyGrade.Normal;
     [SerializeField] private GameObject eliteBorder;
     private IState _currentState;
+    public EnemyAnimation Animation { get; private set; }
     
     public IdleState IdleState;
     public MoveState MoveState;
@@ -39,6 +40,7 @@ public class Enemy : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        Animation = GetComponent<EnemyAnimation>();
         target = GameObject.Find("Player").transform;
         // OnDead?.Invoke(this);
     }
