@@ -229,8 +229,11 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
     private const string CombatHudPrefabPath = "Assets/ChaeWoon/Prefabs/UI/CombatHUDView.prefab";
     private const string BossHpBarPrefabPath = "Assets/ChaeWoon/Prefabs/UI/BossHpBarView.prefab";
     private const string StatUpgradePrefabPath = "Assets/ChaeWoon/Prefabs/UI/CharacterStatUpgradeUI.prefab";
+    private const string KoreanTmpFontPath = "Assets/ChaeWoon/Fonts/NotoSansKR-Regular SDF.asset";
+    private const string KoreanTmpFontName = "NotoSansKR-Regular SDF";
 
     private static RoomClearMutationRewardSystem rewardSystem;
+    private static TMP_FontAsset cachedKoreanTmpFont;
 
     private float _nextScanTime;
 
@@ -385,6 +388,7 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
         CharacterStatUpgradeUI statUi = EnsurePrefabUi<CharacterStatUpgradeUI>("CharacterStatUpgradeUI", StatUpgradePrefabPath, canvas.transform);
         MutationSelectUI mutationSelectUi = EnsureMutationSelectUi(canvas.transform);
         EnsureMutationDescriptionUi(canvas.transform);
+        GameOverController gameOverController = EnsureGameOverUi(canvas.transform);
 
         PlayerStatManager statManager = Object.FindAnyObjectByType<PlayerStatManager>(FindObjectsInactive.Include);
         if (statUi != null && statManager != null)
@@ -403,6 +407,12 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
         if (bossHpBar != null && activeBoss != null)
         {
             bossHpBar.SetBoss(activeBoss);
+        }
+
+        PlayerHealth playerHealth = Object.FindAnyObjectByType<PlayerHealth>(FindObjectsInactive.Include);
+        if (gameOverController != null && playerHealth != null)
+        {
+            gameOverController.SetPlayerHealth(playerHealth);
         }
     }
 
@@ -475,6 +485,40 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
 #else
         return null;
 #endif
+    }
+
+    private static GameOverController EnsureGameOverUi(Transform parent)
+    {
+        GameOverController existingController =
+            Object.FindAnyObjectByType<GameOverController>(FindObjectsInactive.Include);
+        if (existingController != null)
+            return existingController;
+
+        GameOverUI existingUi = Object.FindAnyObjectByType<GameOverUI>(FindObjectsInactive.Include);
+        if (existingUi != null)
+            return EnsureComponent<GameOverController>(existingUi.gameObject);
+
+        GameObject root = CreateUiObject("GameOverSystem", parent);
+
+        GameObject panel = CreateFullscreenPanel("GameOverPanel", root.transform, new Color(0f, 0f, 0f, 0.72f));
+        panel.AddComponent<CanvasGroup>();
+
+        GameObject dialog = CreatePanel("GameOverDialog", panel.transform, new Vector2(560f, 320f));
+        Image dialogImage = dialog.GetComponent<Image>();
+        if (dialogImage != null)
+            dialogImage.color = new Color(0.05f, 0.055f, 0.065f, 0.96f);
+
+        TextMeshProUGUI titleText = CreateText("GameOverTitle", dialog.transform, "\uAC8C\uC784 \uC624\uBC84", 54f);
+        RectTransform titleRect = titleText.rectTransform;
+        titleRect.sizeDelta = new Vector2(480f, 80f);
+        titleRect.anchoredPosition = new Vector2(0f, 82f);
+
+        CreateButton("RestartButton", dialog.transform, "\uB2E4\uC2DC \uC2DC\uC791", new Vector2(0f, -28f));
+        CreateButton("MainMenuButton", dialog.transform, "\uBA54\uC778 \uBA54\uB274", new Vector2(0f, -112f));
+
+        GameOverUI ui = root.AddComponent<GameOverUI>();
+        SetPrivateField(ui, "textFont", LoadKoreanTmpFont());
+        return root.AddComponent<GameOverController>();
     }
 
     private static MutationSelectUI EnsureMutationSelectUi(Transform parent)
@@ -576,6 +620,23 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
         return obj;
     }
 
+    private static GameObject CreateFullscreenPanel(string name, Transform parent, Color color)
+    {
+        GameObject panel = new(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        panel.transform.SetParent(parent, false);
+
+        RectTransform rect = panel.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        Image image = panel.GetComponent<Image>();
+        image.color = color;
+        image.raycastTarget = true;
+        return panel;
+    }
+
     private static GameObject CreatePanel(string name, Transform parent, Vector2 size)
     {
         GameObject panel = new(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
@@ -588,6 +649,33 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
         Image image = panel.GetComponent<Image>();
         image.color = new Color(0.04f, 0.04f, 0.04f, 0.92f);
         return panel;
+    }
+
+    private static Button CreateButton(string name, Transform parent, string labelText, Vector2 anchoredPosition)
+    {
+        GameObject buttonObject = new(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        buttonObject.transform.SetParent(parent, false);
+
+        RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
+        buttonRect.anchorMin = buttonRect.anchorMax = new Vector2(0.5f, 0.5f);
+        buttonRect.sizeDelta = new Vector2(340f, 58f);
+        buttonRect.anchoredPosition = anchoredPosition;
+
+        Image image = buttonObject.GetComponent<Image>();
+        image.color = new Color(0.92f, 0.94f, 0.98f, 1f);
+
+        Button button = buttonObject.GetComponent<Button>();
+        button.targetGraphic = image;
+
+        TextMeshProUGUI label = CreateText("Label", buttonObject.transform, labelText, 26f);
+        RectTransform labelRect = label.rectTransform;
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+        label.color = new Color(0.08f, 0.09f, 0.11f, 1f);
+
+        return button;
     }
 
     private static TextMeshProUGUI CreateText(string name, Transform parent, string text, float fontSize)
@@ -606,7 +694,37 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
         label.alignment = TextAlignmentOptions.Center;
         label.color = Color.white;
         label.raycastTarget = false;
+
+        TMP_FontAsset koreanFont = LoadKoreanTmpFont();
+        if (koreanFont != null)
+        {
+            label.font = koreanFont;
+        }
+
         return label;
+    }
+
+    private static TMP_FontAsset LoadKoreanTmpFont()
+    {
+        if (cachedKoreanTmpFont != null)
+            return cachedKoreanTmpFont;
+
+#if UNITY_EDITOR
+        cachedKoreanTmpFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(KoreanTmpFontPath);
+#endif
+        if (cachedKoreanTmpFont == null)
+        {
+            foreach (TMP_FontAsset fontAsset in Resources.FindObjectsOfTypeAll<TMP_FontAsset>())
+            {
+                if (fontAsset != null && fontAsset.name == KoreanTmpFontName)
+                {
+                    cachedKoreanTmpFont = fontAsset;
+                    break;
+                }
+            }
+        }
+
+        return cachedKoreanTmpFont;
     }
 
     private static BossBase FindActiveBoss()
