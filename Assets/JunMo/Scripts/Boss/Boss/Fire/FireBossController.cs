@@ -214,6 +214,11 @@ namespace BossSystem.Boss.FireBoss
             GameObject go = new GameObject("Fire Ring Telegraph");
             go.transform.SetParent(transform);
             go.transform.position = transform.position;
+            Vector3 bossScale = transform.lossyScale;
+            go.transform.localScale = new Vector3(
+                bossScale.x != 0f ? 1f / bossScale.x : 1f,
+                bossScale.y != 0f ? 1f / bossScale.y : 1f,
+                bossScale.z != 0f ? 1f / bossScale.z : 1f);
 
             LineRenderer line = go.AddComponent<LineRenderer>();
             SetupRingLine(line, innerRadius, innerRadius, new Color(1f, 0f, 0f, 0.45f), 2);

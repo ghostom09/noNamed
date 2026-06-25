@@ -153,6 +153,11 @@ namespace BossSystem.Boss.WaterBoss
             var pivot = new GameObject("WaterBeamPivot");
             pivot.transform.SetParent(transform);
             pivot.transform.localPosition = Vector3.zero;
+            Vector3 bossScale = transform.lossyScale;
+            pivot.transform.localScale = new Vector3(
+                bossScale.x != 0f ? 1f / bossScale.x : 1f,
+                bossScale.y != 0f ? 1f / bossScale.y : 1f,
+                bossScale.z != 0f ? 1f / bossScale.z : 1f);
             beamPivot = pivot.transform;
         }
 

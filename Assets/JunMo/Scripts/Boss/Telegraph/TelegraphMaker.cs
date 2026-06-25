@@ -14,7 +14,7 @@ public class TelegraphMaker
     {
         Telegraph telegraph = SpawnBase(telegraphPrefab, position, Quaternion.identity, data, onComplete, parent, duration);
         if (telegraph != null)
-            telegraph.transform.localScale = new Vector3(radius * 2f, radius * 2f, 1f);
+            SetWorldScale(telegraph.transform, new Vector3(radius * 2f, radius * 2f, 1f));
 
         return telegraph;
     }
@@ -79,5 +79,20 @@ public class TelegraphMaker
 
         telegraph.SpawnTelegraph(data, onComplete, duration);
         return telegraph;
+    }
+
+    private static void SetWorldScale(Transform target, Vector3 worldScale)
+    {
+        if (target.parent == null)
+        {
+            target.localScale = worldScale;
+            return;
+        }
+
+        Vector3 parentScale = target.parent.lossyScale;
+        target.localScale = new Vector3(
+            parentScale.x != 0f ? worldScale.x / parentScale.x : worldScale.x,
+            parentScale.y != 0f ? worldScale.y / parentScale.y : worldScale.y,
+            parentScale.z != 0f ? worldScale.z / parentScale.z : worldScale.z);
     }
 }
