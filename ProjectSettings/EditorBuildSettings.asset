@@ -15,6 +15,9 @@ EditorBuildSettings:
     path: Assets/Scenes/Jaeho_SkillTest.unity
     guid: 54a2f59d0d809f741ae6a2398ecb7473
   - enabled: 1
+    path: Assets/Scenes/chaewoon_test.unity
+    guid: 86370c6f9fd643d8b6b2c6916af61e67
+  - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
   m_configObjects:

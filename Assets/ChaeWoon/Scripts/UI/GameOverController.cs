@@ -1,7 +1,12 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+
+#if UNITY_EDITOR
+using UnityEditor.SceneManagement;
+#endif
 
 /// <summary>
 /// Subscribes to player death, shows the game over overlay, and locks gameplay input.
@@ -27,6 +32,7 @@ public class GameOverController : MonoBehaviour
     private readonly List<Behaviour> disabledBehaviours = new();
     private bool buttonsBound;
     private bool gameOverTriggered;
+    private bool sceneReloadInProgress;
 
     private void Awake()
     {
@@ -101,9 +107,19 @@ public class GameOverController : MonoBehaviour
 
     private void OnRestartClicked()
     {
-        ResumeTime();
+        if (sceneReloadInProgress)
+        {
+            return;
+        }
+
         Scene active = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(active.buildIndex);
+        if (!CanReloadScene(active))
+        {
+            Debug.LogError($"[GameOverController] Cannot reload scene '{GetSceneDisplayName(active)}'. Add it to Build Settings.", this);
+            return;
+        }
+
+        StartCoroutine(ReloadSceneAfterReset(active));
     }
 
     private void OnMainMenuClicked()
@@ -128,6 +144,109 @@ public class GameOverController : MonoBehaviour
         {
             Time.timeScale = 1f;
         }
+    }
+
+    private IEnumerator ReloadSceneAfterReset(Scene scene)
+    {
+        sceneReloadInProgress = true;
+        ResumeTimeForSceneReload();
+        ResetRestartState();
+        yield return null;
+
+        ReloadScene(scene);
+    }
+
+    private void ResumeTimeForSceneReload()
+    {
+        gameOverTriggered = false;
+
+        if (pauseOnGameOver)
+        {
+            Time.timeScale = 1f;
+        }
+    }
+
+    private void ResetRestartState()
+    {
+        RoomClearMutationRewardSystem.ResetRewardHistory();
+
+        // These scene managers are DontDestroyOnLoad singletons; remove them so the reloaded scene can rebuild the map.
+        DestroyInstances<FloorManager>();
+        DestroyInstances<RoomManager>();
+        DestroyInstances<RoomClearMutationRewardSystem>();
+    }
+
+    private void DestroyInstances<T>() where T : Component
+    {
+        foreach (T component in FindObjectsByType<T>(FindObjectsInactive.Include))
+        {
+            if (component != null)
+            {
+                Destroy(component.gameObject);
+            }
+        }
+    }
+
+    private static bool CanReloadScene(Scene scene)
+    {
+        if (scene.buildIndex >= 0 && Application.CanStreamedLevelBeLoaded(scene.buildIndex))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(scene.path) && Application.CanStreamedLevelBeLoaded(scene.path))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(scene.name) && Application.CanStreamedLevelBeLoaded(scene.name))
+        {
+            return true;
+        }
+
+#if UNITY_EDITOR
+        return !string.IsNullOrEmpty(scene.path);
+#else
+        return false;
+#endif
+    }
+
+    private void ReloadScene(Scene scene)
+    {
+        if (scene.buildIndex >= 0 && Application.CanStreamedLevelBeLoaded(scene.buildIndex))
+        {
+            SceneManager.LoadScene(scene.buildIndex, LoadSceneMode.Single);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(scene.path) && Application.CanStreamedLevelBeLoaded(scene.path))
+        {
+            SceneManager.LoadScene(scene.path, LoadSceneMode.Single);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(scene.name) && Application.CanStreamedLevelBeLoaded(scene.name))
+        {
+            SceneManager.LoadScene(scene.name, LoadSceneMode.Single);
+            return;
+        }
+
+#if UNITY_EDITOR
+        EditorSceneManager.LoadSceneInPlayMode(scene.path, new LoadSceneParameters(LoadSceneMode.Single));
+#else
+        Debug.LogError($"[GameOverController] Cannot reload scene '{GetSceneDisplayName(scene)}'. Add it to Build Settings.", this);
+        sceneReloadInProgress = false;
+#endif
+    }
+
+    private static string GetSceneDisplayName(Scene scene)
+    {
+        if (!string.IsNullOrEmpty(scene.path))
+        {
+            return scene.path;
+        }
+
+        return string.IsNullOrEmpty(scene.name) ? "<unnamed>" : scene.name;
     }
 
     private void HideCombatUi()
