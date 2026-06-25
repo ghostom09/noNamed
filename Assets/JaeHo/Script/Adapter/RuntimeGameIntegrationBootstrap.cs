@@ -236,6 +236,11 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
 
     public static void IntegrateScene()
     {
+        // 전투 콘텐츠(플레이어/보스/적)가 있는 씬에서만 전투 통합과 전투 UI를 주입한다.
+        // 캐릭터 선택/시작 메뉴 같은 비전투 씬에 전투 HUD가 붙는 문제를 방지한다.
+        if (!IsCombatScene())
+            return;
+
         EnsureRewardIntegration();
         EnsurePlayerIntegration();
         EnsureEnemyIntegration();
@@ -243,6 +248,13 @@ public sealed class RuntimeGameIntegrationRunner : MonoBehaviour
         EnsureRuntimeUi();
         EnsureInitialStatUiHidden();
         EnsureMutationPickupGuards();
+    }
+
+    private static bool IsCombatScene()
+    {
+        return FindPlayerRoot() != null
+            || Object.FindAnyObjectByType<BossBase>(FindObjectsInactive.Include) != null
+            || Object.FindAnyObjectByType<Enemy>(FindObjectsInactive.Include) != null;
     }
 
     private void Update()
