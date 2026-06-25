@@ -105,6 +105,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bdcec8c3781c48a79968acea85994167, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SilenceBullet
+  spriteAngleOffset: -90
   silenceDuration: 3
 --- !u!61 &-8785531790239070892
 BoxCollider2D:

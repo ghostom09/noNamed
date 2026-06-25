@@ -20,9 +20,9 @@ public class HomingBullet : BulletBase
 
         if (_target != null && _elapsed < _homingDuration)
         {
-            direction = ((Vector2)_target.position - (Vector2)transform.position).normalized;
-            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-            transform.rotation = Quaternion.Euler(0, 0, angle);
+            Vector2 targetDirection =
+                (Vector2)_target.position - (Vector2)transform.position;
+            SetDirection(targetDirection);
         }
 
         transform.Translate(speed * Time.deltaTime * direction, Space.World);

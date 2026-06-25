@@ -10,6 +10,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private EnemyGrade grade = EnemyGrade.Normal;
     [SerializeField] private GameObject eliteBorder;
     [SerializeField] private float eliteScaleMultiplier = 1.2f;
+    [SerializeField] private float eliteBorderScaleMultiplier = 1.08f;
     private IState _currentState;
     public EnemyAnimation Animation { get; private set; }
     
@@ -57,13 +58,15 @@ public class Enemy : MonoBehaviour
     {
         stats = Instantiate(stats);
 
-        if (eliteBorder != null)
-            eliteBorder.SetActive(grade == EnemyGrade.Elite);
-
         if (grade == EnemyGrade.Elite)
         {
             EliteEnemyModifier.Apply(stats);
             transform.localScale *= eliteScaleMultiplier;
+            CreateEliteBorder();
+        }
+        else if (eliteBorder != null)
+        {
+            eliteBorder.SetActive(false);
         }
 
         CurrentHealth = stats.maxHealth;
@@ -93,7 +96,12 @@ public class Enemy : MonoBehaviour
 
     private void UpdateFacingDirection()
     {
-        SetFacingDirection(rb.linearVelocity);
+        if (target == null)
+            return;
+
+        Vector2 directionToPlayer =
+            (Vector2)target.position - (Vector2)transform.position;
+        SetFacingDirection(directionToPlayer);
     }
 
     public void SetFacingDirection(Vector2 direction)
@@ -101,9 +109,9 @@ public class Enemy : MonoBehaviour
         if (stats == null || Mathf.Abs(direction.x) <= FacingDirectionThreshold)
             return;
 
-        bool isMovingRight = direction.x > 0f;
+        bool isFacingRight = direction.x > 0f;
         bool defaultFacesRight = stats.defaultFacing == EnemyDefaultFacing.Right;
-        bool shouldFlip = isMovingRight != defaultFacesRight;
+        bool shouldFlip = isFacingRight != defaultFacesRight;
 
         Vector3 localEulerAngles = transform.localEulerAngles;
         localEulerAngles.y = shouldFlip ? 180f : 0f;
@@ -184,6 +192,24 @@ public class Enemy : MonoBehaviour
     public void ResetAttackTimer()
     {
         _attackTime = 0f;
+    }
+
+    private void CreateEliteBorder()
+    {
+        if (eliteBorder != null)
+        {
+            eliteBorder.SetActive(false);
+        }
+
+        SpriteRenderer sourceRenderer = GetComponentInChildren<SpriteRenderer>();
+        if (sourceRenderer == null)
+        {
+            Debug.LogWarning($"{name}: Elite border requires a SpriteRenderer.", this);
+            return;
+        }
+
+        EliteBorderRenderer borderRenderer = gameObject.AddComponent<EliteBorderRenderer>();
+        borderRenderer.Initialize(sourceRenderer, eliteBorderScaleMultiplier);
     }
 
     public void TakeDamage(float damage)

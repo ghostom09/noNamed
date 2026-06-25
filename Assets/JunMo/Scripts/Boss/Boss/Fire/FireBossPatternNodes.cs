@@ -34,6 +34,7 @@ namespace BossSystem.Boss.FireBoss
         private Phase _phase       = Phase.Idle;
         private float _attackStart = 0f;
         private float _lastTick    = 0f;
+        private Vector2 _attackDirection = Vector2.up;
         public FlameBreathNode(BossBlackboard bb, FireBossController boss,
             float closeRange = 5f, float fanAngle = 90f,
             float damagePerSec = 30f, float duration = 2.5f,
@@ -62,15 +63,15 @@ namespace BossSystem.Boss.FireBoss
                     boss.SetExecutingPattern(true);
                     boss.SetTelegraphing(true);
 
-                    // 부채꼴: direction = 정규화방향 * fanAngle(도) → magnitude=각도로 전달
-                    Vector2 dir2D = new Vector2(
+                    // Lock the attack direction so the telegraph and damage area stay aligned.
+                    _attackDirection = new Vector2(
                         blackboard.DirectionToPlayer.x,
-                        blackboard.DirectionToPlayer.y).normalized * fanAngle;
+                        blackboard.DirectionToPlayer.y).normalized;
 
                     boss.SpawnTelegraph(attackData,
                         TelegraphShape.Sector,
                         radius: closeRange,
-                        direction: dir2D,
+                        direction: _attackDirection,
                         followBoss: true,
                         onComplete: OnTelegraphDone,
                         duration: telegraphDelay);
@@ -113,15 +114,16 @@ namespace BossSystem.Boss.FireBoss
             _lastTick    = Time.time;
             boss.SetTelegraphing(false);
             boss.PlayFlameBreathVFX(true);
+            ApplyFanDamage();
         }
 
         private void ApplyFanDamage()
         {
             var player = blackboard.PlayerTransform;
             if (player == null) return;
-            Vector3 toPlayer = player.position - boss.transform.position;
-            float angle = Vector2.Angle(boss.transform.up,
-                                        new Vector2(toPlayer.x, toPlayer.y));
+
+            Vector2 toPlayer = (Vector2)(player.position - boss.transform.position);
+            float angle = Vector2.Angle(_attackDirection, toPlayer);
             if (angle <= fanAngle * 0.5f && toPlayer.magnitude <= closeRange)
             {
                 FireBossController.ApplyDamageToPlayer(player.gameObject, damagePerSec * tickInterval);

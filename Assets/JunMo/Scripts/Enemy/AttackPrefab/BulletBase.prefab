@@ -105,6 +105,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e352d5d20f49b9c488489c88a7938e3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BulletBase
+  spriteAngleOffset: -90
 --- !u!61 &-7446797775889946561
 BoxCollider2D:
   m_ObjectHideFlags: 0
